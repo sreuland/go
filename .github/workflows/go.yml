@@ -25,6 +25,7 @@ jobs:
         key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-mod
     - uses: actions/cache@v2
+      if: ${{ github.ref != 'master' }}
       with:
         path: ~/.cache/go-build
         key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
@@ -53,6 +54,7 @@ jobs:
         key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-mod
     - uses: actions/cache@v2
+      if: ${{ github.ref != 'master' }}
       with:
         path: ~/.cache/go-build
         key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
@@ -109,6 +111,7 @@ jobs:
         key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-mod
     - uses: actions/cache@v2
+      if: ${{ github.ref != 'master' }}
       with:
         path: ~/.cache/go-build
         key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ matrix.pg }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
