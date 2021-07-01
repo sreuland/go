@@ -22,13 +22,13 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
-        key: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-mod
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-mod
     - uses: actions/cache@v2
       with:
         path: ~/.cache/go-build
-        key: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-all
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
+        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-all
     - run: ./gomod.sh
     - run: ./gofmt.sh
     - run: ./gogenerate.sh
@@ -50,13 +50,13 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
-        key: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-mod
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-mod
     - uses: actions/cache@v2
       with:
         path: ~/.cache/go-build
-        key: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-all
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
+        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-all
     - run: go build ./...
 
   test:
@@ -107,11 +107,11 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
-        key: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-mod
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-mod
     - uses: actions/cache@v2
       with:
         path: ~/.cache/go-build
-        key: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-${{ runner.os }}-go-all
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
+        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix }}-${{ github.ref }}-${{ runner.os }}-go-all
     - run: go test ${{ matrix.testopts }} ./...
