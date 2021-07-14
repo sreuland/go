@@ -123,10 +123,10 @@ type CaptiveCoreConfig struct {
 	// stored. We always append /captive-core to this directory, since we clean
 	// it up entirely on shutdown.
 	StoragePath string
-	// ReuseStorageDir determines if the storage dir in StoragePath should
+	// ReuseStoragePath determines if the storage dir in StoragePath should
 	// be reused between Stellar-Core executions. Defaults to false because of
 	// Stellar-Core 17.1.0 issue.
-	ReuseStorageDir bool
+	ReuseStoragePath bool
 }
 
 // NewCaptive returns a new CaptiveStellarCore instance.
@@ -261,7 +261,7 @@ func (c *CaptiveStellarCore) openOnlineReplaySubprocess(ctx context.Context, fro
 
 	runFrom, ledgerHash, err := c.runFromParams(ctx, from)
 	if err != nil {
-		return errors.Wrap(err, "error calculating ledger and hash for stelar-core run")
+		return errors.Wrap(err, "error calculating ledger and hash for stellar-core run")
 	}
 
 	err = c.stellarCoreRunner.runFrom(runFrom, ledgerHash)
