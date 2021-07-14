@@ -28,8 +28,10 @@ jobs:
       if: ${{ github.ref != 'master' }}
       with:
         path: ~/.cache/go-build
-        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ github.ref }}-${{ runner.os }}-go-all
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-all-${{ github.ref }}-${{ hashFiles('**', '!.git') }}
+        restore-keys: |
+          ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-all-${{ github.ref }}
+          ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-all
     - run: ./gomod.sh
     - run: ./gofmt.sh
     - run: ./gogenerate.sh
@@ -57,8 +59,10 @@ jobs:
       if: ${{ github.ref != 'master' }}
       with:
         path: ~/.cache/go-build
-        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ github.ref }}-${{ runner.os }}-go-all
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-all-${{ github.ref }}-${{ hashFiles('**', '!.git') }}
+        restore-keys: |
+          ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-all-${{ github.ref }}
+          ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ runner.os }}-go-all
     - run: go build ./...
 
   test:
@@ -114,6 +118,8 @@ jobs:
       if: ${{ github.ref != 'master' }}
       with:
         path: ~/.cache/go-build
-        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ matrix.pg }}-${{ github.ref }}-${{ runner.os }}-go-all-${{ hashFiles('**', '!.git') }}
-        restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ matrix.pg }}-${{ github.ref }}-${{ runner.os }}-go-all
+        key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ matrix.pg }}-${{ runner.os }}-go-all-${{ github.ref }}-${{ hashFiles('**', '!.git') }}
+        restore-keys: |
+          ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ matrix.pg }}-${{ runner.os }}-go-all-${{ github.ref }}
+          ${{ github.workflow }}-${{ github.job }}-${{ matrix.go }}-${{ matrix.pg }}-${{ runner.os }}-go-all
     - run: go test -race -cover ./...
