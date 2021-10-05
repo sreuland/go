@@ -49,6 +49,12 @@ namespace :xdr do
       language:   :go
     )
     compilation.compile
+    xdr_generated = IO.read("xdr/xdr_generated.go")
+    IO.write("xdr/xdr_generated.go", <<~EOS)
+      //lint:file-ignore S1005
+      //lint:file-ignore U1000
+      #{xdr_generated}
+    EOS
     system("gofmt -w xdr/xdr_generated.go")
   end
 end

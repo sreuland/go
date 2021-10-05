@@ -1,3 +1,5 @@
+//lint:file-ignore S1005
+//lint:file-ignore U1000
 // Package xdr is generated from:
 //
 //  xdr/Stellar-SCP.x
