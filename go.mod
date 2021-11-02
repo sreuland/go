@@ -84,3 +84,5 @@ require (
 	gopkg.in/square/go-jose.v2 v2.4.1
 	gopkg.in/tylerb/graceful.v1 v1.2.13
 )
+
+replace github.com/stellar/go-xdr => github.com/2opremio/go-xdr v0.0.0-20211102225120-4bdb08617068
