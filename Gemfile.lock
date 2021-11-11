@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/stellar/xdrgen.git
-  revision: 3f460aac62329e844b2da7b20e55521990d9e517
+  revision: b32b0420551a8dd76fbdbf5bf0cb9f2f94388a08
   ref: generate-decodefrom
   specs:
     xdrgen (0.1.1)

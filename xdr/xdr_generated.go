@@ -326,29 +326,29 @@ func (s *ScpNomination) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Votes = make([]Value, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Votes[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Votes = nil
+	if l > 0 {
+		s.Votes = make([]Value, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Votes[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
 	}
-	s.Accepted = make([]Value, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Accepted[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Accepted = nil
+	if l > 0 {
+		s.Accepted = make([]Value, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Accepted[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -1225,29 +1225,29 @@ func (s *ScpQuorumSet) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Validators = make([]NodeId, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Validators[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Validators = nil
+	if l > 0 {
+		s.Validators = make([]NodeId, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Validators[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
 	}
-	s.InnerSets = make([]ScpQuorumSet, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.InnerSets[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.InnerSets = nil
+	if l > 0 {
+		s.InnerSets = make([]ScpQuorumSet, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.InnerSets[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -3130,24 +3130,24 @@ func (s *AccountEntryExtensionV2) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.SignerSponsoringIDs = make([]SponsorshipDescriptor, l)
-	for i := uint32(0); i < l; i++ {
-		var eb bool
-		eb, _, err = d.DecodeBool()
-		if err != nil {
-			return err
-		}
-		s.SignerSponsoringIDs[i] = nil
-		if eb {
-			s.SignerSponsoringIDs[i] = new(AccountId)
-			err = s.SignerSponsoringIDs[i].DecodeFrom(d)
+	s.SignerSponsoringIDs = nil
+	if l > 0 {
+		s.SignerSponsoringIDs = make([]SponsorshipDescriptor, l)
+		for i := uint32(0); i < l; i++ {
+			var eb bool
+			eb, _, err = d.DecodeBool()
 			if err != nil {
 				return err
 			}
+			s.SignerSponsoringIDs[i] = nil
+			if eb {
+				s.SignerSponsoringIDs[i] = new(AccountId)
+				err = s.SignerSponsoringIDs[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Ext.DecodeFrom(d)
 	if err != nil {
@@ -3693,15 +3693,15 @@ func (s *AccountEntry) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Signers = make([]Signer, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Signers[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Signers = nil
+	if l > 0 {
+		s.Signers = make([]Signer, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Signers[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Ext.DecodeFrom(d)
 	if err != nil {
@@ -5729,15 +5729,15 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.AndPredicates) = make([]ClaimPredicate, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.AndPredicates)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.AndPredicates) = nil
+		if l > 0 {
+			(*u.AndPredicates) = make([]ClaimPredicate, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.AndPredicates)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case ClaimPredicateTypeClaimPredicateOr:
@@ -5747,15 +5747,15 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.OrPredicates) = make([]ClaimPredicate, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.OrPredicates)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.OrPredicates) = nil
+		if l > 0 {
+			(*u.OrPredicates) = make([]ClaimPredicate, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.OrPredicates)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case ClaimPredicateTypeClaimPredicateNot:
@@ -6779,15 +6779,15 @@ func (s *ClaimableBalanceEntry) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Claimants = make([]Claimant, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Claimants[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Claimants = nil
+	if l > 0 {
+		s.Claimants = make([]Claimant, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Claimants[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Asset.DecodeFrom(d)
 	if err != nil {
@@ -9319,15 +9319,15 @@ func (s *StellarValue) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Upgrades = make([]UpgradeType, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Upgrades[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Upgrades = nil
+	if l > 0 {
+		s.Upgrades = make([]UpgradeType, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Upgrades[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Ext.DecodeFrom(d)
 	if err != nil {
@@ -9949,9 +9949,6 @@ func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Ext.DecodeFrom(d)
 	if err != nil {
@@ -10957,15 +10954,15 @@ func (s *TransactionSet) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Txs = make([]TransactionEnvelope, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Txs[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Txs = nil
+	if l > 0 {
+		s.Txs = make([]TransactionEnvelope, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Txs[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -11101,15 +11098,15 @@ func (s *TransactionResultSet) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Results = make([]TransactionResultPair, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Results[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Results = nil
+	if l > 0 {
+		s.Results = make([]TransactionResultPair, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Results[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -11716,15 +11713,15 @@ func (s *LedgerScpMessages) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Messages = make([]ScpEnvelope, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Messages[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Messages = nil
+	if l > 0 {
+		s.Messages = make([]ScpEnvelope, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Messages[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -11799,15 +11796,15 @@ func (s *ScpHistoryEntryV0) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.QuorumSets = make([]ScpQuorumSet, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.QuorumSets[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.QuorumSets = nil
+	if l > 0 {
+		s.QuorumSets = make([]ScpQuorumSet, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.QuorumSets[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.LedgerMessages.DecodeFrom(d)
 	if err != nil {
@@ -12369,15 +12366,15 @@ func (s *LedgerEntryChanges) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	(*s) = make([]LedgerEntryChange, l)
-	for i := uint32(0); i < l; i++ {
-		err = (*s)[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	(*s) = nil
+	if l > 0 {
+		(*s) = make([]LedgerEntryChange, l)
+		for i := uint32(0); i < l; i++ {
+			err = (*s)[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -12513,15 +12510,15 @@ func (s *TransactionMetaV1) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Operations = make([]OperationMeta, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Operations[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Operations = nil
+	if l > 0 {
+		s.Operations = make([]OperationMeta, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Operations[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -12608,15 +12605,15 @@ func (s *TransactionMetaV2) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Operations = make([]OperationMeta, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Operations[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Operations = nil
+	if l > 0 {
+		s.Operations = make([]OperationMeta, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Operations[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.TxChangesAfter.DecodeFrom(d)
 	if err != nil {
@@ -12844,15 +12841,15 @@ func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Operations) = make([]OperationMeta, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Operations)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Operations) = nil
+		if l > 0 {
+			(*u.Operations) = make([]OperationMeta, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Operations)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case 1:
@@ -13140,43 +13137,43 @@ func (s *LedgerCloseMetaV0) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.TxProcessing = make([]TransactionResultMeta, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.TxProcessing[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.TxProcessing = nil
+	if l > 0 {
+		s.TxProcessing = make([]TransactionResultMeta, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.TxProcessing[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
 	}
-	s.UpgradesProcessing = make([]UpgradeEntryMeta, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.UpgradesProcessing[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.UpgradesProcessing = nil
+	if l > 0 {
+		s.UpgradesProcessing = make([]UpgradeEntryMeta, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.UpgradesProcessing[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
 	}
-	s.ScpInfo = make([]ScpHistoryEntry, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.ScpInfo[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.ScpInfo = nil
+	if l > 0 {
+		s.ScpInfo = make([]ScpHistoryEntry, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.ScpInfo[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -15006,15 +15003,15 @@ func (s *PeerStatList) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	(*s) = make([]PeerStats, l)
-	for i := uint32(0); i < l; i++ {
-		err = (*s)[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	(*s) = nil
+	if l > 0 {
+		(*s) = make([]PeerStats, l)
+		for i := uint32(0); i < l; i++ {
+			err = (*s)[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -15963,15 +15960,15 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Peers) = make([]PeerAddress, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Peers)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Peers) = nil
+		if l > 0 {
+			(*u.Peers) = make([]PeerAddress, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Peers)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case MessageTypeGetTxSet:
@@ -17109,15 +17106,15 @@ func (s *PathPaymentStrictReceiveOp) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Path = make([]Asset, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Path[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Path = nil
+	if l > 0 {
+		s.Path = make([]Asset, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Path[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -17240,15 +17237,15 @@ func (s *PathPaymentStrictSendOp) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Path = make([]Asset, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Path[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Path = nil
+	if l > 0 {
+		s.Path = make([]Asset, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Path[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -18425,15 +18422,15 @@ func (s *CreateClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Claimants = make([]Claimant, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Claimants[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Claimants = nil
+	if l > 0 {
+		s.Claimants = make([]Claimant, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Claimants[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -21661,15 +21658,15 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Operations = make([]Operation, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Operations[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Operations = nil
+	if l > 0 {
+		s.Operations = make([]Operation, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Operations[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Ext.DecodeFrom(d)
 	if err != nil {
@@ -21754,15 +21751,15 @@ func (s *TransactionV0Envelope) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Signatures = make([]DecoratedSignature, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Signatures[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Signatures = nil
+	if l > 0 {
+		s.Signatures = make([]DecoratedSignature, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Signatures[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -22010,15 +22007,15 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Operations = make([]Operation, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Operations[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Operations = nil
+	if l > 0 {
+		s.Operations = make([]Operation, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Operations[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Ext.DecodeFrom(d)
 	if err != nil {
@@ -22103,15 +22100,15 @@ func (s *TransactionV1Envelope) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Signatures = make([]DecoratedSignature, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Signatures[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Signatures = nil
+	if l > 0 {
+		s.Signatures = make([]DecoratedSignature, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Signatures[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -22511,15 +22508,15 @@ func (s *FeeBumpTransactionEnvelope) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Signatures = make([]DecoratedSignature, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Signatures[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Signatures = nil
+	if l > 0 {
+		s.Signatures = make([]DecoratedSignature, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Signatures[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -24323,15 +24320,15 @@ func (s *PathPaymentStrictReceiveResultSuccess) DecodeFrom(d *xdr.Decoder) error
 	if err != nil {
 		return err
 	}
-	s.Offers = make([]ClaimAtom, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Offers[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Offers = nil
+	if l > 0 {
+		s.Offers = make([]ClaimAtom, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Offers[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Last.DecodeFrom(d)
 	if err != nil {
@@ -24729,15 +24726,15 @@ func (s *PathPaymentStrictSendResultSuccess) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Offers = make([]ClaimAtom, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.Offers[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.Offers = nil
+	if l > 0 {
+		s.Offers = make([]ClaimAtom, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.Offers[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Last.DecodeFrom(d)
 	if err != nil {
@@ -25389,15 +25386,15 @@ func (s *ManageOfferSuccessResult) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.OffersClaimed = make([]ClaimAtom, l)
-	for i := uint32(0); i < l; i++ {
-		err = s.OffersClaimed[i].DecodeFrom(d)
-		if err != nil {
-			return err
+	s.OffersClaimed = nil
+	if l > 0 {
+		s.OffersClaimed = make([]ClaimAtom, l)
+		for i := uint32(0); i < l; i++ {
+			err = s.OffersClaimed[i].DecodeFrom(d)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	err = s.Offer.DecodeFrom(d)
 	if err != nil {
@@ -26964,15 +26961,15 @@ func (u *InflationResult) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Payouts) = make([]InflationPayout, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Payouts)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Payouts) = nil
+		if l > 0 {
+			(*u.Payouts) = make([]InflationPayout, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Payouts)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	default:
@@ -31287,15 +31284,15 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Results) = make([]OperationResult, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Results)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Results) = nil
+		if l > 0 {
+			(*u.Results) = make([]OperationResult, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Results)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case TransactionResultCodeTxFailed:
@@ -31305,15 +31302,15 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Results) = make([]OperationResult, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Results)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Results) = nil
+		if l > 0 {
+			(*u.Results) = make([]OperationResult, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Results)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case TransactionResultCodeTxTooEarly:
@@ -31859,15 +31856,15 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Results) = make([]OperationResult, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Results)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Results) = nil
+		if l > 0 {
+			(*u.Results) = make([]OperationResult, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Results)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	case TransactionResultCodeTxFailed:
@@ -31877,15 +31874,15 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
-		(*u.Results) = make([]OperationResult, l)
-		for i := uint32(0); i < l; i++ {
-			err = (*u.Results)[i].DecodeFrom(d)
-			if err != nil {
-				return err
+		(*u.Results) = nil
+		if l > 0 {
+			(*u.Results) = make([]OperationResult, l)
+			for i := uint32(0); i < l; i++ {
+				err = (*u.Results)[i].DecodeFrom(d)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 		return nil
 	default:

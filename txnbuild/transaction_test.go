@@ -1879,7 +1879,7 @@ func TestReadChallengeTx_invalidCorrupted(t *testing.T) {
 		t,
 		err,
 		"could not parse challenge: unable to unmarshal transaction envelope: "+
-			"xdr:decode: switch '68174086' is not valid enum value for union",
+			"Type (EnvelopeType) switch value '68174086' is not valid for union TransactionEnvelope",
 	)
 }
 
