@@ -237,7 +237,7 @@ func (e *ScpStatementType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := scpStatementTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ScpStatementType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ScpStatementType enum value", v)
 	}
 	*e = ScpStatementType(v)
 	return n, nil
@@ -968,7 +968,6 @@ func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch ScpStatementType(u.Type) {
 	case ScpStatementTypeScpStPrepare:
 		u.Prepare = new(ScpStatementPrepare)
-		var nTmp int
 		nTmp, err = (*u.Prepare).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -977,7 +976,6 @@ func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ScpStatementTypeScpStConfirm:
 		u.Confirm = new(ScpStatementConfirm)
-		var nTmp int
 		nTmp, err = (*u.Confirm).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -986,7 +984,6 @@ func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ScpStatementTypeScpStExternalize:
 		u.Externalize = new(ScpStatementExternalize)
-		var nTmp int
 		nTmp, err = (*u.Externalize).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -995,7 +992,6 @@ func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ScpStatementTypeScpStNominate:
 		u.Nominate = new(ScpNomination)
-		var nTmp int
 		nTmp, err = (*u.Nominate).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -2012,7 +2008,7 @@ func (e *AssetType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := assetTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of AssetType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid AssetType enum value", v)
 	}
 	*e = AssetType(v)
 	return n, nil
@@ -2187,7 +2183,6 @@ func (u *AssetCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch AssetType(u.Type) {
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AssetCode4 = new(AssetCode4)
-		var nTmp int
 		nTmp, err = (*u.AssetCode4).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -2196,7 +2191,6 @@ func (u *AssetCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AssetCode12 = new(AssetCode12)
-		var nTmp int
 		nTmp, err = (*u.AssetCode12).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -2530,7 +2524,6 @@ func (u *Asset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AlphaNum4 = new(AlphaNum4)
-		var nTmp int
 		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -2539,7 +2532,6 @@ func (u *Asset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
-		var nTmp int
 		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -2775,7 +2767,7 @@ func (e *ThresholdIndexes) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := thresholdIndexesMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ThresholdIndexes enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ThresholdIndexes enum value", v)
 	}
 	*e = ThresholdIndexes(v)
 	return n, nil
@@ -2870,7 +2862,7 @@ func (e *LedgerEntryType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := ledgerEntryTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LedgerEntryType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LedgerEntryType enum value", v)
 	}
 	*e = LedgerEntryType(v)
 	return n, nil
@@ -3040,7 +3032,7 @@ func (e *AccountFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := accountFlagsMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of AccountFlags enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid AccountFlags enum value", v)
 	}
 	*e = AccountFlags(v)
 	return n, nil
@@ -3439,7 +3431,6 @@ func (u *AccountEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 2:
 		u.V2 = new(AccountEntryExtensionV2)
-		var nTmp int
 		nTmp, err = (*u.V2).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -3664,7 +3655,6 @@ func (u *AccountEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 1:
 		u.V1 = new(AccountEntryExtensionV1)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -3974,7 +3964,7 @@ func (e *TrustLineFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := trustLineFlagsMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of TrustLineFlags enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid TrustLineFlags enum value", v)
 	}
 	*e = TrustLineFlags(v)
 	return n, nil
@@ -4072,7 +4062,7 @@ func (e *LiquidityPoolType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := liquidityPoolTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LiquidityPoolType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LiquidityPoolType enum value", v)
 	}
 	*e = LiquidityPoolType(v)
 	return n, nil
@@ -4302,7 +4292,6 @@ func (u *TrustLineAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AlphaNum4 = new(AlphaNum4)
-		var nTmp int
 		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -4311,7 +4300,6 @@ func (u *TrustLineAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
-		var nTmp int
 		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -4320,7 +4308,6 @@ func (u *TrustLineAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypePoolShare:
 		u.LiquidityPoolId = new(PoolId)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPoolId).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -4638,7 +4625,6 @@ func (u *TrustLineEntryV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 2:
 		u.V2 = new(TrustLineEntryExtensionV2)
-		var nTmp int
 		nTmp, err = (*u.V2).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -4875,7 +4861,6 @@ func (u *TrustLineEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 1:
 		u.V1 = new(TrustLineEntryV1)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -5099,7 +5084,7 @@ func (e *OfferEntryFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := offerEntryFlagsMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of OfferEntryFlags enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid OfferEntryFlags enum value", v)
 	}
 	*e = OfferEntryFlags(v)
 	return n, nil
@@ -5640,7 +5625,7 @@ func (e *ClaimPredicateType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := claimPredicateTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClaimPredicateType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClaimPredicateType enum value", v)
 	}
 	*e = ClaimPredicateType(v)
 	return n, nil
@@ -5974,7 +5959,6 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateAnd:
 		u.AndPredicates = new([]ClaimPredicate)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -5998,7 +5982,6 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateOr:
 		u.OrPredicates = new([]ClaimPredicate)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -6022,7 +6005,6 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateNot:
 		u.NotPredicate = new(*ClaimPredicate)
-		var nTmp int
 		var b bool
 		b, nTmp, err = d.DecodeBool()
 		n += nTmp
@@ -6041,7 +6023,6 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateBeforeAbsoluteTime:
 		u.AbsBefore = new(Int64)
-		var nTmp int
 		nTmp, err = (*u.AbsBefore).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -6050,7 +6031,6 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateBeforeRelativeTime:
 		u.RelBefore = new(Int64)
-		var nTmp int
 		nTmp, err = (*u.RelBefore).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -6135,7 +6115,7 @@ func (e *ClaimantType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := claimantTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClaimantType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClaimantType enum value", v)
 	}
 	*e = ClaimantType(v)
 	return n, nil
@@ -6340,7 +6320,6 @@ func (u *Claimant) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch ClaimantType(u.Type) {
 	case ClaimantTypeClaimantTypeV0:
 		u.V0 = new(ClaimantV0)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -6425,7 +6404,7 @@ func (e *ClaimableBalanceIdType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := claimableBalanceIdTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClaimableBalanceIdType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClaimableBalanceIdType enum value", v)
 	}
 	*e = ClaimableBalanceIdType(v)
 	return n, nil
@@ -6555,7 +6534,6 @@ func (u *ClaimableBalanceId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch ClaimableBalanceIdType(u.Type) {
 	case ClaimableBalanceIdTypeClaimableBalanceIdTypeV0:
 		u.V0 = new(Hash)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -6642,7 +6620,7 @@ func (e *ClaimableBalanceFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := claimableBalanceFlagsMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClaimableBalanceFlags enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClaimableBalanceFlags enum value", v)
 	}
 	*e = ClaimableBalanceFlags(v)
 	return n, nil
@@ -6961,7 +6939,6 @@ func (u *ClaimableBalanceEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 1:
 		u.V1 = new(ClaimableBalanceEntryExtensionV1)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -7435,7 +7412,6 @@ func (u *LiquidityPoolEntryBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch LiquidityPoolType(u.Type) {
 	case LiquidityPoolTypeLiquidityPoolConstantProduct:
 		u.ConstantProduct = new(LiquidityPoolEntryConstantProduct)
-		var nTmp int
 		nTmp, err = (*u.ConstantProduct).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8053,7 +8029,6 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch LedgerEntryType(u.Type) {
 	case LedgerEntryTypeAccount:
 		u.Account = new(AccountEntry)
-		var nTmp int
 		nTmp, err = (*u.Account).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8062,7 +8037,6 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeTrustline:
 		u.TrustLine = new(TrustLineEntry)
-		var nTmp int
 		nTmp, err = (*u.TrustLine).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8071,7 +8045,6 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeOffer:
 		u.Offer = new(OfferEntry)
-		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8080,7 +8053,6 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeData:
 		u.Data = new(DataEntry)
-		var nTmp int
 		nTmp, err = (*u.Data).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8089,7 +8061,6 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeClaimableBalance:
 		u.ClaimableBalance = new(ClaimableBalanceEntry)
-		var nTmp int
 		nTmp, err = (*u.ClaimableBalance).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8098,7 +8069,6 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeLiquidityPool:
 		u.LiquidityPool = new(LiquidityPoolEntry)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -8244,7 +8214,6 @@ func (u *LedgerEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 1:
 		u.V1 = new(LedgerEntryExtensionV1)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9115,7 +9084,6 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch LedgerEntryType(u.Type) {
 	case LedgerEntryTypeAccount:
 		u.Account = new(LedgerKeyAccount)
-		var nTmp int
 		nTmp, err = (*u.Account).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9124,7 +9092,6 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeTrustline:
 		u.TrustLine = new(LedgerKeyTrustLine)
-		var nTmp int
 		nTmp, err = (*u.TrustLine).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9133,7 +9100,6 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeOffer:
 		u.Offer = new(LedgerKeyOffer)
-		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9142,7 +9108,6 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeData:
 		u.Data = new(LedgerKeyData)
-		var nTmp int
 		nTmp, err = (*u.Data).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9151,7 +9116,6 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeClaimableBalance:
 		u.ClaimableBalance = new(LedgerKeyClaimableBalance)
-		var nTmp int
 		nTmp, err = (*u.ClaimableBalance).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9160,7 +9124,6 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryTypeLiquidityPool:
 		u.LiquidityPool = new(LedgerKeyLiquidityPool)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9266,7 +9229,7 @@ func (e *EnvelopeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := envelopeTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of EnvelopeType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid EnvelopeType enum value", v)
 	}
 	*e = EnvelopeType(v)
 	return n, nil
@@ -9409,7 +9372,7 @@ func (e *StellarValueType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := stellarValueTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of StellarValueType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid StellarValueType enum value", v)
 	}
 	*e = StellarValueType(v)
 	return n, nil
@@ -9621,7 +9584,6 @@ func (u *StellarValueExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case StellarValueTypeStellarValueSigned:
 		u.LcValueSignature = new(LedgerCloseValueSignature)
-		var nTmp int
 		nTmp, err = (*u.LcValueSignature).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -9850,7 +9812,7 @@ func (e *LedgerHeaderFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := ledgerHeaderFlagsMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LedgerHeaderFlags enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LedgerHeaderFlags enum value", v)
 	}
 	*e = LedgerHeaderFlags(v)
 	return n, nil
@@ -10163,7 +10125,6 @@ func (u *LedgerHeaderExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 1:
 		u.V1 = new(LedgerHeaderExtensionV1)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -10502,7 +10463,7 @@ func (e *LedgerUpgradeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := ledgerUpgradeTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LedgerUpgradeType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LedgerUpgradeType enum value", v)
 	}
 	*e = LedgerUpgradeType(v)
 	return n, nil
@@ -10800,7 +10761,6 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch LedgerUpgradeType(u.Type) {
 	case LedgerUpgradeTypeLedgerUpgradeVersion:
 		u.NewLedgerVersion = new(Uint32)
-		var nTmp int
 		nTmp, err = (*u.NewLedgerVersion).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -10809,7 +10769,6 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseFee:
 		u.NewBaseFee = new(Uint32)
-		var nTmp int
 		nTmp, err = (*u.NewBaseFee).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -10818,7 +10777,6 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize:
 		u.NewMaxTxSetSize = new(Uint32)
-		var nTmp int
 		nTmp, err = (*u.NewMaxTxSetSize).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -10827,7 +10785,6 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		u.NewBaseReserve = new(Uint32)
-		var nTmp int
 		nTmp, err = (*u.NewBaseReserve).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -10836,7 +10793,6 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		u.NewFlags = new(Uint32)
-		var nTmp int
 		nTmp, err = (*u.NewFlags).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -10932,7 +10888,7 @@ func (e *BucketEntryType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := bucketEntryTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of BucketEntryType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid BucketEntryType enum value", v)
 	}
 	*e = BucketEntryType(v)
 	return n, nil
@@ -11336,7 +11292,6 @@ func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch BucketEntryType(u.Type) {
 	case BucketEntryTypeLiveentry:
 		u.LiveEntry = new(LedgerEntry)
-		var nTmp int
 		nTmp, err = (*u.LiveEntry).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -11345,7 +11300,6 @@ func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case BucketEntryTypeInitentry:
 		u.LiveEntry = new(LedgerEntry)
-		var nTmp int
 		nTmp, err = (*u.LiveEntry).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -11354,7 +11308,6 @@ func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case BucketEntryTypeDeadentry:
 		u.DeadEntry = new(LedgerKey)
-		var nTmp int
 		nTmp, err = (*u.DeadEntry).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -11363,7 +11316,6 @@ func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case BucketEntryTypeMetaentry:
 		u.MetaEntry = new(BucketMetadata)
-		var nTmp int
 		nTmp, err = (*u.MetaEntry).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -12478,7 +12430,6 @@ func (u *ScpHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch int32(u.V) {
 	case 0:
 		u.V0 = new(ScpHistoryEntryV0)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -12572,7 +12523,7 @@ func (e *LedgerEntryChangeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := ledgerEntryChangeTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LedgerEntryChangeType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LedgerEntryChangeType enum value", v)
 	}
 	*e = LedgerEntryChangeType(v)
 	return n, nil
@@ -12828,7 +12779,6 @@ func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch LedgerEntryChangeType(u.Type) {
 	case LedgerEntryChangeTypeLedgerEntryCreated:
 		u.Created = new(LedgerEntry)
-		var nTmp int
 		nTmp, err = (*u.Created).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -12837,7 +12787,6 @@ func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryUpdated:
 		u.Updated = new(LedgerEntry)
-		var nTmp int
 		nTmp, err = (*u.Updated).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -12846,7 +12795,6 @@ func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryRemoved:
 		u.Removed = new(LedgerKey)
-		var nTmp int
 		nTmp, err = (*u.Removed).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -12855,7 +12803,6 @@ func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryState:
 		u.State = new(LedgerEntry)
-		var nTmp int
 		nTmp, err = (*u.State).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -13416,7 +13363,6 @@ func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch int32(u.V) {
 	case 0:
 		u.Operations = new([]OperationMeta)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -13437,7 +13383,6 @@ func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 1:
 		u.V1 = new(TransactionMetaV1)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -13446,7 +13391,6 @@ func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case 2:
 		u.V2 = new(TransactionMetaV2)
-		var nTmp int
 		nTmp, err = (*u.V2).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -13908,7 +13852,6 @@ func (u *LedgerCloseMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch int32(u.V) {
 	case 0:
 		u.V0 = new(LedgerCloseMetaV0)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -14005,7 +13948,7 @@ func (e *ErrorCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := errorCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ErrorCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ErrorCode enum value", v)
 	}
 	*e = ErrorCode(v)
 	return n, nil
@@ -14451,7 +14394,7 @@ func (e *IpAddrType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := ipAddrTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of IpAddrType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid IpAddrType enum value", v)
 	}
 	*e = IpAddrType(v)
 	return n, nil
@@ -14623,7 +14566,6 @@ func (u *PeerAddressIp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch IpAddrType(u.Type) {
 	case IpAddrTypeIPv4:
 		u.Ipv4 = new([4]byte)
-		var nTmp int
 		nTmp, err = d.DecodeFixedOpaqueInplace((*u.Ipv4)[:])
 		n += nTmp
 		if err != nil {
@@ -14632,7 +14574,6 @@ func (u *PeerAddressIp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case IpAddrTypeIPv6:
 		u.Ipv6 = new([16]byte)
-		var nTmp int
 		nTmp, err = d.DecodeFixedOpaqueInplace((*u.Ipv6)[:])
 		n += nTmp
 		if err != nil {
@@ -14856,7 +14797,7 @@ func (e *MessageType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := messageTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of MessageType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid MessageType enum value", v)
 	}
 	*e = MessageType(v)
 	return n, nil
@@ -15007,7 +14948,7 @@ func (e *SurveyMessageCommandType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := surveyMessageCommandTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of SurveyMessageCommandType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid SurveyMessageCommandType enum value", v)
 	}
 	*e = SurveyMessageCommandType(v)
 	return n, nil
@@ -15941,7 +15882,6 @@ func (u *SurveyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch SurveyMessageCommandType(u.Type) {
 	case SurveyMessageCommandTypeSurveyTopology:
 		u.TopologyResponseBody = new(TopologyResponseBody)
-		var nTmp int
 		nTmp, err = (*u.TopologyResponseBody).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16645,7 +16585,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch MessageType(u.Type) {
 	case MessageTypeErrorMsg:
 		u.Error = new(Error)
-		var nTmp int
 		nTmp, err = (*u.Error).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16654,7 +16593,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeHello:
 		u.Hello = new(Hello)
-		var nTmp int
 		nTmp, err = (*u.Hello).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16663,7 +16601,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeAuth:
 		u.Auth = new(Auth)
-		var nTmp int
 		nTmp, err = (*u.Auth).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16672,7 +16609,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeDontHave:
 		u.DontHave = new(DontHave)
-		var nTmp int
 		nTmp, err = (*u.DontHave).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16684,7 +16620,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypePeers:
 		u.Peers = new([]PeerAddress)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -16708,7 +16643,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeGetTxSet:
 		u.TxSetHash = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.TxSetHash).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16717,7 +16651,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeTxSet:
 		u.TxSet = new(TransactionSet)
-		var nTmp int
 		nTmp, err = (*u.TxSet).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16726,7 +16659,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeTransaction:
 		u.Transaction = new(TransactionEnvelope)
-		var nTmp int
 		nTmp, err = (*u.Transaction).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16735,7 +16667,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeSurveyRequest:
 		u.SignedSurveyRequestMessage = new(SignedSurveyRequestMessage)
-		var nTmp int
 		nTmp, err = (*u.SignedSurveyRequestMessage).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16744,7 +16675,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeSurveyResponse:
 		u.SignedSurveyResponseMessage = new(SignedSurveyResponseMessage)
-		var nTmp int
 		nTmp, err = (*u.SignedSurveyResponseMessage).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16753,7 +16683,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeGetScpQuorumset:
 		u.QSetHash = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.QSetHash).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16762,7 +16691,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeScpQuorumset:
 		u.QSet = new(ScpQuorumSet)
-		var nTmp int
 		nTmp, err = (*u.QSet).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16771,7 +16699,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeScpMessage:
 		u.Envelope = new(ScpEnvelope)
-		var nTmp int
 		nTmp, err = (*u.Envelope).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -16780,7 +16707,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MessageTypeGetScpState:
 		u.GetScpLedgerSeq = new(Uint32)
-		var nTmp int
 		nTmp, err = (*u.GetScpLedgerSeq).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -17002,7 +16928,6 @@ func (u *AuthenticatedMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch Uint32(u.V) {
 	case 0:
 		u.V0 = new(AuthenticatedMessageV0)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -17137,7 +17062,6 @@ func (u *LiquidityPoolParameters) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch LiquidityPoolType(u.Type) {
 	case LiquidityPoolTypeLiquidityPoolConstantProduct:
 		u.ConstantProduct = new(LiquidityPoolConstantProductParameters)
-		var nTmp int
 		nTmp, err = (*u.ConstantProduct).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -17389,7 +17313,6 @@ func (u *MuxedAccount) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch CryptoKeyType(u.Type) {
 	case CryptoKeyTypeKeyTypeEd25519:
 		u.Ed25519 = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.Ed25519).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -17398,7 +17321,6 @@ func (u *MuxedAccount) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case CryptoKeyTypeKeyTypeMuxedEd25519:
 		u.Med25519 = new(MuxedAccountMed25519)
-		var nTmp int
 		nTmp, err = (*u.Med25519).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -17623,7 +17545,7 @@ func (e *OperationType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := operationTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of OperationType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid OperationType enum value", v)
 	}
 	*e = OperationType(v)
 	return n, nil
@@ -18889,7 +18811,6 @@ func (u *ChangeTrustAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AlphaNum4 = new(AlphaNum4)
-		var nTmp int
 		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -18898,7 +18819,6 @@ func (u *ChangeTrustAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
-		var nTmp int
 		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -18907,7 +18827,6 @@ func (u *ChangeTrustAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case AssetTypeAssetTypePoolShare:
 		u.LiquidityPool = new(LiquidityPoolParameters)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -19525,7 +19444,7 @@ func (e *RevokeSponsorshipType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := revokeSponsorshipTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of RevokeSponsorshipType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid RevokeSponsorshipType enum value", v)
 	}
 	*e = RevokeSponsorshipType(v)
 	return n, nil
@@ -19772,7 +19691,6 @@ func (u *RevokeSponsorshipOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch RevokeSponsorshipType(u.Type) {
 	case RevokeSponsorshipTypeRevokeSponsorshipLedgerEntry:
 		u.LedgerKey = new(LedgerKey)
-		var nTmp int
 		nTmp, err = (*u.LedgerKey).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -19781,7 +19699,6 @@ func (u *RevokeSponsorshipOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case RevokeSponsorshipTypeRevokeSponsorshipSigner:
 		u.Signer = new(RevokeSponsorshipOpSigner)
-		var nTmp int
 		nTmp, err = (*u.Signer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21253,7 +21170,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch OperationType(u.Type) {
 	case OperationTypeCreateAccount:
 		u.CreateAccountOp = new(CreateAccountOp)
-		var nTmp int
 		nTmp, err = (*u.CreateAccountOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21262,7 +21178,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypePayment:
 		u.PaymentOp = new(PaymentOp)
-		var nTmp int
 		nTmp, err = (*u.PaymentOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21271,7 +21186,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypePathPaymentStrictReceive:
 		u.PathPaymentStrictReceiveOp = new(PathPaymentStrictReceiveOp)
-		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictReceiveOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21280,7 +21194,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeManageSellOffer:
 		u.ManageSellOfferOp = new(ManageSellOfferOp)
-		var nTmp int
 		nTmp, err = (*u.ManageSellOfferOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21289,7 +21202,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeCreatePassiveSellOffer:
 		u.CreatePassiveSellOfferOp = new(CreatePassiveSellOfferOp)
-		var nTmp int
 		nTmp, err = (*u.CreatePassiveSellOfferOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21298,7 +21210,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeSetOptions:
 		u.SetOptionsOp = new(SetOptionsOp)
-		var nTmp int
 		nTmp, err = (*u.SetOptionsOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21307,7 +21218,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeChangeTrust:
 		u.ChangeTrustOp = new(ChangeTrustOp)
-		var nTmp int
 		nTmp, err = (*u.ChangeTrustOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21316,7 +21226,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeAllowTrust:
 		u.AllowTrustOp = new(AllowTrustOp)
-		var nTmp int
 		nTmp, err = (*u.AllowTrustOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21325,7 +21234,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeAccountMerge:
 		u.Destination = new(MuxedAccount)
-		var nTmp int
 		nTmp, err = (*u.Destination).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21337,7 +21245,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeManageData:
 		u.ManageDataOp = new(ManageDataOp)
-		var nTmp int
 		nTmp, err = (*u.ManageDataOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21346,7 +21253,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeBumpSequence:
 		u.BumpSequenceOp = new(BumpSequenceOp)
-		var nTmp int
 		nTmp, err = (*u.BumpSequenceOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21355,7 +21261,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeManageBuyOffer:
 		u.ManageBuyOfferOp = new(ManageBuyOfferOp)
-		var nTmp int
 		nTmp, err = (*u.ManageBuyOfferOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21364,7 +21269,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypePathPaymentStrictSend:
 		u.PathPaymentStrictSendOp = new(PathPaymentStrictSendOp)
-		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictSendOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21373,7 +21277,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeCreateClaimableBalance:
 		u.CreateClaimableBalanceOp = new(CreateClaimableBalanceOp)
-		var nTmp int
 		nTmp, err = (*u.CreateClaimableBalanceOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21382,7 +21285,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeClaimClaimableBalance:
 		u.ClaimClaimableBalanceOp = new(ClaimClaimableBalanceOp)
-		var nTmp int
 		nTmp, err = (*u.ClaimClaimableBalanceOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21391,7 +21293,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeBeginSponsoringFutureReserves:
 		u.BeginSponsoringFutureReservesOp = new(BeginSponsoringFutureReservesOp)
-		var nTmp int
 		nTmp, err = (*u.BeginSponsoringFutureReservesOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21403,7 +21304,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeRevokeSponsorship:
 		u.RevokeSponsorshipOp = new(RevokeSponsorshipOp)
-		var nTmp int
 		nTmp, err = (*u.RevokeSponsorshipOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21412,7 +21312,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeClawback:
 		u.ClawbackOp = new(ClawbackOp)
-		var nTmp int
 		nTmp, err = (*u.ClawbackOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21421,7 +21320,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeClawbackClaimableBalance:
 		u.ClawbackClaimableBalanceOp = new(ClawbackClaimableBalanceOp)
-		var nTmp int
 		nTmp, err = (*u.ClawbackClaimableBalanceOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21430,7 +21328,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeSetTrustLineFlags:
 		u.SetTrustLineFlagsOp = new(SetTrustLineFlagsOp)
-		var nTmp int
 		nTmp, err = (*u.SetTrustLineFlagsOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21439,7 +21336,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeLiquidityPoolDeposit:
 		u.LiquidityPoolDepositOp = new(LiquidityPoolDepositOp)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPoolDepositOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21448,7 +21344,6 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeLiquidityPoolWithdraw:
 		u.LiquidityPoolWithdrawOp = new(LiquidityPoolWithdrawOp)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPoolWithdrawOp).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21965,7 +21860,6 @@ func (u *HashIdPreimage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeOpId:
 		u.OperationId = new(HashIdPreimageOperationId)
-		var nTmp int
 		nTmp, err = (*u.OperationId).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -21974,7 +21868,6 @@ func (u *HashIdPreimage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case EnvelopeTypeEnvelopeTypePoolRevokeOpId:
 		u.RevokeId = new(HashIdPreimageRevokeId)
-		var nTmp int
 		nTmp, err = (*u.RevokeId).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -22071,7 +21964,7 @@ func (e *MemoType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := memoTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of MemoType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid MemoType enum value", v)
 	}
 	*e = MemoType(v)
 	return n, nil
@@ -22338,7 +22231,6 @@ func (u *Memo) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MemoTypeMemoText:
 		u.Text = new(string)
-		var nTmp int
 		(*u.Text), nTmp, err = d.DecodeString(28)
 		n += nTmp
 		if err != nil {
@@ -22347,7 +22239,6 @@ func (u *Memo) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MemoTypeMemoId:
 		u.Id = new(Uint64)
-		var nTmp int
 		nTmp, err = (*u.Id).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -22356,7 +22247,6 @@ func (u *Memo) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MemoTypeMemoHash:
 		u.Hash = new(Hash)
-		var nTmp int
 		nTmp, err = (*u.Hash).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -22365,7 +22255,6 @@ func (u *Memo) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case MemoTypeMemoReturn:
 		u.RetHash = new(Hash)
-		var nTmp int
 		nTmp, err = (*u.RetHash).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -23314,7 +23203,6 @@ func (u *FeeBumpTransactionInnerTx) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.V1 = new(TransactionV1Envelope)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -23828,7 +23716,6 @@ func (u *TransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeTxV0:
 		u.V0 = new(TransactionV0Envelope)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -23837,7 +23724,6 @@ func (u *TransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.V1 = new(TransactionV1Envelope)
-		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -23846,7 +23732,6 @@ func (u *TransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case EnvelopeTypeEnvelopeTypeTxFeeBump:
 		u.FeeBump = new(FeeBumpTransactionEnvelope)
-		var nTmp int
 		nTmp, err = (*u.FeeBump).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -24024,7 +23909,6 @@ func (u *TransactionSignaturePayloadTaggedTransaction) DecodeFrom(d *xdr.Decoder
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.Tx = new(Transaction)
-		var nTmp int
 		nTmp, err = (*u.Tx).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -24033,7 +23917,6 @@ func (u *TransactionSignaturePayloadTaggedTransaction) DecodeFrom(d *xdr.Decoder
 		return n, nil
 	case EnvelopeTypeEnvelopeTypeTxFeeBump:
 		u.FeeBump = new(FeeBumpTransaction)
-		var nTmp int
 		nTmp, err = (*u.FeeBump).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -24203,7 +24086,7 @@ func (e *ClaimAtomType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := claimAtomTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClaimAtomType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClaimAtomType enum value", v)
 	}
 	*e = ClaimAtomType(v)
 	return n, nil
@@ -24765,7 +24648,6 @@ func (u *ClaimAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch ClaimAtomType(u.Type) {
 	case ClaimAtomTypeClaimAtomTypeV0:
 		u.V0 = new(ClaimOfferAtomV0)
-		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -24774,7 +24656,6 @@ func (u *ClaimAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimAtomTypeClaimAtomTypeOrderBook:
 		u.OrderBook = new(ClaimOfferAtom)
-		var nTmp int
 		nTmp, err = (*u.OrderBook).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -24783,7 +24664,6 @@ func (u *ClaimAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case ClaimAtomTypeClaimAtomTypeLiquidityPool:
 		u.LiquidityPool = new(ClaimLiquidityAtom)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -24884,7 +24764,7 @@ func (e *CreateAccountResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := createAccountResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of CreateAccountResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid CreateAccountResultCode enum value", v)
 	}
 	*e = CreateAccountResultCode(v)
 	return n, nil
@@ -25098,7 +24978,7 @@ func (e *PaymentResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := paymentResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of PaymentResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid PaymentResultCode enum value", v)
 	}
 	*e = PaymentResultCode(v)
 	return n, nil
@@ -25330,7 +25210,7 @@ func (e *PathPaymentStrictReceiveResultCode) DecodeFrom(d *xdr.Decoder) (int, er
 		return n, err
 	}
 	if _, ok := pathPaymentStrictReceiveResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of PathPaymentStrictReceiveResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid PathPaymentStrictReceiveResultCode enum value", v)
 	}
 	*e = PathPaymentStrictReceiveResultCode(v)
 	return n, nil
@@ -25688,7 +25568,6 @@ func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error)
 	switch PathPaymentStrictReceiveResultCode(u.Code) {
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSuccess:
 		u.Success = new(PathPaymentStrictReceiveResultSuccess)
-		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -25697,7 +25576,6 @@ func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error)
 		return n, nil
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		u.NoIssuer = new(Asset)
-		var nTmp int
 		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -25831,7 +25709,7 @@ func (e *PathPaymentStrictSendResultCode) DecodeFrom(d *xdr.Decoder) (int, error
 		return n, err
 	}
 	if _, ok := pathPaymentStrictSendResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of PathPaymentStrictSendResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid PathPaymentStrictSendResultCode enum value", v)
 	}
 	*e = PathPaymentStrictSendResultCode(v)
 	return n, nil
@@ -26106,7 +25984,6 @@ func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch PathPaymentStrictSendResultCode(u.Code) {
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendSuccess:
 		u.Success = new(PathPaymentStrictSendResultSuccess)
-		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -26115,7 +25992,6 @@ func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		u.NoIssuer = new(Asset)
-		var nTmp int
 		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -26248,7 +26124,7 @@ func (e *ManageSellOfferResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := manageSellOfferResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ManageSellOfferResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ManageSellOfferResultCode enum value", v)
 	}
 	*e = ManageSellOfferResultCode(v)
 	return n, nil
@@ -26334,7 +26210,7 @@ func (e *ManageOfferEffect) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := manageOfferEffectMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ManageOfferEffect enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ManageOfferEffect enum value", v)
 	}
 	*e = ManageOfferEffect(v)
 	return n, nil
@@ -26486,7 +26362,6 @@ func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) (int, error) 
 	switch ManageOfferEffect(u.Effect) {
 	case ManageOfferEffectManageOfferCreated:
 		u.Offer = new(OfferEntry)
-		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -26495,7 +26370,6 @@ func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) (int, error) 
 		return n, nil
 	case ManageOfferEffectManageOfferUpdated:
 		u.Offer = new(OfferEntry)
-		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -26741,7 +26615,6 @@ func (u *ManageSellOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch ManageSellOfferResultCode(u.Code) {
 	case ManageSellOfferResultCodeManageSellOfferSuccess:
 		u.Success = new(ManageOfferSuccessResult)
-		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -26871,7 +26744,7 @@ func (e *ManageBuyOfferResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := manageBuyOfferResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ManageBuyOfferResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ManageBuyOfferResultCode enum value", v)
 	}
 	*e = ManageBuyOfferResultCode(v)
 	return n, nil
@@ -27008,7 +26881,6 @@ func (u *ManageBuyOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch ManageBuyOfferResultCode(u.Code) {
 	case ManageBuyOfferResultCodeManageBuyOfferSuccess:
 		u.Success = new(ManageOfferSuccessResult)
-		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -27128,7 +27000,7 @@ func (e *SetOptionsResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := setOptionsResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of SetOptionsResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid SetOptionsResultCode enum value", v)
 	}
 	*e = SetOptionsResultCode(v)
 	return n, nil
@@ -27340,7 +27212,7 @@ func (e *ChangeTrustResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := changeTrustResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ChangeTrustResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ChangeTrustResultCode enum value", v)
 	}
 	*e = ChangeTrustResultCode(v)
 	return n, nil
@@ -27546,7 +27418,7 @@ func (e *AllowTrustResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := allowTrustResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of AllowTrustResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid AllowTrustResultCode enum value", v)
 	}
 	*e = AllowTrustResultCode(v)
 	return n, nil
@@ -27754,7 +27626,7 @@ func (e *AccountMergeResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := accountMergeResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of AccountMergeResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid AccountMergeResultCode enum value", v)
 	}
 	*e = AccountMergeResultCode(v)
 	return n, nil
@@ -27891,7 +27763,6 @@ func (u *AccountMergeResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch AccountMergeResultCode(u.Code) {
 	case AccountMergeResultCodeAccountMergeSuccess:
 		u.SourceAccountBalance = new(Int64)
-		var nTmp int
 		nTmp, err = (*u.SourceAccountBalance).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -27983,7 +27854,7 @@ func (e *InflationResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := inflationResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of InflationResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid InflationResultCode enum value", v)
 	}
 	*e = InflationResultCode(v)
 	return n, nil
@@ -28200,7 +28071,6 @@ func (u *InflationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch InflationResultCode(u.Code) {
 	case InflationResultCodeInflationSuccess:
 		u.Payouts = new([]InflationPayout)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -28315,7 +28185,7 @@ func (e *ManageDataResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := manageDataResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ManageDataResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ManageDataResultCode enum value", v)
 	}
 	*e = ManageDataResultCode(v)
 	return n, nil
@@ -28504,7 +28374,7 @@ func (e *BumpSequenceResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := bumpSequenceResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of BumpSequenceResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid BumpSequenceResultCode enum value", v)
 	}
 	*e = BumpSequenceResultCode(v)
 	return n, nil
@@ -28703,7 +28573,7 @@ func (e *CreateClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, erro
 		return n, err
 	}
 	if _, ok := createClaimableBalanceResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of CreateClaimableBalanceResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid CreateClaimableBalanceResultCode enum value", v)
 	}
 	*e = CreateClaimableBalanceResultCode(v)
 	return n, nil
@@ -28841,7 +28711,6 @@ func (u *CreateClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch CreateClaimableBalanceResultCode(u.Code) {
 	case CreateClaimableBalanceResultCodeCreateClaimableBalanceSuccess:
 		u.BalanceId = new(ClaimableBalanceId)
-		var nTmp int
 		nTmp, err = (*u.BalanceId).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -28944,7 +28813,7 @@ func (e *ClaimClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, error
 		return n, err
 	}
 	if _, ok := claimClaimableBalanceResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClaimClaimableBalanceResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClaimClaimableBalanceResultCode enum value", v)
 	}
 	*e = ClaimClaimableBalanceResultCode(v)
 	return n, nil
@@ -29140,7 +29009,7 @@ func (e *BeginSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) (in
 		return n, err
 	}
 	if _, ok := beginSponsoringFutureReservesResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of BeginSponsoringFutureReservesResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid BeginSponsoringFutureReservesResultCode enum value", v)
 	}
 	*e = BeginSponsoringFutureReservesResultCode(v)
 	return n, nil
@@ -29331,7 +29200,7 @@ func (e *EndSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) (int,
 		return n, err
 	}
 	if _, ok := endSponsoringFutureReservesResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of EndSponsoringFutureReservesResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid EndSponsoringFutureReservesResultCode enum value", v)
 	}
 	*e = EndSponsoringFutureReservesResultCode(v)
 	return n, nil
@@ -29534,7 +29403,7 @@ func (e *RevokeSponsorshipResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := revokeSponsorshipResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of RevokeSponsorshipResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid RevokeSponsorshipResultCode enum value", v)
 	}
 	*e = RevokeSponsorshipResultCode(v)
 	return n, nil
@@ -29733,7 +29602,7 @@ func (e *ClawbackResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := clawbackResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClawbackResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClawbackResultCode enum value", v)
 	}
 	*e = ClawbackResultCode(v)
 	return n, nil
@@ -29929,7 +29798,7 @@ func (e *ClawbackClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, er
 		return n, err
 	}
 	if _, ok := clawbackClaimableBalanceResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of ClawbackClaimableBalanceResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid ClawbackClaimableBalanceResultCode enum value", v)
 	}
 	*e = ClawbackClaimableBalanceResultCode(v)
 	return n, nil
@@ -30133,7 +30002,7 @@ func (e *SetTrustLineFlagsResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := setTrustLineFlagsResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of SetTrustLineFlagsResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid SetTrustLineFlagsResultCode enum value", v)
 	}
 	*e = SetTrustLineFlagsResultCode(v)
 	return n, nil
@@ -30345,7 +30214,7 @@ func (e *LiquidityPoolDepositResultCode) DecodeFrom(d *xdr.Decoder) (int, error)
 		return n, err
 	}
 	if _, ok := liquidityPoolDepositResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LiquidityPoolDepositResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LiquidityPoolDepositResultCode enum value", v)
 	}
 	*e = LiquidityPoolDepositResultCode(v)
 	return n, nil
@@ -30551,7 +30420,7 @@ func (e *LiquidityPoolWithdrawResultCode) DecodeFrom(d *xdr.Decoder) (int, error
 		return n, err
 	}
 	if _, ok := liquidityPoolWithdrawResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of LiquidityPoolWithdrawResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid LiquidityPoolWithdrawResultCode enum value", v)
 	}
 	*e = LiquidityPoolWithdrawResultCode(v)
 	return n, nil
@@ -30755,7 +30624,7 @@ func (e *OperationResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := operationResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of OperationResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid OperationResultCode enum value", v)
 	}
 	*e = OperationResultCode(v)
 	return n, nil
@@ -31851,7 +31720,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch OperationType(u.Type) {
 	case OperationTypeCreateAccount:
 		u.CreateAccountResult = new(CreateAccountResult)
-		var nTmp int
 		nTmp, err = (*u.CreateAccountResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31860,7 +31728,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypePayment:
 		u.PaymentResult = new(PaymentResult)
-		var nTmp int
 		nTmp, err = (*u.PaymentResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31869,7 +31736,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypePathPaymentStrictReceive:
 		u.PathPaymentStrictReceiveResult = new(PathPaymentStrictReceiveResult)
-		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictReceiveResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31878,7 +31744,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeManageSellOffer:
 		u.ManageSellOfferResult = new(ManageSellOfferResult)
-		var nTmp int
 		nTmp, err = (*u.ManageSellOfferResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31887,7 +31752,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeCreatePassiveSellOffer:
 		u.CreatePassiveSellOfferResult = new(ManageSellOfferResult)
-		var nTmp int
 		nTmp, err = (*u.CreatePassiveSellOfferResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31896,7 +31760,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeSetOptions:
 		u.SetOptionsResult = new(SetOptionsResult)
-		var nTmp int
 		nTmp, err = (*u.SetOptionsResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31905,7 +31768,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeChangeTrust:
 		u.ChangeTrustResult = new(ChangeTrustResult)
-		var nTmp int
 		nTmp, err = (*u.ChangeTrustResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31914,7 +31776,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeAllowTrust:
 		u.AllowTrustResult = new(AllowTrustResult)
-		var nTmp int
 		nTmp, err = (*u.AllowTrustResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31923,7 +31784,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeAccountMerge:
 		u.AccountMergeResult = new(AccountMergeResult)
-		var nTmp int
 		nTmp, err = (*u.AccountMergeResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31932,7 +31792,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeInflation:
 		u.InflationResult = new(InflationResult)
-		var nTmp int
 		nTmp, err = (*u.InflationResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31941,7 +31800,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeManageData:
 		u.ManageDataResult = new(ManageDataResult)
-		var nTmp int
 		nTmp, err = (*u.ManageDataResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31950,7 +31808,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeBumpSequence:
 		u.BumpSeqResult = new(BumpSequenceResult)
-		var nTmp int
 		nTmp, err = (*u.BumpSeqResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31959,7 +31816,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeManageBuyOffer:
 		u.ManageBuyOfferResult = new(ManageBuyOfferResult)
-		var nTmp int
 		nTmp, err = (*u.ManageBuyOfferResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31968,7 +31824,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypePathPaymentStrictSend:
 		u.PathPaymentStrictSendResult = new(PathPaymentStrictSendResult)
-		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictSendResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31977,7 +31832,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeCreateClaimableBalance:
 		u.CreateClaimableBalanceResult = new(CreateClaimableBalanceResult)
-		var nTmp int
 		nTmp, err = (*u.CreateClaimableBalanceResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31986,7 +31840,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeClaimClaimableBalance:
 		u.ClaimClaimableBalanceResult = new(ClaimClaimableBalanceResult)
-		var nTmp int
 		nTmp, err = (*u.ClaimClaimableBalanceResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -31995,7 +31848,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeBeginSponsoringFutureReserves:
 		u.BeginSponsoringFutureReservesResult = new(BeginSponsoringFutureReservesResult)
-		var nTmp int
 		nTmp, err = (*u.BeginSponsoringFutureReservesResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32004,7 +31856,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeEndSponsoringFutureReserves:
 		u.EndSponsoringFutureReservesResult = new(EndSponsoringFutureReservesResult)
-		var nTmp int
 		nTmp, err = (*u.EndSponsoringFutureReservesResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32013,7 +31864,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeRevokeSponsorship:
 		u.RevokeSponsorshipResult = new(RevokeSponsorshipResult)
-		var nTmp int
 		nTmp, err = (*u.RevokeSponsorshipResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32022,7 +31872,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeClawback:
 		u.ClawbackResult = new(ClawbackResult)
-		var nTmp int
 		nTmp, err = (*u.ClawbackResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32031,7 +31880,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeClawbackClaimableBalance:
 		u.ClawbackClaimableBalanceResult = new(ClawbackClaimableBalanceResult)
-		var nTmp int
 		nTmp, err = (*u.ClawbackClaimableBalanceResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32040,7 +31888,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeSetTrustLineFlags:
 		u.SetTrustLineFlagsResult = new(SetTrustLineFlagsResult)
-		var nTmp int
 		nTmp, err = (*u.SetTrustLineFlagsResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32049,7 +31896,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeLiquidityPoolDeposit:
 		u.LiquidityPoolDepositResult = new(LiquidityPoolDepositResult)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPoolDepositResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32058,7 +31904,6 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case OperationTypeLiquidityPoolWithdraw:
 		u.LiquidityPoolWithdrawResult = new(LiquidityPoolWithdrawResult)
-		var nTmp int
 		nTmp, err = (*u.LiquidityPoolWithdrawResult).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32251,7 +32096,6 @@ func (u *OperationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch OperationResultCode(u.Code) {
 	case OperationResultCodeOpInner:
 		u.Tr = new(OperationResultTr)
-		var nTmp int
 		nTmp, err = (*u.Tr).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -32387,7 +32231,7 @@ func (e *TransactionResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := transactionResultCodeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of TransactionResultCode enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid TransactionResultCode enum value", v)
 	}
 	*e = TransactionResultCode(v)
 	return n, nil
@@ -32637,7 +32481,6 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch TransactionResultCode(u.Code) {
 	case TransactionResultCodeTxSuccess:
 		u.Results = new([]OperationResult)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -32658,7 +32501,6 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case TransactionResultCodeTxFailed:
 		u.Results = new([]OperationResult)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -33216,7 +33058,6 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch TransactionResultCode(u.Code) {
 	case TransactionResultCodeTxFeeBumpInnerSuccess:
 		u.InnerResultPair = new(InnerTransactionResultPair)
-		var nTmp int
 		nTmp, err = (*u.InnerResultPair).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -33225,7 +33066,6 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case TransactionResultCodeTxFeeBumpInnerFailed:
 		u.InnerResultPair = new(InnerTransactionResultPair)
-		var nTmp int
 		nTmp, err = (*u.InnerResultPair).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -33234,7 +33074,6 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case TransactionResultCodeTxSuccess:
 		u.Results = new([]OperationResult)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -33255,7 +33094,6 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case TransactionResultCodeTxFailed:
 		u.Results = new([]OperationResult)
-		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
 		n += nTmp
@@ -33909,7 +33747,7 @@ func (e *CryptoKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := cryptoKeyTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of CryptoKeyType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid CryptoKeyType enum value", v)
 	}
 	*e = CryptoKeyType(v)
 	return n, nil
@@ -33989,7 +33827,7 @@ func (e *PublicKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := publicKeyTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of PublicKeyType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid PublicKeyType enum value", v)
 	}
 	*e = PublicKeyType(v)
 	return n, nil
@@ -34075,7 +33913,7 @@ func (e *SignerKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, err
 	}
 	if _, ok := signerKeyTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid value of SignerKeyType enum type", v)
+		return n, fmt.Errorf("'%d' is not a valid SignerKeyType enum value", v)
 	}
 	*e = SignerKeyType(v)
 	return n, nil
@@ -34205,7 +34043,6 @@ func (u *PublicKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch PublicKeyType(u.Type) {
 	case PublicKeyTypePublicKeyTypeEd25519:
 		u.Ed25519 = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.Ed25519).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -34426,7 +34263,6 @@ func (u *SignerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch SignerKeyType(u.Type) {
 	case SignerKeyTypeSignerKeyTypeEd25519:
 		u.Ed25519 = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.Ed25519).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -34435,7 +34271,6 @@ func (u *SignerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case SignerKeyTypeSignerKeyTypePreAuthTx:
 		u.PreAuthTx = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.PreAuthTx).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
@@ -34444,7 +34279,6 @@ func (u *SignerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, nil
 	case SignerKeyTypeSignerKeyTypeHashX:
 		u.HashX = new(Uint256)
-		var nTmp int
 		nTmp, err = (*u.HashX).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
