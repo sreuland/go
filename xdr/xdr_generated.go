@@ -24911,7 +24911,6 @@ func (u *CreateAccountResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (CreateAccountResultCode) switch value '%d' is not valid for union CreateAccountResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25125,7 +25124,6 @@ func (u *PaymentResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (PaymentResultCode) switch value '%d' is not valid for union PaymentResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25627,7 +25625,6 @@ func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error)
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (PathPaymentStrictReceiveResultCode) switch value '%d' is not valid for union PathPaymentStrictReceiveResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26045,7 +26042,6 @@ func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (PathPaymentStrictSendResultCode) switch value '%d' is not valid for union PathPaymentStrictSendResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26426,7 +26422,6 @@ func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) (int, error) 
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Effect (ManageOfferEffect) switch value '%d' is not valid for union ManageOfferSuccessResultOffer", u.Effect)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26671,7 +26666,6 @@ func (u *ManageSellOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ManageSellOfferResultCode) switch value '%d' is not valid for union ManageSellOfferResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26938,7 +26932,6 @@ func (u *ManageBuyOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ManageBuyOfferResultCode) switch value '%d' is not valid for union ManageBuyOfferResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27155,7 +27148,6 @@ func (u *SetOptionsResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (SetOptionsResultCode) switch value '%d' is not valid for union SetOptionsResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27367,7 +27359,6 @@ func (u *ChangeTrustResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ChangeTrustResultCode) switch value '%d' is not valid for union ChangeTrustResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27573,7 +27564,6 @@ func (u *AllowTrustResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (AllowTrustResultCode) switch value '%d' is not valid for union AllowTrustResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27821,7 +27811,6 @@ func (u *AccountMergeResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (AccountMergeResultCode) switch value '%d' is not valid for union AccountMergeResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28142,7 +28131,6 @@ func (u *InflationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (InflationResultCode) switch value '%d' is not valid for union InflationResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28342,7 +28330,6 @@ func (u *ManageDataResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ManageDataResultCode) switch value '%d' is not valid for union ManageDataResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28531,7 +28518,6 @@ func (u *BumpSequenceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (BumpSequenceResultCode) switch value '%d' is not valid for union BumpSequenceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28771,7 +28757,6 @@ func (u *CreateClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (CreateClaimableBalanceResultCode) switch value '%d' is not valid for union CreateClaimableBalanceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28971,7 +28956,6 @@ func (u *ClaimClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ClaimClaimableBalanceResultCode) switch value '%d' is not valid for union ClaimClaimableBalanceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29168,7 +29152,6 @@ func (u *BeginSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) (int, e
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (BeginSponsoringFutureReservesResultCode) switch value '%d' is not valid for union BeginSponsoringFutureReservesResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29359,7 +29342,6 @@ func (u *EndSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) (int, err
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (EndSponsoringFutureReservesResultCode) switch value '%d' is not valid for union EndSponsoringFutureReservesResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29561,7 +29543,6 @@ func (u *RevokeSponsorshipResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (RevokeSponsorshipResultCode) switch value '%d' is not valid for union RevokeSponsorshipResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29760,7 +29741,6 @@ func (u *ClawbackResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ClawbackResultCode) switch value '%d' is not valid for union ClawbackResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29957,7 +29937,6 @@ func (u *ClawbackClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error)
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (ClawbackClaimableBalanceResultCode) switch value '%d' is not valid for union ClawbackClaimableBalanceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30160,7 +30139,6 @@ func (u *SetTrustLineFlagsResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (SetTrustLineFlagsResultCode) switch value '%d' is not valid for union SetTrustLineFlagsResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30373,7 +30351,6 @@ func (u *LiquidityPoolDepositResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (LiquidityPoolDepositResultCode) switch value '%d' is not valid for union LiquidityPoolDepositResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30579,7 +30556,6 @@ func (u *LiquidityPoolWithdrawResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (LiquidityPoolWithdrawResultCode) switch value '%d' is not valid for union LiquidityPoolWithdrawResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32179,7 +32155,6 @@ func (u *OperationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (OperationResultCode) switch value '%d' is not valid for union OperationResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33191,7 +33166,6 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	}
-	return n, fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union TransactionResultResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
