@@ -1879,7 +1879,7 @@ func TestReadChallengeTx_invalidCorrupted(t *testing.T) {
 		t,
 		err,
 		"could not parse challenge: unable to unmarshal transaction envelope: "+
-			"Type (EnvelopeType) switch value '68174086' is not valid for union TransactionEnvelope",
+			"'68174086' is not a valid value of EnvelopeType enum type",
 	)
 }
 
