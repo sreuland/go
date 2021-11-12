@@ -1443,7 +1443,7 @@ func (s String32) EncodeTo(e *xdr.Encoder) error {
 func (s *String32) DecodeFrom(d *xdr.Decoder) error {
 	var err error
 	var v string
-	v, _, err = d.DecodeString(0)
+	v, _, err = d.DecodeString(32)
 	if err != nil {
 		return err
 	}
@@ -1502,7 +1502,7 @@ func (s String64) EncodeTo(e *xdr.Encoder) error {
 func (s *String64) DecodeFrom(d *xdr.Decoder) error {
 	var err error
 	var v string
-	v, _, err = d.DecodeString(0)
+	v, _, err = d.DecodeString(64)
 	if err != nil {
 		return err
 	}
@@ -1664,7 +1664,7 @@ func (s DataValue) EncodeTo(e *xdr.Encoder) error {
 // DecodeFrom decodes this value using the Decoder.
 func (s *DataValue) DecodeFrom(d *xdr.Decoder) error {
 	var err error
-	(*s), _, err = d.DecodeOpaque(0)
+	(*s), _, err = d.DecodeOpaque(64)
 	if err != nil {
 		return err
 	}
@@ -3130,6 +3130,9 @@ func (s *AccountEntryExtensionV2) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
+	if l > 20 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
+	}
 	s.SignerSponsoringIDs = nil
 	if l > 0 {
 		s.SignerSponsoringIDs = make([]SponsorshipDescriptor, l)
@@ -3692,6 +3695,9 @@ func (s *AccountEntry) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 20 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signers = nil
 	if l > 0 {
@@ -5729,6 +5735,9 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) error {
 		if err != nil {
 			return err
 		}
+		if l > 2 {
+			return fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
+		}
 		(*u.AndPredicates) = nil
 		if l > 0 {
 			(*u.AndPredicates) = make([]ClaimPredicate, l)
@@ -5746,6 +5755,9 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) error {
 		l, _, err = d.DecodeUint()
 		if err != nil {
 			return err
+		}
+		if l > 2 {
+			return fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
 		}
 		(*u.OrPredicates) = nil
 		if l > 0 {
@@ -6778,6 +6790,9 @@ func (s *ClaimableBalanceEntry) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 10 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
 	}
 	s.Claimants = nil
 	if l > 0 {
@@ -8918,7 +8933,7 @@ func (s UpgradeType) EncodeTo(e *xdr.Encoder) error {
 // DecodeFrom decodes this value using the Decoder.
 func (s *UpgradeType) DecodeFrom(d *xdr.Decoder) error {
 	var err error
-	(*s), _, err = d.DecodeOpaque(0)
+	(*s), _, err = d.DecodeOpaque(128)
 	if err != nil {
 		return err
 	}
@@ -9318,6 +9333,9 @@ func (s *StellarValue) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 6 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (6)", l)
 	}
 	s.Upgrades = nil
 	if l > 0 {
@@ -13458,7 +13476,7 @@ func (s *Error) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.Msg, _, err = d.DecodeString(0)
+	s.Msg, _, err = d.DecodeString(100)
 	if err != nil {
 		return err
 	}
@@ -13656,7 +13674,7 @@ func (s *Hello) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.VersionStr, _, err = d.DecodeString(0)
+	s.VersionStr, _, err = d.DecodeString(100)
 	if err != nil {
 		return err
 	}
@@ -14569,7 +14587,7 @@ func (s EncryptedBody) EncodeTo(e *xdr.Encoder) error {
 // DecodeFrom decodes this value using the Decoder.
 func (s *EncryptedBody) DecodeFrom(d *xdr.Decoder) error {
 	var err error
-	(*s), _, err = d.DecodeOpaque(0)
+	(*s), _, err = d.DecodeOpaque(64000)
 	if err != nil {
 		return err
 	}
@@ -14880,7 +14898,7 @@ func (s *PeerStats) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
-	s.VersionStr, _, err = d.DecodeString(0)
+	s.VersionStr, _, err = d.DecodeString(100)
 	if err != nil {
 		return err
 	}
@@ -15002,6 +15020,9 @@ func (s *PeerStatList) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 25 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (25)", l)
 	}
 	(*s) = nil
 	if l > 0 {
@@ -15959,6 +15980,9 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) error {
 		l, _, err = d.DecodeUint()
 		if err != nil {
 			return err
+		}
+		if l > 100 {
+			return fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 		}
 		(*u.Peers) = nil
 		if l > 0 {
@@ -17106,6 +17130,9 @@ func (s *PathPaymentStrictReceiveOp) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
+	if l > 5 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
+	}
 	s.Path = nil
 	if l > 0 {
 		s.Path = make([]Asset, l)
@@ -17236,6 +17263,9 @@ func (s *PathPaymentStrictSendOp) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 5 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
 	}
 	s.Path = nil
 	if l > 0 {
@@ -18421,6 +18451,9 @@ func (s *CreateClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 10 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
 	}
 	s.Claimants = nil
 	if l > 0 {
@@ -21323,7 +21356,7 @@ func (u *Memo) DecodeFrom(d *xdr.Decoder) error {
 		return nil
 	case MemoTypeMemoText:
 		u.Text = new(string)
-		(*u.Text), _, err = d.DecodeString(0)
+		(*u.Text), _, err = d.DecodeString(28)
 		if err != nil {
 			return err
 		}
@@ -21658,6 +21691,9 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
+	if l > 100 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
+	}
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]Operation, l)
@@ -21750,6 +21786,9 @@ func (s *TransactionV0Envelope) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 20 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signatures = nil
 	if l > 0 {
@@ -22007,6 +22046,9 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) error {
 	if err != nil {
 		return err
 	}
+	if l > 100 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
+	}
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]Operation, l)
@@ -22099,6 +22141,9 @@ func (s *TransactionV1Envelope) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 20 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signatures = nil
 	if l > 0 {
@@ -22507,6 +22552,9 @@ func (s *FeeBumpTransactionEnvelope) DecodeFrom(d *xdr.Decoder) error {
 	l, _, err = d.DecodeUint()
 	if err != nil {
 		return err
+	}
+	if l > 20 {
+		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signatures = nil
 	if l > 0 {
@@ -33071,7 +33119,7 @@ func (s Signature) EncodeTo(e *xdr.Encoder) error {
 // DecodeFrom decodes this value using the Decoder.
 func (s *Signature) DecodeFrom(d *xdr.Decoder) error {
 	var err error
-	(*s), _, err = d.DecodeOpaque(0)
+	(*s), _, err = d.DecodeOpaque(64)
 	if err != nil {
 		return err
 	}
