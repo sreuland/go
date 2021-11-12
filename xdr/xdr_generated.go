@@ -76,10 +76,10 @@ func (s *Value) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	(*s), nTmp, err = d.DecodeOpaque(0)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -142,15 +142,15 @@ func (s *ScpBallot) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Counter.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Value.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -236,10 +236,10 @@ func (e *ScpStatementType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ScpStatementType(i)
 	return n, nil
 }
@@ -327,41 +327,41 @@ func (s *ScpNomination) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.QuorumSetHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Votes = nil
 	if l > 0 {
 		s.Votes = make([]Value, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Votes[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Accepted = nil
 	if l > 0 {
 		s.Accepted = make([]Value, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Accepted[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -462,54 +462,54 @@ func (s *ScpStatementPrepare) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.QuorumSetHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ballot.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Prepared = nil
 	if b {
 		s.Prepared = new(ScpBallot)
 		nTmp, err = s.Prepared.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.PreparedPrime = nil
 	if b {
 		s.PreparedPrime = new(ScpBallot)
 		nTmp, err = s.PreparedPrime.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.NC.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NH.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -590,30 +590,30 @@ func (s *ScpStatementConfirm) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Ballot.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NPrepared.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NCommit.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NH.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.QuorumSetHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -682,20 +682,20 @@ func (s *ScpStatementExternalize) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Commit.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NH.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.CommitQuorumSetHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -969,37 +969,37 @@ func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Prepare = new(ScpStatementPrepare)
 		var nTmp int
 		nTmp, err = (*u.Prepare).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ScpStatementTypeScpStConfirm:
 		u.Confirm = new(ScpStatementConfirm)
 		var nTmp int
 		nTmp, err = (*u.Confirm).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ScpStatementTypeScpStExternalize:
 		u.Externalize = new(ScpStatementExternalize)
 		var nTmp int
 		nTmp, err = (*u.Externalize).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ScpStatementTypeScpStNominate:
 		u.Nominate = new(ScpNomination)
 		var nTmp int
 		nTmp, err = (*u.Nominate).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (ScpStatementType) switch value '%d' is not valid for union ScpStatementPledges", u.Type)
@@ -1102,20 +1102,20 @@ func (s *ScpStatement) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.NodeId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SlotIndex.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Pledges.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1178,15 +1178,15 @@ func (s *ScpEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Statement.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Signature.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1273,41 +1273,41 @@ func (s *ScpQuorumSet) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Threshold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Validators = nil
 	if l > 0 {
 		s.Validators = make([]NodeId, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Validators[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.InnerSets = nil
 	if l > 0 {
 		s.InnerSets = make([]ScpQuorumSet, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.InnerSets[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -1392,10 +1392,10 @@ func (s *AccountId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = (*PublicKey)(s).DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1452,10 +1452,10 @@ func (s *Thresholds) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1513,10 +1513,10 @@ func (s *String32) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var v string
 	v, nTmp, err = d.DecodeString(32)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*s = String32(v)
 	return n, nil
 }
@@ -1575,10 +1575,10 @@ func (s *String64) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var v string
 	v, nTmp, err = d.DecodeString(64)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*s = String64(v)
 	return n, nil
 }
@@ -1631,10 +1631,10 @@ func (s *SequenceNumber) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = (*Int64)(s).DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1686,10 +1686,10 @@ func (s *TimePoint) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = (*Uint64)(s).DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1746,10 +1746,10 @@ func (s *DataValue) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	(*s), nTmp, err = d.DecodeOpaque(64)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1801,10 +1801,10 @@ func (s *PoolId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = (*Hash)(s).DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1861,10 +1861,10 @@ func (s *AssetCode4) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -1921,10 +1921,10 @@ func (s *AssetCode12) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -2010,10 +2010,10 @@ func (e *AssetType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = AssetType(i)
 	return n, nil
 }
@@ -2187,19 +2187,19 @@ func (u *AssetCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.AssetCode4 = new(AssetCode4)
 		var nTmp int
 		nTmp, err = (*u.AssetCode4).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AssetCode12 = new(AssetCode12)
 		var nTmp int
 		nTmp, err = (*u.AssetCode12).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union AssetCode", u.Type)
@@ -2264,15 +2264,15 @@ func (s *AlphaNum4) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AssetCode.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Issuer.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -2335,15 +2335,15 @@ func (s *AlphaNum12) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AssetCode.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Issuer.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -2528,19 +2528,19 @@ func (u *Asset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.AlphaNum4 = new(AlphaNum4)
 		var nTmp int
 		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
 		var nTmp int
 		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union Asset", u.Type)
@@ -2605,15 +2605,15 @@ func (s *Price) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.N.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.D.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -2676,15 +2676,15 @@ func (s *Liabilities) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Buying.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Selling.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -2770,10 +2770,10 @@ func (e *ThresholdIndexes) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ThresholdIndexes(i)
 	return n, nil
 }
@@ -2866,10 +2866,10 @@ func (e *LedgerEntryType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LedgerEntryType(i)
 	return n, nil
 }
@@ -2933,15 +2933,15 @@ func (s *Signer) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Key.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Weight.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -3037,10 +3037,10 @@ func (e *AccountFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = AccountFlags(i)
 	return n, nil
 }
@@ -3254,21 +3254,21 @@ func (s *AccountEntryExtensionV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.NumSponsored.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NumSponsoring.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 20 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
@@ -3278,26 +3278,26 @@ func (s *AccountEntryExtensionV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 		for i := uint32(0); i < l; i++ {
 			var eb bool
 			eb, nTmp, err = d.DecodeBool()
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 			s.SignerSponsoringIDs[i] = nil
 			if eb {
 				s.SignerSponsoringIDs[i] = new(AccountId)
 				nTmp, err = s.SignerSponsoringIDs[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -3436,10 +3436,10 @@ func (u *AccountEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V2 = new(AccountEntryExtensionV2)
 		var nTmp int
 		nTmp, err = (*u.V2).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExtensionV1Ext", u.V)
@@ -3512,15 +3512,15 @@ func (s *AccountEntryExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Liabilities.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -3659,10 +3659,10 @@ func (u *AccountEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(AccountEntryExtensionV1)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExt", u.V)
@@ -3805,61 +3805,61 @@ func (s *AccountEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Balance.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NumSubEntries.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.InflationDest = nil
 	if b {
 		s.InflationDest = new(AccountId)
 		nTmp, err = s.InflationDest.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.Flags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.HomeDomain.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Thresholds.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 20 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
@@ -3868,17 +3868,17 @@ func (s *AccountEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Signers = make([]Signer, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Signers[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -3966,10 +3966,10 @@ func (e *TrustLineFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = TrustLineFlags(i)
 	return n, nil
 }
@@ -4065,10 +4065,10 @@ func (e *LiquidityPoolType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LiquidityPoolType(i)
 	return n, nil
 }
@@ -4297,28 +4297,28 @@ func (u *TrustLineAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.AlphaNum4 = new(AlphaNum4)
 		var nTmp int
 		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
 		var nTmp int
 		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case AssetTypeAssetTypePoolShare:
 		u.LiquidityPoolId = new(PoolId)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPoolId).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union TrustLineAsset", u.Type)
@@ -4482,15 +4482,15 @@ func (s *TrustLineEntryExtensionV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LiquidityPoolUseCount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -4629,10 +4629,10 @@ func (u *TrustLineEntryV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V2 = new(TrustLineEntryExtensionV2)
 		var nTmp int
 		nTmp, err = (*u.V2).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryV1Ext", u.V)
@@ -4705,15 +4705,15 @@ func (s *TrustLineEntryV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Liabilities.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -4864,10 +4864,10 @@ func (u *TrustLineEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(TrustLineEntryV1)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryExt", u.V)
@@ -4979,35 +4979,35 @@ func (s *TrustLineEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Balance.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Limit.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Flags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -5085,10 +5085,10 @@ func (e *OfferEntryFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = OfferEntryFlags(i)
 	return n, nil
 }
@@ -5300,45 +5300,45 @@ func (s *OfferEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SellerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OfferId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Selling.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Buying.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Price.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Flags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -5513,25 +5513,25 @@ func (s *DataEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DataName.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DataValue.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -5623,10 +5623,10 @@ func (e *ClaimPredicateType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClaimPredicateType(i)
 	return n, nil
 }
@@ -5960,10 +5960,10 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		if l > 2 {
 			return n, fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
 		}
@@ -5972,10 +5972,10 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 			(*u.AndPredicates) = make([]ClaimPredicate, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.AndPredicates)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -5984,10 +5984,10 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		if l > 2 {
 			return n, fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
 		}
@@ -5996,10 +5996,10 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 			(*u.OrPredicates) = make([]ClaimPredicate, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.OrPredicates)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -6008,37 +6008,37 @@ func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var b bool
 		b, nTmp, err = d.DecodeBool()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.NotPredicate) = nil
 		if b {
 			(*u.NotPredicate) = new(ClaimPredicate)
 			nTmp, err = (*u.NotPredicate).DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateBeforeAbsoluteTime:
 		u.AbsBefore = new(Int64)
 		var nTmp int
 		nTmp, err = (*u.AbsBefore).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ClaimPredicateTypeClaimPredicateBeforeRelativeTime:
 		u.RelBefore = new(Int64)
 		var nTmp int
 		nTmp, err = (*u.RelBefore).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (ClaimPredicateType) switch value '%d' is not valid for union ClaimPredicate", u.Type)
@@ -6117,10 +6117,10 @@ func (e *ClaimantType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClaimantType(i)
 	return n, nil
 }
@@ -6184,15 +6184,15 @@ func (s *ClaimantV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Predicate.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -6324,10 +6324,10 @@ func (u *Claimant) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(ClaimantV0)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (ClaimantType) switch value '%d' is not valid for union Claimant", u.Type)
@@ -6406,10 +6406,10 @@ func (e *ClaimableBalanceIdType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClaimableBalanceIdType(i)
 	return n, nil
 }
@@ -6538,10 +6538,10 @@ func (u *ClaimableBalanceId) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(Hash)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (ClaimableBalanceIdType) switch value '%d' is not valid for union ClaimableBalanceId", u.Type)
@@ -6622,10 +6622,10 @@ func (e *ClaimableBalanceFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClaimableBalanceFlags(i)
 	return n, nil
 }
@@ -6794,15 +6794,15 @@ func (s *ClaimableBalanceEntryExtensionV1) DecodeFrom(d *xdr.Decoder) (int, erro
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Flags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -6941,10 +6941,10 @@ func (u *ClaimableBalanceEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(ClaimableBalanceEntryExtensionV1)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union ClaimableBalanceEntryExt", u.V)
@@ -7052,16 +7052,16 @@ func (s *ClaimableBalanceEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.BalanceId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 10 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
 	}
@@ -7070,27 +7070,27 @@ func (s *ClaimableBalanceEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Claimants = make([]Claimant, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Claimants[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -7159,20 +7159,20 @@ func (s *LiquidityPoolConstantProductParameters) DecodeFrom(d *xdr.Decoder) (int
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AssetA.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetB.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Fee.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -7254,30 +7254,30 @@ func (s *LiquidityPoolEntryConstantProduct) DecodeFrom(d *xdr.Decoder) (int, err
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Params.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.ReserveA.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.ReserveB.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TotalPoolShares.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.PoolSharesTrustLineCount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -7413,10 +7413,10 @@ func (u *LiquidityPoolEntryBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.ConstantProduct = new(LiquidityPoolEntryConstantProduct)
 		var nTmp int
 		nTmp, err = (*u.ConstantProduct).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (LiquidityPoolType) switch value '%d' is not valid for union LiquidityPoolEntryBody", u.Type)
@@ -7495,15 +7495,15 @@ func (s *LiquidityPoolEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Body.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -7672,24 +7672,24 @@ func (s *LedgerEntryExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.SponsoringId = nil
 	if b {
 		s.SponsoringId = new(AccountId)
 		nTmp, err = s.SponsoringId.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8027,55 +8027,55 @@ func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Account = new(AccountEntry)
 		var nTmp int
 		nTmp, err = (*u.Account).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeTrustline:
 		u.TrustLine = new(TrustLineEntry)
 		var nTmp int
 		nTmp, err = (*u.TrustLine).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeOffer:
 		u.Offer = new(OfferEntry)
 		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeData:
 		u.Data = new(DataEntry)
 		var nTmp int
 		nTmp, err = (*u.Data).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeClaimableBalance:
 		u.ClaimableBalance = new(ClaimableBalanceEntry)
 		var nTmp int
 		nTmp, err = (*u.ClaimableBalance).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeLiquidityPool:
 		u.LiquidityPool = new(LiquidityPoolEntry)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (LedgerEntryType) switch value '%d' is not valid for union LedgerEntryData", u.Type)
@@ -8216,10 +8216,10 @@ func (u *LedgerEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(LedgerEntryExtensionV1)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerEntryExt", u.V)
@@ -8315,20 +8315,20 @@ func (s *LedgerEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LastModifiedLedgerSeq.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Data.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8385,10 +8385,10 @@ func (s *LedgerKeyAccount) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8451,15 +8451,15 @@ func (s *LedgerKeyTrustLine) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8522,15 +8522,15 @@ func (s *LedgerKeyOffer) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SellerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OfferId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8593,15 +8593,15 @@ func (s *LedgerKeyData) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DataName.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8658,10 +8658,10 @@ func (s *LedgerKeyClaimableBalance) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.BalanceId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -8718,10 +8718,10 @@ func (s *LedgerKeyLiquidityPool) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -9085,55 +9085,55 @@ func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Account = new(LedgerKeyAccount)
 		var nTmp int
 		nTmp, err = (*u.Account).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeTrustline:
 		u.TrustLine = new(LedgerKeyTrustLine)
 		var nTmp int
 		nTmp, err = (*u.TrustLine).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeOffer:
 		u.Offer = new(LedgerKeyOffer)
 		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeData:
 		u.Data = new(LedgerKeyData)
 		var nTmp int
 		nTmp, err = (*u.Data).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeClaimableBalance:
 		u.ClaimableBalance = new(LedgerKeyClaimableBalance)
 		var nTmp int
 		nTmp, err = (*u.ClaimableBalance).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryTypeLiquidityPool:
 		u.LiquidityPool = new(LedgerKeyLiquidityPool)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (LedgerEntryType) switch value '%d' is not valid for union LedgerKey", u.Type)
@@ -9233,10 +9233,10 @@ func (e *EnvelopeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = EnvelopeType(i)
 	return n, nil
 }
@@ -9294,10 +9294,10 @@ func (s *UpgradeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	(*s), nTmp, err = d.DecodeOpaque(128)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -9377,10 +9377,10 @@ func (e *StellarValueType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = StellarValueType(i)
 	return n, nil
 }
@@ -9444,15 +9444,15 @@ func (s *LedgerCloseValueSignature) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.NodeId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Signature.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -9591,10 +9591,10 @@ func (u *StellarValueExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.LcValueSignature = new(LedgerCloseValueSignature)
 		var nTmp int
 		nTmp, err = (*u.LcValueSignature).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (StellarValueType) switch value '%d' is not valid for union StellarValueExt", u.V)
@@ -9695,21 +9695,21 @@ func (s *StellarValue) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.TxSetHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.CloseTime.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 6 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (6)", l)
 	}
@@ -9718,17 +9718,17 @@ func (s *StellarValue) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Upgrades = make([]UpgradeType, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Upgrades[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -9817,10 +9817,10 @@ func (e *LedgerHeaderFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LedgerHeaderFlags(i)
 	return n, nil
 }
@@ -9983,15 +9983,15 @@ func (s *LedgerHeaderExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Flags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -10130,10 +10130,10 @@ func (u *LedgerHeaderExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(LedgerHeaderExtensionV1)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderExt", u.V)
@@ -10302,82 +10302,82 @@ func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerVersion.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.PreviousLedgerHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.ScpValue.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TxSetResultHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.BucketListHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.LedgerSeq.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TotalCoins.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.FeePool.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.InflationSeq.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.IdPool.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.BaseFee.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.BaseReserve.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MaxTxSetSize.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	for i := 0; i < len(s.SkipList); i++ {
 		nTmp, err = s.SkipList[i].DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -10466,10 +10466,10 @@ func (e *LedgerUpgradeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LedgerUpgradeType(i)
 	return n, nil
 }
@@ -10766,46 +10766,46 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.NewLedgerVersion = new(Uint32)
 		var nTmp int
 		nTmp, err = (*u.NewLedgerVersion).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseFee:
 		u.NewBaseFee = new(Uint32)
 		var nTmp int
 		nTmp, err = (*u.NewBaseFee).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize:
 		u.NewMaxTxSetSize = new(Uint32)
 		var nTmp int
 		nTmp, err = (*u.NewMaxTxSetSize).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		u.NewBaseReserve = new(Uint32)
 		var nTmp int
 		nTmp, err = (*u.NewBaseReserve).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		u.NewFlags = new(Uint32)
 		var nTmp int
 		nTmp, err = (*u.NewFlags).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (LedgerUpgradeType) switch value '%d' is not valid for union LedgerUpgrade", u.Type)
@@ -10895,10 +10895,10 @@ func (e *BucketEntryType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = BucketEntryType(i)
 	return n, nil
 }
@@ -11063,15 +11063,15 @@ func (s *BucketMetadata) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerVersion.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -11299,37 +11299,37 @@ func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.LiveEntry = new(LedgerEntry)
 		var nTmp int
 		nTmp, err = (*u.LiveEntry).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case BucketEntryTypeInitentry:
 		u.LiveEntry = new(LedgerEntry)
 		var nTmp int
 		nTmp, err = (*u.LiveEntry).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case BucketEntryTypeDeadentry:
 		u.DeadEntry = new(LedgerKey)
 		var nTmp int
 		nTmp, err = (*u.DeadEntry).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case BucketEntryTypeMetaentry:
 		u.MetaEntry = new(BucketMetadata)
 		var nTmp int
 		nTmp, err = (*u.MetaEntry).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (BucketEntryType) switch value '%d' is not valid for union BucketEntry", u.Type)
@@ -11403,25 +11403,25 @@ func (s *TransactionSet) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.PreviousLedgerHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Txs = nil
 	if l > 0 {
 		s.Txs = make([]TransactionEnvelope, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Txs[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -11486,15 +11486,15 @@ func (s *TransactionResultPair) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.TransactionHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Result.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -11561,19 +11561,19 @@ func (s *TransactionResultSet) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Results = nil
 	if l > 0 {
 		s.Results = make([]TransactionResultPair, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Results[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -11744,20 +11744,20 @@ func (s *TransactionHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerSeq.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TxSet.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -11926,20 +11926,20 @@ func (s *TransactionHistoryResultEntry) DecodeFrom(d *xdr.Decoder) (int, error) 
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerSeq.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TxResultSet.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -12108,20 +12108,20 @@ func (s *LedgerHeaderHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Hash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Header.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -12193,25 +12193,25 @@ func (s *LedgerScpMessages) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerSeq.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Messages = nil
 	if l > 0 {
 		s.Messages = make([]ScpEnvelope, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Messages[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -12286,26 +12286,26 @@ func (s *ScpHistoryEntryV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.QuorumSets = nil
 	if l > 0 {
 		s.QuorumSets = make([]ScpQuorumSet, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.QuorumSets[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.LedgerMessages.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -12433,10 +12433,10 @@ func (u *ScpHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(ScpHistoryEntryV0)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union ScpHistoryEntry", u.V)
@@ -12524,10 +12524,10 @@ func (e *LedgerEntryChangeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LedgerEntryChangeType(i)
 	return n, nil
 }
@@ -12782,37 +12782,37 @@ func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Created = new(LedgerEntry)
 		var nTmp int
 		nTmp, err = (*u.Created).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryUpdated:
 		u.Updated = new(LedgerEntry)
 		var nTmp int
 		nTmp, err = (*u.Updated).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryRemoved:
 		u.Removed = new(LedgerKey)
 		var nTmp int
 		nTmp, err = (*u.Removed).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryState:
 		u.State = new(LedgerEntry)
 		var nTmp int
 		nTmp, err = (*u.State).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (LedgerEntryChangeType) switch value '%d' is not valid for union LedgerEntryChange", u.Type)
@@ -12876,19 +12876,19 @@ func (s *LedgerEntryChanges) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	(*s) = nil
 	if l > 0 {
 		(*s) = make([]LedgerEntryChange, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = (*s)[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -12947,10 +12947,10 @@ func (s *OperationMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Changes.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -13022,25 +13022,25 @@ func (s *TransactionMetaV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.TxChanges.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]OperationMeta, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Operations[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -13122,32 +13122,32 @@ func (s *TransactionMetaV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.TxChangesBefore.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]OperationMeta, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Operations[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.TxChangesAfter.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -13369,19 +13369,19 @@ func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.Operations) = nil
 		if l > 0 {
 			(*u.Operations) = make([]OperationMeta, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Operations)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -13389,19 +13389,19 @@ func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(TransactionMetaV1)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case 2:
 		u.V2 = new(TransactionMetaV2)
 		var nTmp int
 		nTmp, err = (*u.V2).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionMeta", u.V)
@@ -13472,20 +13472,20 @@ func (s *TransactionResultMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Result.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.FeeProcessing.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TxApplyProcessing.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -13548,15 +13548,15 @@ func (s *UpgradeEntryMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Upgrade.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Changes.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -13673,62 +13673,62 @@ func (s *LedgerCloseMetaV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerHeader.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TxSet.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.TxProcessing = nil
 	if l > 0 {
 		s.TxProcessing = make([]TransactionResultMeta, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.TxProcessing[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.UpgradesProcessing = nil
 	if l > 0 {
 		s.UpgradesProcessing = make([]UpgradeEntryMeta, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.UpgradesProcessing[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.ScpInfo = nil
 	if l > 0 {
 		s.ScpInfo = make([]ScpHistoryEntry, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.ScpInfo[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -13858,10 +13858,10 @@ func (u *LedgerCloseMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(LedgerCloseMetaV0)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerCloseMeta", u.V)
@@ -13952,10 +13952,10 @@ func (e *ErrorCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ErrorCode(i)
 	return n, nil
 }
@@ -14019,15 +14019,15 @@ func (s *Error) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Code.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Msg, nTmp, err = d.DecodeString(100)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -14096,20 +14096,20 @@ func (s *AuthCert) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Pubkey.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Expiration.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Sig.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -14214,50 +14214,50 @@ func (s *Hello) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LedgerVersion.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OverlayVersion.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OverlayMinVersion.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NetworkId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.VersionStr, nTmp, err = d.DecodeString(100)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.ListeningPort, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.PeerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Cert.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Nonce.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -14316,10 +14316,10 @@ func (s *Auth) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	s.Unused, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -14399,10 +14399,10 @@ func (e *IpAddrType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = IpAddrType(i)
 	return n, nil
 }
@@ -14573,19 +14573,19 @@ func (u *PeerAddressIp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Ipv4 = new([4]byte)
 		var nTmp int
 		nTmp, err = d.DecodeFixedOpaqueInplace((*u.Ipv4)[:])
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case IpAddrTypeIPv6:
 		u.Ipv6 = new([16]byte)
 		var nTmp int
 		nTmp, err = d.DecodeFixedOpaqueInplace((*u.Ipv6)[:])
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (IpAddrType) switch value '%d' is not valid for union PeerAddressIp", u.Type)
@@ -14663,20 +14663,20 @@ func (s *PeerAddress) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Ip.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Port.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.NumFailures.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -14803,10 +14803,10 @@ func (e *MessageType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = MessageType(i)
 	return n, nil
 }
@@ -14870,15 +14870,15 @@ func (s *DontHave) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Type.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.ReqHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -14955,10 +14955,10 @@ func (e *SurveyMessageCommandType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = SurveyMessageCommandType(i)
 	return n, nil
 }
@@ -15040,30 +15040,30 @@ func (s *SurveyRequestMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SurveyorPeerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SurveyedPeerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.LedgerNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.EncryptionKey.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.CommandType.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15126,15 +15126,15 @@ func (s *SignedSurveyRequestMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.RequestSignature.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Request.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15191,10 +15191,10 @@ func (s *EncryptedBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	(*s), nTmp, err = d.DecodeOpaque(64000)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15275,30 +15275,30 @@ func (s *SurveyResponseMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SurveyorPeerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SurveyedPeerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.LedgerNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.CommandType.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.EncryptedBody.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15361,15 +15361,15 @@ func (s *SignedSurveyResponseMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.ResponseSignature.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Response.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15512,80 +15512,80 @@ func (s *PeerStats) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Id.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.VersionStr, nTmp, err = d.DecodeString(100)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MessagesRead.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MessagesWritten.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.BytesRead.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.BytesWritten.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SecondsConnected.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.UniqueFloodBytesRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DuplicateFloodBytesRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.UniqueFetchBytesRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DuplicateFetchBytesRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.UniqueFloodMessageRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DuplicateFloodMessageRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.UniqueFetchMessageRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DuplicateFetchMessageRecv.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15652,10 +15652,10 @@ func (s *PeerStatList) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 25 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (25)", l)
 	}
@@ -15664,10 +15664,10 @@ func (s *PeerStatList) DecodeFrom(d *xdr.Decoder) (int, error) {
 		(*s) = make([]PeerStats, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = (*s)[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -15745,25 +15745,25 @@ func (s *TopologyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.InboundPeers.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OutboundPeers.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TotalInboundPeerCount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TotalOutboundPeerCount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -15891,10 +15891,10 @@ func (u *SurveyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.TopologyResponseBody = new(TopologyResponseBody)
 		var nTmp int
 		nTmp, err = (*u.TopologyResponseBody).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (SurveyMessageCommandType) switch value '%d' is not valid for union SurveyResponseBody", u.Type)
@@ -16593,37 +16593,37 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Error = new(Error)
 		var nTmp int
 		nTmp, err = (*u.Error).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeHello:
 		u.Hello = new(Hello)
 		var nTmp int
 		nTmp, err = (*u.Hello).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeAuth:
 		u.Auth = new(Auth)
 		var nTmp int
 		nTmp, err = (*u.Auth).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeDontHave:
 		u.DontHave = new(DontHave)
 		var nTmp int
 		nTmp, err = (*u.DontHave).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeGetPeers:
 		// Void
@@ -16633,10 +16633,10 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		if l > 100 {
 			return n, fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 		}
@@ -16645,10 +16645,10 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 			(*u.Peers) = make([]PeerAddress, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Peers)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -16656,82 +16656,82 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.TxSetHash = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.TxSetHash).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeTxSet:
 		u.TxSet = new(TransactionSet)
 		var nTmp int
 		nTmp, err = (*u.TxSet).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeTransaction:
 		u.Transaction = new(TransactionEnvelope)
 		var nTmp int
 		nTmp, err = (*u.Transaction).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeSurveyRequest:
 		u.SignedSurveyRequestMessage = new(SignedSurveyRequestMessage)
 		var nTmp int
 		nTmp, err = (*u.SignedSurveyRequestMessage).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeSurveyResponse:
 		u.SignedSurveyResponseMessage = new(SignedSurveyResponseMessage)
 		var nTmp int
 		nTmp, err = (*u.SignedSurveyResponseMessage).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeGetScpQuorumset:
 		u.QSetHash = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.QSetHash).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeScpQuorumset:
 		u.QSet = new(ScpQuorumSet)
 		var nTmp int
 		nTmp, err = (*u.QSet).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeScpMessage:
 		u.Envelope = new(ScpEnvelope)
 		var nTmp int
 		nTmp, err = (*u.Envelope).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MessageTypeGetScpState:
 		u.GetScpLedgerSeq = new(Uint32)
 		var nTmp int
 		nTmp, err = (*u.GetScpLedgerSeq).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (MessageType) switch value '%d' is not valid for union StellarMessage", u.Type)
@@ -16802,20 +16802,20 @@ func (s *AuthenticatedMessageV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Sequence.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Message.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Mac.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -16948,10 +16948,10 @@ func (u *AuthenticatedMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(AuthenticatedMessageV0)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("V (Uint32) switch value '%d' is not valid for union AuthenticatedMessage", u.V)
@@ -17081,10 +17081,10 @@ func (u *LiquidityPoolParameters) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.ConstantProduct = new(LiquidityPoolConstantProductParameters)
 		var nTmp int
 		nTmp, err = (*u.ConstantProduct).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (LiquidityPoolType) switch value '%d' is not valid for union LiquidityPoolParameters", u.Type)
@@ -17149,15 +17149,15 @@ func (s *MuxedAccountMed25519) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Id.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ed25519.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -17331,19 +17331,19 @@ func (u *MuxedAccount) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Ed25519 = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.Ed25519).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case CryptoKeyTypeKeyTypeMuxedEd25519:
 		u.Med25519 = new(MuxedAccountMed25519)
 		var nTmp int
 		nTmp, err = (*u.Med25519).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (CryptoKeyType) switch value '%d' is not valid for union MuxedAccount", u.Type)
@@ -17408,15 +17408,15 @@ func (s *DecoratedSignature) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Hint.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Signature.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -17562,10 +17562,10 @@ func (e *OperationType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = OperationType(i)
 	return n, nil
 }
@@ -17629,15 +17629,15 @@ func (s *CreateAccountOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.StartingBalance.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -17706,20 +17706,20 @@ func (s *PaymentOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -17819,36 +17819,36 @@ func (s *PathPaymentStrictReceiveOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SendAsset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SendMax.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DestAsset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DestAmount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 5 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
 	}
@@ -17857,10 +17857,10 @@ func (s *PathPaymentStrictReceiveOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Path = make([]Asset, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Path[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -17962,36 +17962,36 @@ func (s *PathPaymentStrictSendOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SendAsset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SendAmount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DestAsset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.DestMin.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 5 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
 	}
@@ -18000,10 +18000,10 @@ func (s *PathPaymentStrictSendOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Path = make([]Asset, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Path[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -18088,30 +18088,30 @@ func (s *ManageSellOfferOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Selling.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Buying.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Price.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OfferId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -18195,30 +18195,30 @@ func (s *ManageBuyOfferOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Selling.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Buying.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.BuyAmount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Price.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OfferId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -18293,25 +18293,25 @@ func (s *CreatePassiveSellOfferOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Selling.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Buying.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Price.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -18478,130 +18478,130 @@ func (s *SetOptionsOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.InflationDest = nil
 	if b {
 		s.InflationDest = new(AccountId)
 		nTmp, err = s.InflationDest.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.ClearFlags = nil
 	if b {
 		s.ClearFlags = new(Uint32)
 		nTmp, err = s.ClearFlags.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.SetFlags = nil
 	if b {
 		s.SetFlags = new(Uint32)
 		nTmp, err = s.SetFlags.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.MasterWeight = nil
 	if b {
 		s.MasterWeight = new(Uint32)
 		nTmp, err = s.MasterWeight.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.LowThreshold = nil
 	if b {
 		s.LowThreshold = new(Uint32)
 		nTmp, err = s.LowThreshold.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.MedThreshold = nil
 	if b {
 		s.MedThreshold = new(Uint32)
 		nTmp, err = s.MedThreshold.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.HighThreshold = nil
 	if b {
 		s.HighThreshold = new(Uint32)
 		nTmp, err = s.HighThreshold.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.HomeDomain = nil
 	if b {
 		s.HomeDomain = new(String32)
 		nTmp, err = s.HomeDomain.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Signer = nil
 	if b {
 		s.Signer = new(Signer)
 		nTmp, err = s.Signer.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	return n, nil
 }
@@ -18830,28 +18830,28 @@ func (u *ChangeTrustAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.AlphaNum4 = new(AlphaNum4)
 		var nTmp int
 		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
 		var nTmp int
 		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case AssetTypeAssetTypePoolShare:
 		u.LiquidityPool = new(LiquidityPoolParameters)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union ChangeTrustAsset", u.Type)
@@ -18918,15 +18918,15 @@ func (s *ChangeTrustOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Line.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Limit.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -18997,20 +18997,20 @@ func (s *AllowTrustOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Trustor.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Authorize.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19079,24 +19079,24 @@ func (s *ManageDataOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.DataName.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.DataValue = nil
 	if b {
 		s.DataValue = new(DataValue)
 		nTmp, err = s.DataValue.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	return n, nil
 }
@@ -19154,10 +19154,10 @@ func (s *BumpSequenceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.BumpTo.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19235,21 +19235,21 @@ func (s *CreateClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 10 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
 	}
@@ -19258,10 +19258,10 @@ func (s *CreateClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Claimants = make([]Claimant, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Claimants[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -19320,10 +19320,10 @@ func (s *ClaimClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.BalanceId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19380,10 +19380,10 @@ func (s *BeginSponsoringFutureReservesOp) DecodeFrom(d *xdr.Decoder) (int, error
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SponsoredId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19463,10 +19463,10 @@ func (e *RevokeSponsorshipType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = RevokeSponsorshipType(i)
 	return n, nil
 }
@@ -19530,15 +19530,15 @@ func (s *RevokeSponsorshipOpSigner) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.AccountId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SignerKey.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19712,19 +19712,19 @@ func (u *RevokeSponsorshipOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.LedgerKey = new(LedgerKey)
 		var nTmp int
 		nTmp, err = (*u.LedgerKey).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case RevokeSponsorshipTypeRevokeSponsorshipSigner:
 		u.Signer = new(RevokeSponsorshipOpSigner)
 		var nTmp int
 		nTmp, err = (*u.Signer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (RevokeSponsorshipType) switch value '%d' is not valid for union RevokeSponsorshipOp", u.Type)
@@ -19795,20 +19795,20 @@ func (s *ClawbackOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.From.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19865,10 +19865,10 @@ func (s *ClawbackClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.BalanceId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -19944,25 +19944,25 @@ func (s *SetTrustLineFlagsOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Trustor.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.ClearFlags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SetFlags.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -20049,30 +20049,30 @@ func (s *LiquidityPoolDepositOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MaxAmountA.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MaxAmountB.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MinPrice.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MaxPrice.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -20147,25 +20147,25 @@ func (s *LiquidityPoolWithdrawOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MinAmountA.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MinAmountB.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -21191,82 +21191,82 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.CreateAccountOp = new(CreateAccountOp)
 		var nTmp int
 		nTmp, err = (*u.CreateAccountOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypePayment:
 		u.PaymentOp = new(PaymentOp)
 		var nTmp int
 		nTmp, err = (*u.PaymentOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypePathPaymentStrictReceive:
 		u.PathPaymentStrictReceiveOp = new(PathPaymentStrictReceiveOp)
 		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictReceiveOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeManageSellOffer:
 		u.ManageSellOfferOp = new(ManageSellOfferOp)
 		var nTmp int
 		nTmp, err = (*u.ManageSellOfferOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeCreatePassiveSellOffer:
 		u.CreatePassiveSellOfferOp = new(CreatePassiveSellOfferOp)
 		var nTmp int
 		nTmp, err = (*u.CreatePassiveSellOfferOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeSetOptions:
 		u.SetOptionsOp = new(SetOptionsOp)
 		var nTmp int
 		nTmp, err = (*u.SetOptionsOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeChangeTrust:
 		u.ChangeTrustOp = new(ChangeTrustOp)
 		var nTmp int
 		nTmp, err = (*u.ChangeTrustOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeAllowTrust:
 		u.AllowTrustOp = new(AllowTrustOp)
 		var nTmp int
 		nTmp, err = (*u.AllowTrustOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeAccountMerge:
 		u.Destination = new(MuxedAccount)
 		var nTmp int
 		nTmp, err = (*u.Destination).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeInflation:
 		// Void
@@ -21275,64 +21275,64 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.ManageDataOp = new(ManageDataOp)
 		var nTmp int
 		nTmp, err = (*u.ManageDataOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeBumpSequence:
 		u.BumpSequenceOp = new(BumpSequenceOp)
 		var nTmp int
 		nTmp, err = (*u.BumpSequenceOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeManageBuyOffer:
 		u.ManageBuyOfferOp = new(ManageBuyOfferOp)
 		var nTmp int
 		nTmp, err = (*u.ManageBuyOfferOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypePathPaymentStrictSend:
 		u.PathPaymentStrictSendOp = new(PathPaymentStrictSendOp)
 		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictSendOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeCreateClaimableBalance:
 		u.CreateClaimableBalanceOp = new(CreateClaimableBalanceOp)
 		var nTmp int
 		nTmp, err = (*u.CreateClaimableBalanceOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeClaimClaimableBalance:
 		u.ClaimClaimableBalanceOp = new(ClaimClaimableBalanceOp)
 		var nTmp int
 		nTmp, err = (*u.ClaimClaimableBalanceOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeBeginSponsoringFutureReserves:
 		u.BeginSponsoringFutureReservesOp = new(BeginSponsoringFutureReservesOp)
 		var nTmp int
 		nTmp, err = (*u.BeginSponsoringFutureReservesOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeEndSponsoringFutureReserves:
 		// Void
@@ -21341,55 +21341,55 @@ func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.RevokeSponsorshipOp = new(RevokeSponsorshipOp)
 		var nTmp int
 		nTmp, err = (*u.RevokeSponsorshipOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeClawback:
 		u.ClawbackOp = new(ClawbackOp)
 		var nTmp int
 		nTmp, err = (*u.ClawbackOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeClawbackClaimableBalance:
 		u.ClawbackClaimableBalanceOp = new(ClawbackClaimableBalanceOp)
 		var nTmp int
 		nTmp, err = (*u.ClawbackClaimableBalanceOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeSetTrustLineFlags:
 		u.SetTrustLineFlagsOp = new(SetTrustLineFlagsOp)
 		var nTmp int
 		nTmp, err = (*u.SetTrustLineFlagsOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeLiquidityPoolDeposit:
 		u.LiquidityPoolDepositOp = new(LiquidityPoolDepositOp)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPoolDepositOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeLiquidityPoolWithdraw:
 		u.LiquidityPoolWithdrawOp = new(LiquidityPoolWithdrawOp)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPoolWithdrawOp).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (OperationType) switch value '%d' is not valid for union OperationBody", u.Type)
@@ -21516,24 +21516,24 @@ func (s *Operation) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.SourceAccount = nil
 	if b {
 		s.SourceAccount = new(MuxedAccount)
 		nTmp, err = s.SourceAccount.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.Body.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -21602,20 +21602,20 @@ func (s *HashIdPreimageOperationId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SourceAccount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OpNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -21696,30 +21696,30 @@ func (s *HashIdPreimageRevokeId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SourceAccount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OpNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -21901,19 +21901,19 @@ func (u *HashIdPreimage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.OperationId = new(HashIdPreimageOperationId)
 		var nTmp int
 		nTmp, err = (*u.OperationId).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case EnvelopeTypeEnvelopeTypePoolRevokeOpId:
 		u.RevokeId = new(HashIdPreimageRevokeId)
 		var nTmp int
 		nTmp, err = (*u.RevokeId).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union HashIdPreimage", u.Type)
@@ -22004,10 +22004,10 @@ func (e *MemoType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = MemoType(i)
 	return n, nil
 }
@@ -22273,37 +22273,37 @@ func (u *Memo) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Text = new(string)
 		var nTmp int
 		(*u.Text), nTmp, err = d.DecodeString(28)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MemoTypeMemoId:
 		u.Id = new(Uint64)
 		var nTmp int
 		nTmp, err = (*u.Id).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MemoTypeMemoHash:
 		u.Hash = new(Hash)
 		var nTmp int
 		nTmp, err = (*u.Hash).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case MemoTypeMemoReturn:
 		u.RetHash = new(Hash)
 		var nTmp int
 		nTmp, err = (*u.RetHash).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (MemoType) switch value '%d' is not valid for union Memo", u.Type)
@@ -22368,15 +22368,15 @@ func (s *TimeBounds) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.MinTime.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.MaxTime.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -22588,46 +22588,46 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SourceAccountEd25519.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Fee.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.TimeBounds = nil
 	if b {
 		s.TimeBounds = new(TimeBounds)
 		nTmp, err = s.TimeBounds.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.Memo.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 100 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 	}
@@ -22636,17 +22636,17 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Operations = make([]Operation, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Operations[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -22720,16 +22720,16 @@ func (s *TransactionV0Envelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Tx.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 20 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
@@ -22738,10 +22738,10 @@ func (s *TransactionV0Envelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Signatures = make([]DecoratedSignature, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Signatures[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -22960,46 +22960,46 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SourceAccount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Fee.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var b bool
 	b, nTmp, err = d.DecodeBool()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.TimeBounds = nil
 	if b {
 		s.TimeBounds = new(TimeBounds)
 		nTmp, err = s.TimeBounds.DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 	}
 	nTmp, err = s.Memo.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 100 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 	}
@@ -23008,17 +23008,17 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Operations = make([]Operation, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Operations[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -23092,16 +23092,16 @@ func (s *TransactionV1Envelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Tx.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 20 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
@@ -23110,10 +23110,10 @@ func (s *TransactionV1Envelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Signatures = make([]DecoratedSignature, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Signatures[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -23243,10 +23243,10 @@ func (u *FeeBumpTransactionInnerTx) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V1 = new(TransactionV1Envelope)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union FeeBumpTransactionInnerTx", u.Type)
@@ -23426,25 +23426,25 @@ func (s *FeeBumpTransaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.FeeSource.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Fee.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.InnerTx.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -23518,16 +23518,16 @@ func (s *FeeBumpTransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Tx.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	if l > 20 {
 		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
@@ -23536,10 +23536,10 @@ func (s *FeeBumpTransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 		s.Signatures = make([]DecoratedSignature, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Signatures[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	return n, nil
@@ -23753,28 +23753,28 @@ func (u *TransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(TransactionV0Envelope)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.V1 = new(TransactionV1Envelope)
 		var nTmp int
 		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case EnvelopeTypeEnvelopeTypeTxFeeBump:
 		u.FeeBump = new(FeeBumpTransactionEnvelope)
 		var nTmp int
 		nTmp, err = (*u.FeeBump).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union TransactionEnvelope", u.Type)
@@ -23947,19 +23947,19 @@ func (u *TransactionSignaturePayloadTaggedTransaction) DecodeFrom(d *xdr.Decoder
 		u.Tx = new(Transaction)
 		var nTmp int
 		nTmp, err = (*u.Tx).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case EnvelopeTypeEnvelopeTypeTxFeeBump:
 		u.FeeBump = new(FeeBumpTransaction)
 		var nTmp int
 		nTmp, err = (*u.FeeBump).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union TransactionSignaturePayloadTaggedTransaction", u.Type)
@@ -24032,15 +24032,15 @@ func (s *TransactionSignaturePayload) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.NetworkId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.TaggedTransaction.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -24123,10 +24123,10 @@ func (e *ClaimAtomType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClaimAtomType(i)
 	return n, nil
 }
@@ -24219,35 +24219,35 @@ func (s *ClaimOfferAtomV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SellerEd25519.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OfferId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetSold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AmountSold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetBought.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AmountBought.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -24339,35 +24339,35 @@ func (s *ClaimOfferAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.SellerId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.OfferId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetSold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AmountSold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetBought.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AmountBought.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -24452,30 +24452,30 @@ func (s *ClaimLiquidityAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetSold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AmountSold.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AssetBought.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.AmountBought.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -24687,28 +24687,28 @@ func (u *ClaimAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.V0 = new(ClaimOfferAtomV0)
 		var nTmp int
 		nTmp, err = (*u.V0).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ClaimAtomTypeClaimAtomTypeOrderBook:
 		u.OrderBook = new(ClaimOfferAtom)
 		var nTmp int
 		nTmp, err = (*u.OrderBook).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ClaimAtomTypeClaimAtomTypeLiquidityPool:
 		u.LiquidityPool = new(ClaimLiquidityAtom)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (ClaimAtomType) switch value '%d' is not valid for union ClaimAtom", u.Type)
@@ -24803,10 +24803,10 @@ func (e *CreateAccountResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = CreateAccountResultCode(i)
 	return n, nil
 }
@@ -25017,10 +25017,10 @@ func (e *PaymentResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = PaymentResultCode(i)
 	return n, nil
 }
@@ -25249,10 +25249,10 @@ func (e *PathPaymentStrictReceiveResultCode) DecodeFrom(d *xdr.Decoder) (int, er
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = PathPaymentStrictReceiveResultCode(i)
 	return n, nil
 }
@@ -25322,20 +25322,20 @@ func (s *SimplePaymentResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Asset.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -25408,26 +25408,26 @@ func (s *PathPaymentStrictReceiveResultSuccess) DecodeFrom(d *xdr.Decoder) (int,
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Offers = nil
 	if l > 0 {
 		s.Offers = make([]ClaimAtom, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Offers[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Last.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -25609,19 +25609,19 @@ func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error)
 		u.Success = new(PathPaymentStrictReceiveResultSuccess)
 		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		u.NoIssuer = new(Asset)
 		var nTmp int
 		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -25750,10 +25750,10 @@ func (e *PathPaymentStrictSendResultCode) DecodeFrom(d *xdr.Decoder) (int, error
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = PathPaymentStrictSendResultCode(i)
 	return n, nil
 }
@@ -25827,26 +25827,26 @@ func (s *PathPaymentStrictSendResultSuccess) DecodeFrom(d *xdr.Decoder) (int, er
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.Offers = nil
 	if l > 0 {
 		s.Offers = make([]ClaimAtom, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.Offers[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Last.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -26027,19 +26027,19 @@ func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Success = new(PathPaymentStrictSendResultSuccess)
 		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		u.NoIssuer = new(Asset)
 		var nTmp int
 		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -26167,10 +26167,10 @@ func (e *ManageSellOfferResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ManageSellOfferResultCode(i)
 	return n, nil
 }
@@ -26254,10 +26254,10 @@ func (e *ManageOfferEffect) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ManageOfferEffect(i)
 	return n, nil
 }
@@ -26408,19 +26408,19 @@ func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) (int, error) 
 		u.Offer = new(OfferEntry)
 		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case ManageOfferEffectManageOfferUpdated:
 		u.Offer = new(OfferEntry)
 		var nTmp int
 		nTmp, err = (*u.Offer).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -26508,26 +26508,26 @@ func (s *ManageOfferSuccessResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var l uint32
 	l, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	s.OffersClaimed = nil
 	if l > 0 {
 		s.OffersClaimed = make([]ClaimAtom, l)
 		for i := uint32(0); i < l; i++ {
 			nTmp, err = s.OffersClaimed[i].DecodeFrom(d)
+			n += nTmp
 			if err != nil {
 				return n, err
 			}
-			n += nTmp
 		}
 	}
 	nTmp, err = s.Offer.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -26662,10 +26662,10 @@ func (u *ManageSellOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Success = new(ManageOfferSuccessResult)
 		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -26790,10 +26790,10 @@ func (e *ManageBuyOfferResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ManageBuyOfferResultCode(i)
 	return n, nil
 }
@@ -26929,10 +26929,10 @@ func (u *ManageBuyOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Success = new(ManageOfferSuccessResult)
 		var nTmp int
 		nTmp, err = (*u.Success).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -27047,10 +27047,10 @@ func (e *SetOptionsResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = SetOptionsResultCode(i)
 	return n, nil
 }
@@ -27259,10 +27259,10 @@ func (e *ChangeTrustResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ChangeTrustResultCode(i)
 	return n, nil
 }
@@ -27465,10 +27465,10 @@ func (e *AllowTrustResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = AllowTrustResultCode(i)
 	return n, nil
 }
@@ -27673,10 +27673,10 @@ func (e *AccountMergeResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = AccountMergeResultCode(i)
 	return n, nil
 }
@@ -27812,10 +27812,10 @@ func (u *AccountMergeResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.SourceAccountBalance = new(Int64)
 		var nTmp int
 		nTmp, err = (*u.SourceAccountBalance).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -27902,10 +27902,10 @@ func (e *InflationResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = InflationResultCode(i)
 	return n, nil
 }
@@ -27969,15 +27969,15 @@ func (s *InflationPayout) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.Destination.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Amount.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -28122,19 +28122,19 @@ func (u *InflationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.Payouts) = nil
 		if l > 0 {
 			(*u.Payouts) = make([]InflationPayout, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Payouts)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -28234,10 +28234,10 @@ func (e *ManageDataResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ManageDataResultCode(i)
 	return n, nil
 }
@@ -28423,10 +28423,10 @@ func (e *BumpSequenceResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = BumpSequenceResultCode(i)
 	return n, nil
 }
@@ -28622,10 +28622,10 @@ func (e *CreateClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, erro
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = CreateClaimableBalanceResultCode(i)
 	return n, nil
 }
@@ -28762,10 +28762,10 @@ func (u *CreateClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.BalanceId = new(ClaimableBalanceId)
 		var nTmp int
 		nTmp, err = (*u.BalanceId).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -28863,10 +28863,10 @@ func (e *ClaimClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, error
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClaimClaimableBalanceResultCode(i)
 	return n, nil
 }
@@ -29059,10 +29059,10 @@ func (e *BeginSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) (in
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = BeginSponsoringFutureReservesResultCode(i)
 	return n, nil
 }
@@ -29250,10 +29250,10 @@ func (e *EndSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) (int,
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = EndSponsoringFutureReservesResultCode(i)
 	return n, nil
 }
@@ -29453,10 +29453,10 @@ func (e *RevokeSponsorshipResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = RevokeSponsorshipResultCode(i)
 	return n, nil
 }
@@ -29652,10 +29652,10 @@ func (e *ClawbackResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClawbackResultCode(i)
 	return n, nil
 }
@@ -29848,10 +29848,10 @@ func (e *ClawbackClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, er
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = ClawbackClaimableBalanceResultCode(i)
 	return n, nil
 }
@@ -30052,10 +30052,10 @@ func (e *SetTrustLineFlagsResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = SetTrustLineFlagsResultCode(i)
 	return n, nil
 }
@@ -30264,10 +30264,10 @@ func (e *LiquidityPoolDepositResultCode) DecodeFrom(d *xdr.Decoder) (int, error)
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LiquidityPoolDepositResultCode(i)
 	return n, nil
 }
@@ -30470,10 +30470,10 @@ func (e *LiquidityPoolWithdrawResultCode) DecodeFrom(d *xdr.Decoder) (int, error
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = LiquidityPoolWithdrawResultCode(i)
 	return n, nil
 }
@@ -30674,10 +30674,10 @@ func (e *OperationResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = OperationResultCode(i)
 	return n, nil
 }
@@ -31772,217 +31772,217 @@ func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.CreateAccountResult = new(CreateAccountResult)
 		var nTmp int
 		nTmp, err = (*u.CreateAccountResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypePayment:
 		u.PaymentResult = new(PaymentResult)
 		var nTmp int
 		nTmp, err = (*u.PaymentResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypePathPaymentStrictReceive:
 		u.PathPaymentStrictReceiveResult = new(PathPaymentStrictReceiveResult)
 		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictReceiveResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeManageSellOffer:
 		u.ManageSellOfferResult = new(ManageSellOfferResult)
 		var nTmp int
 		nTmp, err = (*u.ManageSellOfferResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeCreatePassiveSellOffer:
 		u.CreatePassiveSellOfferResult = new(ManageSellOfferResult)
 		var nTmp int
 		nTmp, err = (*u.CreatePassiveSellOfferResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeSetOptions:
 		u.SetOptionsResult = new(SetOptionsResult)
 		var nTmp int
 		nTmp, err = (*u.SetOptionsResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeChangeTrust:
 		u.ChangeTrustResult = new(ChangeTrustResult)
 		var nTmp int
 		nTmp, err = (*u.ChangeTrustResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeAllowTrust:
 		u.AllowTrustResult = new(AllowTrustResult)
 		var nTmp int
 		nTmp, err = (*u.AllowTrustResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeAccountMerge:
 		u.AccountMergeResult = new(AccountMergeResult)
 		var nTmp int
 		nTmp, err = (*u.AccountMergeResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeInflation:
 		u.InflationResult = new(InflationResult)
 		var nTmp int
 		nTmp, err = (*u.InflationResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeManageData:
 		u.ManageDataResult = new(ManageDataResult)
 		var nTmp int
 		nTmp, err = (*u.ManageDataResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeBumpSequence:
 		u.BumpSeqResult = new(BumpSequenceResult)
 		var nTmp int
 		nTmp, err = (*u.BumpSeqResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeManageBuyOffer:
 		u.ManageBuyOfferResult = new(ManageBuyOfferResult)
 		var nTmp int
 		nTmp, err = (*u.ManageBuyOfferResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypePathPaymentStrictSend:
 		u.PathPaymentStrictSendResult = new(PathPaymentStrictSendResult)
 		var nTmp int
 		nTmp, err = (*u.PathPaymentStrictSendResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeCreateClaimableBalance:
 		u.CreateClaimableBalanceResult = new(CreateClaimableBalanceResult)
 		var nTmp int
 		nTmp, err = (*u.CreateClaimableBalanceResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeClaimClaimableBalance:
 		u.ClaimClaimableBalanceResult = new(ClaimClaimableBalanceResult)
 		var nTmp int
 		nTmp, err = (*u.ClaimClaimableBalanceResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeBeginSponsoringFutureReserves:
 		u.BeginSponsoringFutureReservesResult = new(BeginSponsoringFutureReservesResult)
 		var nTmp int
 		nTmp, err = (*u.BeginSponsoringFutureReservesResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeEndSponsoringFutureReserves:
 		u.EndSponsoringFutureReservesResult = new(EndSponsoringFutureReservesResult)
 		var nTmp int
 		nTmp, err = (*u.EndSponsoringFutureReservesResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeRevokeSponsorship:
 		u.RevokeSponsorshipResult = new(RevokeSponsorshipResult)
 		var nTmp int
 		nTmp, err = (*u.RevokeSponsorshipResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeClawback:
 		u.ClawbackResult = new(ClawbackResult)
 		var nTmp int
 		nTmp, err = (*u.ClawbackResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeClawbackClaimableBalance:
 		u.ClawbackClaimableBalanceResult = new(ClawbackClaimableBalanceResult)
 		var nTmp int
 		nTmp, err = (*u.ClawbackClaimableBalanceResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeSetTrustLineFlags:
 		u.SetTrustLineFlagsResult = new(SetTrustLineFlagsResult)
 		var nTmp int
 		nTmp, err = (*u.SetTrustLineFlagsResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeLiquidityPoolDeposit:
 		u.LiquidityPoolDepositResult = new(LiquidityPoolDepositResult)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPoolDepositResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case OperationTypeLiquidityPoolWithdraw:
 		u.LiquidityPoolWithdrawResult = new(LiquidityPoolWithdrawResult)
 		var nTmp int
 		nTmp, err = (*u.LiquidityPoolWithdrawResult).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (OperationType) switch value '%d' is not valid for union OperationResultTr", u.Type)
@@ -32170,10 +32170,10 @@ func (u *OperationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Tr = new(OperationResultTr)
 		var nTmp int
 		nTmp, err = (*u.Tr).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	default:
 		// Void
@@ -32304,10 +32304,10 @@ func (e *TransactionResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = TransactionResultCode(i)
 	return n, nil
 }
@@ -32557,19 +32557,19 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Results)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -32578,19 +32578,19 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Results)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -32822,20 +32822,20 @@ func (s *InnerTransactionResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.FeeCharged.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Result.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -32898,15 +32898,15 @@ func (s *InnerTransactionResultPair) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.TransactionHash.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Result.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -33131,38 +33131,38 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.InnerResultPair = new(InnerTransactionResultPair)
 		var nTmp int
 		nTmp, err = (*u.InnerResultPair).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case TransactionResultCodeTxFeeBumpInnerFailed:
 		u.InnerResultPair = new(InnerTransactionResultPair)
 		var nTmp int
 		nTmp, err = (*u.InnerResultPair).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case TransactionResultCodeTxSuccess:
 		u.Results = new([]OperationResult)
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Results)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -33171,19 +33171,19 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		var nTmp int
 		var l uint32
 		l, nTmp, err = d.DecodeUint()
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
 				nTmp, err = (*u.Results)[i].DecodeFrom(d)
+				n += nTmp
 				if err != nil {
 					return n, err
 				}
-				n += nTmp
 			}
 		}
 		return n, nil
@@ -33371,20 +33371,20 @@ func (s *TransactionResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.FeeCharged.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Result.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -33441,10 +33441,10 @@ func (s *Hash) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -33501,10 +33501,10 @@ func (s *Uint256) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -33557,10 +33557,10 @@ func (s *Uint32) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var v uint32
 	v, nTmp, err = d.DecodeUint()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*s = Uint32(v)
 	return n, nil
 }
@@ -33614,10 +33614,10 @@ func (s *Int32) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var v int32
 	v, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*s = Int32(v)
 	return n, nil
 }
@@ -33671,10 +33671,10 @@ func (s *Uint64) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var v uint64
 	v, nTmp, err = d.DecodeUhyper()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*s = Uint64(v)
 	return n, nil
 }
@@ -33728,10 +33728,10 @@ func (s *Int64) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var v int64
 	v, nTmp, err = d.DecodeHyper()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*s = Int64(v)
 	return n, nil
 }
@@ -33820,10 +33820,10 @@ func (e *CryptoKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = CryptoKeyType(i)
 	return n, nil
 }
@@ -33901,10 +33901,10 @@ func (e *PublicKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = PublicKeyType(i)
 	return n, nil
 }
@@ -33988,10 +33988,10 @@ func (e *SignerKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var n, nTmp int
 	var i int32
 	i, nTmp, err = d.DecodeInt()
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	*e = SignerKeyType(i)
 	return n, nil
 }
@@ -34120,10 +34120,10 @@ func (u *PublicKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Ed25519 = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.Ed25519).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (PublicKeyType) switch value '%d' is not valid for union PublicKey", u.Type)
@@ -34339,28 +34339,28 @@ func (u *SignerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		u.Ed25519 = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.Ed25519).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case SignerKeyTypeSignerKeyTypePreAuthTx:
 		u.PreAuthTx = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.PreAuthTx).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	case SignerKeyTypeSignerKeyTypeHashX:
 		u.HashX = new(Uint256)
 		var nTmp int
 		nTmp, err = (*u.HashX).DecodeFrom(d)
+		n += nTmp
 		if err != nil {
 			return n, err
 		}
-		n += nTmp
 		return n, nil
 	}
 	return n, fmt.Errorf("Type (SignerKeyType) switch value '%d' is not valid for union SignerKey", u.Type)
@@ -34419,10 +34419,10 @@ func (s *Signature) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	(*s), nTmp, err = d.DecodeOpaque(64)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -34479,10 +34479,10 @@ func (s *SignatureHint) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -34565,10 +34565,10 @@ func (s *NodeId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = (*PublicKey)(s).DecodeFrom(d)
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -34625,10 +34625,10 @@ func (s *Curve25519Secret) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s.Key[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -34685,10 +34685,10 @@ func (s *Curve25519Public) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s.Key[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -34745,10 +34745,10 @@ func (s *HmacSha256Key) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s.Key[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
@@ -34805,10 +34805,10 @@ func (s *HmacSha256Mac) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = d.DecodeFixedOpaqueInplace(s.Mac[:])
+	n += nTmp
 	if err != nil {
 		return n, err
 	}
-	n += nTmp
 	return n, nil
 }
 
