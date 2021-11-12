@@ -18,7 +18,6 @@ import (
 	"encoding"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/stellar/go-xdr/xdr3"
 )
@@ -27,16 +26,15 @@ type xdrType interface {
 	xdrType()
 }
 
+type xdrDecodable interface {
+	DecodeFrom(d *xdr.Decoder) (int, error)
+}
+
 // Unmarshal reads an xdr element from `r` into `v`.
 func Unmarshal(r io.Reader, v interface{}) (int, error) {
-	if _, ok := v.(xdrType); ok {
-		if bu, ok := v.(encoding.BinaryUnmarshaler); ok {
-			b, err := ioutil.ReadAll(r)
-			if err != nil {
-				return 0, err
-			}
-			return len(b), bu.UnmarshalBinary(b)
-		}
+	if decodable, ok := v.(xdrDecodable); ok {
+		d := xdr.NewDecoder(r)
+		return decodable.DecodeFrom(d)
 	}
 	// delegate to xdr package's Unmarshal
 	return xdr.Unmarshal(r, v)
@@ -74,13 +72,15 @@ func (s Value) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Value) DecodeFrom(d *xdr.Decoder) error {
+func (s *Value) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	(*s), _, err = d.DecodeOpaque(0)
+	var n, nTmp int
+	(*s), nTmp, err = d.DecodeOpaque(0)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -95,7 +95,8 @@ func (s Value) MarshalBinary() ([]byte, error) {
 func (s *Value) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -137,17 +138,20 @@ func (s *ScpBallot) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpBallot) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpBallot) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Counter.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Counter.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Value.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Value.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -162,7 +166,8 @@ func (s ScpBallot) MarshalBinary() ([]byte, error) {
 func (s *ScpBallot) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -226,15 +231,17 @@ func (s ScpStatementType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ScpStatementType) DecodeFrom(d *xdr.Decoder) error {
+func (e *ScpStatementType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ScpStatementType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -249,7 +256,8 @@ func (s ScpStatementType) MarshalBinary() ([]byte, error) {
 func (s *ScpStatementType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -315,42 +323,48 @@ func (s *ScpNomination) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpNomination) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpNomination) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.QuorumSetHash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.QuorumSetHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Votes = nil
 	if l > 0 {
 		s.Votes = make([]Value, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Votes[i].DecodeFrom(d)
+			nTmp, err = s.Votes[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Accepted = nil
 	if l > 0 {
 		s.Accepted = make([]Value, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Accepted[i].DecodeFrom(d)
+			nTmp, err = s.Accepted[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -365,7 +379,8 @@ func (s ScpNomination) MarshalBinary() ([]byte, error) {
 func (s *ScpNomination) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -443,50 +458,59 @@ func (s *ScpStatementPrepare) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpStatementPrepare) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpStatementPrepare) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.QuorumSetHash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.QuorumSetHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ballot.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ballot.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Prepared = nil
 	if b {
 		s.Prepared = new(ScpBallot)
-		err = s.Prepared.DecodeFrom(d)
+		nTmp, err = s.Prepared.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.PreparedPrime = nil
 	if b {
 		s.PreparedPrime = new(ScpBallot)
-		err = s.PreparedPrime.DecodeFrom(d)
+		nTmp, err = s.PreparedPrime.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.NC.DecodeFrom(d)
+	nTmp, err = s.NC.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NH.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NH.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -501,7 +525,8 @@ func (s ScpStatementPrepare) MarshalBinary() ([]byte, error) {
 func (s *ScpStatementPrepare) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -561,29 +586,35 @@ func (s *ScpStatementConfirm) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpStatementConfirm) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpStatementConfirm) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Ballot.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Ballot.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NPrepared.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NPrepared.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NCommit.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NCommit.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NH.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NH.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.QuorumSetHash.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.QuorumSetHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -598,7 +629,8 @@ func (s ScpStatementConfirm) MarshalBinary() ([]byte, error) {
 func (s *ScpStatementConfirm) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -646,21 +678,25 @@ func (s *ScpStatementExternalize) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpStatementExternalize) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpStatementExternalize) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Commit.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Commit.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NH.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NH.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.CommitQuorumSetHash.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.CommitQuorumSetHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -675,7 +711,8 @@ func (s ScpStatementExternalize) MarshalBinary() ([]byte, error) {
 func (s *ScpStatementExternalize) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -921,43 +958,51 @@ func (s ScpStatementPledges) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ScpStatementPledges) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = ScpStatementType(disc)
 	switch ScpStatementType(u.Type) {
 	case ScpStatementTypeScpStPrepare:
 		u.Prepare = new(ScpStatementPrepare)
-		err = (*u.Prepare).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Prepare).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ScpStatementTypeScpStConfirm:
 		u.Confirm = new(ScpStatementConfirm)
-		err = (*u.Confirm).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Confirm).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ScpStatementTypeScpStExternalize:
 		u.Externalize = new(ScpStatementExternalize)
-		err = (*u.Externalize).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Externalize).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ScpStatementTypeScpStNominate:
 		u.Nominate = new(ScpNomination)
-		err = (*u.Nominate).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Nominate).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (ScpStatementType) switch value '%d' is not valid for union ScpStatementPledges", u.Type)
+	return n, fmt.Errorf("Type (ScpStatementType) switch value '%d' is not valid for union ScpStatementPledges", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -972,7 +1017,8 @@ func (s ScpStatementPledges) MarshalBinary() ([]byte, error) {
 func (s *ScpStatementPledges) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1052,21 +1098,25 @@ func (s *ScpStatement) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpStatement) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpStatement) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.NodeId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.NodeId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SlotIndex.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SlotIndex.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Pledges.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Pledges.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1081,7 +1131,8 @@ func (s ScpStatement) MarshalBinary() ([]byte, error) {
 func (s *ScpStatement) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1123,17 +1174,20 @@ func (s *ScpEnvelope) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpEnvelope) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Statement.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Statement.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Signature.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Signature.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1148,7 +1202,8 @@ func (s ScpEnvelope) MarshalBinary() ([]byte, error) {
 func (s *ScpEnvelope) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1214,42 +1269,48 @@ func (s *ScpQuorumSet) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpQuorumSet) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpQuorumSet) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Threshold.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Threshold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Validators = nil
 	if l > 0 {
 		s.Validators = make([]NodeId, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Validators[i].DecodeFrom(d)
+			nTmp, err = s.Validators[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.InnerSets = nil
 	if l > 0 {
 		s.InnerSets = make([]ScpQuorumSet, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.InnerSets[i].DecodeFrom(d)
+			nTmp, err = s.InnerSets[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1264,7 +1325,8 @@ func (s ScpQuorumSet) MarshalBinary() ([]byte, error) {
 func (s *ScpQuorumSet) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1326,13 +1388,15 @@ func (s AccountId) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AccountId) DecodeFrom(d *xdr.Decoder) error {
+func (s *AccountId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = (*PublicKey)(s).DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = (*PublicKey)(s).DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1347,7 +1411,8 @@ func (s AccountId) MarshalBinary() ([]byte, error) {
 func (s *AccountId) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1383,13 +1448,15 @@ func (s *Thresholds) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Thresholds) DecodeFrom(d *xdr.Decoder) error {
+func (s *Thresholds) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1404,7 +1471,8 @@ func (s Thresholds) MarshalBinary() ([]byte, error) {
 func (s *Thresholds) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1440,15 +1508,17 @@ func (s String32) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *String32) DecodeFrom(d *xdr.Decoder) error {
+func (s *String32) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var v string
-	v, _, err = d.DecodeString(32)
+	v, nTmp, err = d.DecodeString(32)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*s = String32(v)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1463,7 +1533,8 @@ func (s String32) MarshalBinary() ([]byte, error) {
 func (s *String32) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1499,15 +1570,17 @@ func (s String64) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *String64) DecodeFrom(d *xdr.Decoder) error {
+func (s *String64) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var v string
-	v, _, err = d.DecodeString(64)
+	v, nTmp, err = d.DecodeString(64)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*s = String64(v)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1522,7 +1595,8 @@ func (s String64) MarshalBinary() ([]byte, error) {
 func (s *String64) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1553,13 +1627,15 @@ func (s SequenceNumber) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SequenceNumber) DecodeFrom(d *xdr.Decoder) error {
+func (s *SequenceNumber) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = (*Int64)(s).DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = (*Int64)(s).DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1574,7 +1650,8 @@ func (s SequenceNumber) MarshalBinary() ([]byte, error) {
 func (s *SequenceNumber) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1605,13 +1682,15 @@ func (s TimePoint) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TimePoint) DecodeFrom(d *xdr.Decoder) error {
+func (s *TimePoint) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = (*Uint64)(s).DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = (*Uint64)(s).DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1626,7 +1705,8 @@ func (s TimePoint) MarshalBinary() ([]byte, error) {
 func (s *TimePoint) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1662,13 +1742,15 @@ func (s DataValue) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *DataValue) DecodeFrom(d *xdr.Decoder) error {
+func (s *DataValue) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	(*s), _, err = d.DecodeOpaque(64)
+	var n, nTmp int
+	(*s), nTmp, err = d.DecodeOpaque(64)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1683,7 +1765,8 @@ func (s DataValue) MarshalBinary() ([]byte, error) {
 func (s *DataValue) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1714,13 +1797,15 @@ func (s PoolId) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PoolId) DecodeFrom(d *xdr.Decoder) error {
+func (s *PoolId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = (*Hash)(s).DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = (*Hash)(s).DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1735,7 +1820,8 @@ func (s PoolId) MarshalBinary() ([]byte, error) {
 func (s *PoolId) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1771,13 +1857,15 @@ func (s *AssetCode4) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AssetCode4) DecodeFrom(d *xdr.Decoder) error {
+func (s *AssetCode4) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1792,7 +1880,8 @@ func (s AssetCode4) MarshalBinary() ([]byte, error) {
 func (s *AssetCode4) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1828,13 +1917,15 @@ func (s *AssetCode12) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AssetCode12) DecodeFrom(d *xdr.Decoder) error {
+func (s *AssetCode12) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1849,7 +1940,8 @@ func (s AssetCode12) MarshalBinary() ([]byte, error) {
 func (s *AssetCode12) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -1913,15 +2005,17 @@ func (s AssetType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *AssetType) DecodeFrom(d *xdr.Decoder) error {
+func (e *AssetType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = AssetType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -1936,7 +2030,8 @@ func (s AssetType) MarshalBinary() ([]byte, error) {
 func (s *AssetType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2081,29 +2176,33 @@ func (s AssetCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AssetCode) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AssetCode) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = AssetType(disc)
 	switch AssetType(u.Type) {
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AssetCode4 = new(AssetCode4)
-		err = (*u.AssetCode4).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AssetCode4).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AssetCode12 = new(AssetCode12)
-		err = (*u.AssetCode12).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AssetCode12).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union AssetCode", u.Type)
+	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union AssetCode", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2118,7 +2217,8 @@ func (s AssetCode) MarshalBinary() ([]byte, error) {
 func (s *AssetCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2160,17 +2260,20 @@ func (s *AlphaNum4) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AlphaNum4) DecodeFrom(d *xdr.Decoder) error {
+func (s *AlphaNum4) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AssetCode.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AssetCode.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Issuer.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Issuer.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2185,7 +2288,8 @@ func (s AlphaNum4) MarshalBinary() ([]byte, error) {
 func (s *AlphaNum4) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2227,17 +2331,20 @@ func (s *AlphaNum12) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AlphaNum12) DecodeFrom(d *xdr.Decoder) error {
+func (s *AlphaNum12) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AssetCode.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AssetCode.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Issuer.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Issuer.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2252,7 +2359,8 @@ func (s AlphaNum12) MarshalBinary() ([]byte, error) {
 func (s *AlphaNum12) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2406,32 +2514,36 @@ func (s Asset) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *Asset) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *Asset) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = AssetType(disc)
 	switch AssetType(u.Type) {
 	case AssetTypeAssetTypeNative:
 		// Void
-		return nil
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AlphaNum4 = new(AlphaNum4)
-		err = (*u.AlphaNum4).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
-		err = (*u.AlphaNum12).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union Asset", u.Type)
+	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union Asset", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2446,7 +2558,8 @@ func (s Asset) MarshalBinary() ([]byte, error) {
 func (s *Asset) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2488,17 +2601,20 @@ func (s *Price) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Price) DecodeFrom(d *xdr.Decoder) error {
+func (s *Price) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.N.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.N.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.D.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.D.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2513,7 +2629,8 @@ func (s Price) MarshalBinary() ([]byte, error) {
 func (s *Price) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2555,17 +2672,20 @@ func (s *Liabilities) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Liabilities) DecodeFrom(d *xdr.Decoder) error {
+func (s *Liabilities) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Buying.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Buying.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Selling.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Selling.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2580,7 +2700,8 @@ func (s Liabilities) MarshalBinary() ([]byte, error) {
 func (s *Liabilities) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2644,15 +2765,17 @@ func (s ThresholdIndexes) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ThresholdIndexes) DecodeFrom(d *xdr.Decoder) error {
+func (e *ThresholdIndexes) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ThresholdIndexes(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2667,7 +2790,8 @@ func (s ThresholdIndexes) MarshalBinary() ([]byte, error) {
 func (s *ThresholdIndexes) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2737,15 +2861,17 @@ func (s LedgerEntryType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LedgerEntryType) DecodeFrom(d *xdr.Decoder) error {
+func (e *LedgerEntryType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LedgerEntryType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2760,7 +2886,8 @@ func (s LedgerEntryType) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2802,17 +2929,20 @@ func (s *Signer) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Signer) DecodeFrom(d *xdr.Decoder) error {
+func (s *Signer) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Key.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Key.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Weight.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Weight.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2827,7 +2957,8 @@ func (s Signer) MarshalBinary() ([]byte, error) {
 func (s *Signer) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -2901,15 +3032,17 @@ func (s AccountFlags) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *AccountFlags) DecodeFrom(d *xdr.Decoder) error {
+func (e *AccountFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = AccountFlags(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -2924,7 +3057,8 @@ func (s AccountFlags) MarshalBinary() ([]byte, error) {
 func (s *AccountFlags) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3014,18 +3148,18 @@ func (s AccountEntryExtensionV2Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AccountEntryExtensionV2Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AccountEntryExtensionV2Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExtensionV2Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExtensionV2Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3040,7 +3174,8 @@ func (s AccountEntryExtensionV2Ext) MarshalBinary() ([]byte, error) {
 func (s *AccountEntryExtensionV2Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3115,48 +3250,55 @@ func (s *AccountEntryExtensionV2) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AccountEntryExtensionV2) DecodeFrom(d *xdr.Decoder) error {
+func (s *AccountEntryExtensionV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.NumSponsored.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.NumSponsored.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NumSponsoring.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NumSponsoring.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 20 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.SignerSponsoringIDs = nil
 	if l > 0 {
 		s.SignerSponsoringIDs = make([]SponsorshipDescriptor, l)
 		for i := uint32(0); i < l; i++ {
 			var eb bool
-			eb, _, err = d.DecodeBool()
+			eb, nTmp, err = d.DecodeBool()
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 			s.SignerSponsoringIDs[i] = nil
 			if eb {
 				s.SignerSponsoringIDs[i] = new(AccountId)
-				err = s.SignerSponsoringIDs[i].DecodeFrom(d)
+				nTmp, err = s.SignerSponsoringIDs[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3171,7 +3313,8 @@ func (s AccountEntryExtensionV2) MarshalBinary() ([]byte, error) {
 func (s *AccountEntryExtensionV2) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3279,25 +3422,27 @@ func (s AccountEntryExtensionV1Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AccountEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AccountEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 2:
 		u.V2 = new(AccountEntryExtensionV2)
-		err = (*u.V2).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V2).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExtensionV1Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExtensionV1Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3312,7 +3457,8 @@ func (s AccountEntryExtensionV1Ext) MarshalBinary() ([]byte, error) {
 func (s *AccountEntryExtensionV1Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3362,17 +3508,20 @@ func (s *AccountEntryExtensionV1) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AccountEntryExtensionV1) DecodeFrom(d *xdr.Decoder) error {
+func (s *AccountEntryExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Liabilities.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Liabilities.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3387,7 +3536,8 @@ func (s AccountEntryExtensionV1) MarshalBinary() ([]byte, error) {
 func (s *AccountEntryExtensionV1) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3495,25 +3645,27 @@ func (s AccountEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AccountEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AccountEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 1:
 		u.V1 = new(AccountEntryExtensionV1)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3528,7 +3680,8 @@ func (s AccountEntryExt) MarshalBinary() ([]byte, error) {
 func (s *AccountEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3648,72 +3801,85 @@ func (s *AccountEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AccountEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *AccountEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Balance.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Balance.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SeqNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NumSubEntries.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NumSubEntries.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.InflationDest = nil
 	if b {
 		s.InflationDest = new(AccountId)
-		err = s.InflationDest.DecodeFrom(d)
+		nTmp, err = s.InflationDest.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.Flags.DecodeFrom(d)
+	nTmp, err = s.Flags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.HomeDomain.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.HomeDomain.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Thresholds.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Thresholds.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 20 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signers = nil
 	if l > 0 {
 		s.Signers = make([]Signer, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Signers[i].DecodeFrom(d)
+			nTmp, err = s.Signers[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3728,7 +3894,8 @@ func (s AccountEntry) MarshalBinary() ([]byte, error) {
 func (s *AccountEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3794,15 +3961,17 @@ func (s TrustLineFlags) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *TrustLineFlags) DecodeFrom(d *xdr.Decoder) error {
+func (e *TrustLineFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = TrustLineFlags(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3817,7 +3986,8 @@ func (s TrustLineFlags) MarshalBinary() ([]byte, error) {
 func (s *TrustLineFlags) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -3890,15 +4060,17 @@ func (s LiquidityPoolType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LiquidityPoolType) DecodeFrom(d *xdr.Decoder) error {
+func (e *LiquidityPoolType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LiquidityPoolType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -3913,7 +4085,8 @@ func (s LiquidityPoolType) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4110,39 +4283,45 @@ func (s TrustLineAsset) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TrustLineAsset) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TrustLineAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = AssetType(disc)
 	switch AssetType(u.Type) {
 	case AssetTypeAssetTypeNative:
 		// Void
-		return nil
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AlphaNum4 = new(AlphaNum4)
-		err = (*u.AlphaNum4).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
-		err = (*u.AlphaNum12).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case AssetTypeAssetTypePoolShare:
 		u.LiquidityPoolId = new(PoolId)
-		err = (*u.LiquidityPoolId).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPoolId).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union TrustLineAsset", u.Type)
+	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union TrustLineAsset", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4157,7 +4336,8 @@ func (s TrustLineAsset) MarshalBinary() ([]byte, error) {
 func (s *TrustLineAsset) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4223,18 +4403,18 @@ func (s TrustLineEntryExtensionV2Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TrustLineEntryExtensionV2Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TrustLineEntryExtensionV2Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryExtensionV2Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryExtensionV2Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4249,7 +4429,8 @@ func (s TrustLineEntryExtensionV2Ext) MarshalBinary() ([]byte, error) {
 func (s *TrustLineEntryExtensionV2Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4297,17 +4478,20 @@ func (s *TrustLineEntryExtensionV2) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TrustLineEntryExtensionV2) DecodeFrom(d *xdr.Decoder) error {
+func (s *TrustLineEntryExtensionV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LiquidityPoolUseCount.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LiquidityPoolUseCount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4322,7 +4506,8 @@ func (s TrustLineEntryExtensionV2) MarshalBinary() ([]byte, error) {
 func (s *TrustLineEntryExtensionV2) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4430,25 +4615,27 @@ func (s TrustLineEntryV1Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TrustLineEntryV1Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TrustLineEntryV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 2:
 		u.V2 = new(TrustLineEntryExtensionV2)
-		err = (*u.V2).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V2).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryV1Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryV1Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4463,7 +4650,8 @@ func (s TrustLineEntryV1Ext) MarshalBinary() ([]byte, error) {
 func (s *TrustLineEntryV1Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4513,17 +4701,20 @@ func (s *TrustLineEntryV1) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TrustLineEntryV1) DecodeFrom(d *xdr.Decoder) error {
+func (s *TrustLineEntryV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Liabilities.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Liabilities.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4538,7 +4729,8 @@ func (s TrustLineEntryV1) MarshalBinary() ([]byte, error) {
 func (s *TrustLineEntryV1) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4658,25 +4850,27 @@ func (s TrustLineEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TrustLineEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TrustLineEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 1:
 		u.V1 = new(TrustLineEntryV1)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TrustLineEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4691,7 +4885,8 @@ func (s TrustLineEntryExt) MarshalBinary() ([]byte, error) {
 func (s *TrustLineEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4780,33 +4975,40 @@ func (s *TrustLineEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TrustLineEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *TrustLineEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Balance.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Balance.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Limit.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Limit.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Flags.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Flags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4821,7 +5023,8 @@ func (s TrustLineEntry) MarshalBinary() ([]byte, error) {
 func (s *TrustLineEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4877,15 +5080,17 @@ func (s OfferEntryFlags) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *OfferEntryFlags) DecodeFrom(d *xdr.Decoder) error {
+func (e *OfferEntryFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = OfferEntryFlags(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4900,7 +5105,8 @@ func (s OfferEntryFlags) MarshalBinary() ([]byte, error) {
 func (s *OfferEntryFlags) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -4972,18 +5178,18 @@ func (s OfferEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *OfferEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *OfferEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union OfferEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union OfferEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4998,7 +5204,8 @@ func (s OfferEntryExt) MarshalBinary() ([]byte, error) {
 func (s *OfferEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5089,41 +5296,50 @@ func (s *OfferEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *OfferEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *OfferEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SellerId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SellerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OfferId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OfferId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Selling.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Selling.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Buying.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Buying.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Price.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Price.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Flags.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Flags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5138,7 +5354,8 @@ func (s OfferEntry) MarshalBinary() ([]byte, error) {
 func (s *OfferEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5204,18 +5421,18 @@ func (s DataEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *DataEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *DataEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union DataEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union DataEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5230,7 +5447,8 @@ func (s DataEntryExt) MarshalBinary() ([]byte, error) {
 func (s *DataEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5291,25 +5509,30 @@ func (s *DataEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *DataEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *DataEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DataName.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DataName.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DataValue.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DataValue.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5324,7 +5547,8 @@ func (s DataEntry) MarshalBinary() ([]byte, error) {
 func (s *DataEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5394,15 +5618,17 @@ func (s ClaimPredicateType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClaimPredicateType) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClaimPredicateType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClaimPredicateType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5417,7 +5643,8 @@ func (s ClaimPredicateType) MarshalBinary() ([]byte, error) {
 func (s *ClaimPredicateType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5718,90 +5945,103 @@ func (s ClaimPredicate) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClaimPredicate) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = ClaimPredicateType(disc)
 	switch ClaimPredicateType(u.Type) {
 	case ClaimPredicateTypeClaimPredicateUnconditional:
 		// Void
-		return nil
+		return n, nil
 	case ClaimPredicateTypeClaimPredicateAnd:
 		u.AndPredicates = new([]ClaimPredicate)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		if l > 2 {
-			return fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
+			return n, fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
 		}
 		(*u.AndPredicates) = nil
 		if l > 0 {
 			(*u.AndPredicates) = make([]ClaimPredicate, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.AndPredicates)[i].DecodeFrom(d)
+				nTmp, err = (*u.AndPredicates)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case ClaimPredicateTypeClaimPredicateOr:
 		u.OrPredicates = new([]ClaimPredicate)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		if l > 2 {
-			return fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
+			return n, fmt.Errorf("data size (%d) exceeds max slice limit (2)", l)
 		}
 		(*u.OrPredicates) = nil
 		if l > 0 {
 			(*u.OrPredicates) = make([]ClaimPredicate, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.OrPredicates)[i].DecodeFrom(d)
+				nTmp, err = (*u.OrPredicates)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case ClaimPredicateTypeClaimPredicateNot:
 		u.NotPredicate = new(*ClaimPredicate)
+		var nTmp int
 		var b bool
-		b, _, err = d.DecodeBool()
+		b, nTmp, err = d.DecodeBool()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.NotPredicate) = nil
 		if b {
 			(*u.NotPredicate) = new(ClaimPredicate)
-			err = (*u.NotPredicate).DecodeFrom(d)
+			nTmp, err = (*u.NotPredicate).DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
-		return nil
+		return n, nil
 	case ClaimPredicateTypeClaimPredicateBeforeAbsoluteTime:
 		u.AbsBefore = new(Int64)
-		err = (*u.AbsBefore).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AbsBefore).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ClaimPredicateTypeClaimPredicateBeforeRelativeTime:
 		u.RelBefore = new(Int64)
-		err = (*u.RelBefore).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.RelBefore).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (ClaimPredicateType) switch value '%d' is not valid for union ClaimPredicate", u.Type)
+	return n, fmt.Errorf("Type (ClaimPredicateType) switch value '%d' is not valid for union ClaimPredicate", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5816,7 +6056,8 @@ func (s ClaimPredicate) MarshalBinary() ([]byte, error) {
 func (s *ClaimPredicate) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5871,15 +6112,17 @@ func (s ClaimantType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClaimantType) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClaimantType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClaimantType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5894,7 +6137,8 @@ func (s ClaimantType) MarshalBinary() ([]byte, error) {
 func (s *ClaimantType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -5936,17 +6180,20 @@ func (s *ClaimantV0) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimantV0) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimantV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Destination.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Predicate.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Predicate.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -5961,7 +6208,8 @@ func (s ClaimantV0) MarshalBinary() ([]byte, error) {
 func (s *ClaimantV0) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6065,22 +6313,24 @@ func (s Claimant) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *Claimant) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *Claimant) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = ClaimantType(disc)
 	switch ClaimantType(u.Type) {
 	case ClaimantTypeClaimantTypeV0:
 		u.V0 = new(ClaimantV0)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (ClaimantType) switch value '%d' is not valid for union Claimant", u.Type)
+	return n, fmt.Errorf("Type (ClaimantType) switch value '%d' is not valid for union Claimant", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6095,7 +6345,8 @@ func (s Claimant) MarshalBinary() ([]byte, error) {
 func (s *Claimant) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6150,15 +6401,17 @@ func (s ClaimableBalanceIdType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClaimableBalanceIdType) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClaimableBalanceIdType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClaimableBalanceIdType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6173,7 +6426,8 @@ func (s ClaimableBalanceIdType) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceIdType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6273,22 +6527,24 @@ func (s ClaimableBalanceId) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClaimableBalanceId) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClaimableBalanceId) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = ClaimableBalanceIdType(disc)
 	switch ClaimableBalanceIdType(u.Type) {
 	case ClaimableBalanceIdTypeClaimableBalanceIdTypeV0:
 		u.V0 = new(Hash)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (ClaimableBalanceIdType) switch value '%d' is not valid for union ClaimableBalanceId", u.Type)
+	return n, fmt.Errorf("Type (ClaimableBalanceIdType) switch value '%d' is not valid for union ClaimableBalanceId", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6303,7 +6559,8 @@ func (s ClaimableBalanceId) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceId) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6360,15 +6617,17 @@ func (s ClaimableBalanceFlags) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClaimableBalanceFlags) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClaimableBalanceFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClaimableBalanceFlags(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6383,7 +6642,8 @@ func (s ClaimableBalanceFlags) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceFlags) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6455,18 +6715,18 @@ func (s ClaimableBalanceEntryExtensionV1Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClaimableBalanceEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClaimableBalanceEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union ClaimableBalanceEntryExtensionV1Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union ClaimableBalanceEntryExtensionV1Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6481,7 +6741,8 @@ func (s ClaimableBalanceEntryExtensionV1Ext) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceEntryExtensionV1Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6529,17 +6790,20 @@ func (s *ClaimableBalanceEntryExtensionV1) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimableBalanceEntryExtensionV1) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimableBalanceEntryExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Ext.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Flags.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Flags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6554,7 +6818,8 @@ func (s ClaimableBalanceEntryExtensionV1) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceEntryExtensionV1) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6662,25 +6927,27 @@ func (s ClaimableBalanceEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClaimableBalanceEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClaimableBalanceEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 1:
 		u.V1 = new(ClaimableBalanceEntryExtensionV1)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union ClaimableBalanceEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union ClaimableBalanceEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6695,7 +6962,8 @@ func (s ClaimableBalanceEntryExt) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6780,43 +7048,50 @@ func (s *ClaimableBalanceEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimableBalanceEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimableBalanceEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.BalanceId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.BalanceId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 10 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
 	}
 	s.Claimants = nil
 	if l > 0 {
 		s.Claimants = make([]Claimant, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Claimants[i].DecodeFrom(d)
+			nTmp, err = s.Claimants[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Asset.DecodeFrom(d)
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6831,7 +7106,8 @@ func (s ClaimableBalanceEntry) MarshalBinary() ([]byte, error) {
 func (s *ClaimableBalanceEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6879,21 +7155,25 @@ func (s *LiquidityPoolConstantProductParameters) EncodeTo(e *xdr.Encoder) error 
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LiquidityPoolConstantProductParameters) DecodeFrom(d *xdr.Decoder) error {
+func (s *LiquidityPoolConstantProductParameters) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AssetA.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AssetA.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetB.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetB.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Fee.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Fee.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -6908,7 +7188,8 @@ func (s LiquidityPoolConstantProductParameters) MarshalBinary() ([]byte, error) 
 func (s *LiquidityPoolConstantProductParameters) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -6969,29 +7250,35 @@ func (s *LiquidityPoolEntryConstantProduct) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LiquidityPoolEntryConstantProduct) DecodeFrom(d *xdr.Decoder) error {
+func (s *LiquidityPoolEntryConstantProduct) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Params.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Params.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.ReserveA.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.ReserveA.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.ReserveB.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.ReserveB.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TotalPoolShares.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TotalPoolShares.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.PoolSharesTrustLineCount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.PoolSharesTrustLineCount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7006,7 +7293,8 @@ func (s LiquidityPoolEntryConstantProduct) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolEntryConstantProduct) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7114,22 +7402,24 @@ func (s LiquidityPoolEntryBody) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LiquidityPoolEntryBody) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LiquidityPoolEntryBody) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = LiquidityPoolType(disc)
 	switch LiquidityPoolType(u.Type) {
 	case LiquidityPoolTypeLiquidityPoolConstantProduct:
 		u.ConstantProduct = new(LiquidityPoolEntryConstantProduct)
-		err = (*u.ConstantProduct).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ConstantProduct).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (LiquidityPoolType) switch value '%d' is not valid for union LiquidityPoolEntryBody", u.Type)
+	return n, fmt.Errorf("Type (LiquidityPoolType) switch value '%d' is not valid for union LiquidityPoolEntryBody", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7144,7 +7434,8 @@ func (s LiquidityPoolEntryBody) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolEntryBody) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7200,17 +7491,20 @@ func (s *LiquidityPoolEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LiquidityPoolEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *LiquidityPoolEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LiquidityPoolId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Body.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Body.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7225,7 +7519,8 @@ func (s LiquidityPoolEntry) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7291,18 +7586,18 @@ func (s LedgerEntryExtensionV1Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerEntryExtensionV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerEntryExtensionV1Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerEntryExtensionV1Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7317,7 +7612,8 @@ func (s LedgerEntryExtensionV1Ext) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryExtensionV1Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7371,26 +7667,30 @@ func (s *LedgerEntryExtensionV1) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerEntryExtensionV1) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerEntryExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.SponsoringId = nil
 	if b {
 		s.SponsoringId = new(AccountId)
-		err = s.SponsoringId.DecodeFrom(d)
+		nTmp, err = s.SponsoringId.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7405,7 +7705,8 @@ func (s LedgerEntryExtensionV1) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryExtensionV1) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7715,57 +8016,69 @@ func (s LedgerEntryData) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerEntryData) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = LedgerEntryType(disc)
 	switch LedgerEntryType(u.Type) {
 	case LedgerEntryTypeAccount:
 		u.Account = new(AccountEntry)
-		err = (*u.Account).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Account).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeTrustline:
 		u.TrustLine = new(TrustLineEntry)
-		err = (*u.TrustLine).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.TrustLine).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeOffer:
 		u.Offer = new(OfferEntry)
-		err = (*u.Offer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Offer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeData:
 		u.Data = new(DataEntry)
-		err = (*u.Data).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Data).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeClaimableBalance:
 		u.ClaimableBalance = new(ClaimableBalanceEntry)
-		err = (*u.ClaimableBalance).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClaimableBalance).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeLiquidityPool:
 		u.LiquidityPool = new(LiquidityPoolEntry)
-		err = (*u.LiquidityPool).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (LedgerEntryType) switch value '%d' is not valid for union LedgerEntryData", u.Type)
+	return n, fmt.Errorf("Type (LedgerEntryType) switch value '%d' is not valid for union LedgerEntryData", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7780,7 +8093,8 @@ func (s LedgerEntryData) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryData) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7888,25 +8202,27 @@ func (s LedgerEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 1:
 		u.V1 = new(LedgerEntryExtensionV1)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7921,7 +8237,8 @@ func (s LedgerEntryExt) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -7994,21 +8311,25 @@ func (s *LedgerEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LastModifiedLedgerSeq.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LastModifiedLedgerSeq.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Data.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Data.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8023,7 +8344,8 @@ func (s LedgerEntry) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8059,13 +8381,15 @@ func (s *LedgerKeyAccount) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerKeyAccount) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerKeyAccount) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8080,7 +8404,8 @@ func (s LedgerKeyAccount) MarshalBinary() ([]byte, error) {
 func (s *LedgerKeyAccount) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8122,17 +8447,20 @@ func (s *LedgerKeyTrustLine) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerKeyTrustLine) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerKeyTrustLine) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8147,7 +8475,8 @@ func (s LedgerKeyTrustLine) MarshalBinary() ([]byte, error) {
 func (s *LedgerKeyTrustLine) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8189,17 +8518,20 @@ func (s *LedgerKeyOffer) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerKeyOffer) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerKeyOffer) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SellerId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SellerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OfferId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OfferId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8214,7 +8546,8 @@ func (s LedgerKeyOffer) MarshalBinary() ([]byte, error) {
 func (s *LedgerKeyOffer) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8256,17 +8589,20 @@ func (s *LedgerKeyData) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerKeyData) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerKeyData) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DataName.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DataName.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8281,7 +8617,8 @@ func (s LedgerKeyData) MarshalBinary() ([]byte, error) {
 func (s *LedgerKeyData) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8317,13 +8654,15 @@ func (s *LedgerKeyClaimableBalance) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerKeyClaimableBalance) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerKeyClaimableBalance) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.BalanceId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.BalanceId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8338,7 +8677,8 @@ func (s LedgerKeyClaimableBalance) MarshalBinary() ([]byte, error) {
 func (s *LedgerKeyClaimableBalance) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8374,13 +8714,15 @@ func (s *LedgerKeyLiquidityPool) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerKeyLiquidityPool) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerKeyLiquidityPool) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LiquidityPoolId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8395,7 +8737,8 @@ func (s LedgerKeyLiquidityPool) MarshalBinary() ([]byte, error) {
 func (s *LedgerKeyLiquidityPool) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8731,57 +9074,69 @@ func (s LedgerKey) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = LedgerEntryType(disc)
 	switch LedgerEntryType(u.Type) {
 	case LedgerEntryTypeAccount:
 		u.Account = new(LedgerKeyAccount)
-		err = (*u.Account).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Account).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeTrustline:
 		u.TrustLine = new(LedgerKeyTrustLine)
-		err = (*u.TrustLine).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.TrustLine).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeOffer:
 		u.Offer = new(LedgerKeyOffer)
-		err = (*u.Offer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Offer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeData:
 		u.Data = new(LedgerKeyData)
-		err = (*u.Data).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Data).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeClaimableBalance:
 		u.ClaimableBalance = new(LedgerKeyClaimableBalance)
-		err = (*u.ClaimableBalance).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClaimableBalance).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryTypeLiquidityPool:
 		u.LiquidityPool = new(LedgerKeyLiquidityPool)
-		err = (*u.LiquidityPool).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (LedgerEntryType) switch value '%d' is not valid for union LedgerKey", u.Type)
+	return n, fmt.Errorf("Type (LedgerEntryType) switch value '%d' is not valid for union LedgerKey", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8796,7 +9151,8 @@ func (s LedgerKey) MarshalBinary() ([]byte, error) {
 func (s *LedgerKey) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8872,15 +9228,17 @@ func (s EnvelopeType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *EnvelopeType) DecodeFrom(d *xdr.Decoder) error {
+func (e *EnvelopeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = EnvelopeType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8895,7 +9253,8 @@ func (s EnvelopeType) MarshalBinary() ([]byte, error) {
 func (s *EnvelopeType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -8931,13 +9290,15 @@ func (s UpgradeType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *UpgradeType) DecodeFrom(d *xdr.Decoder) error {
+func (s *UpgradeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	(*s), _, err = d.DecodeOpaque(128)
+	var n, nTmp int
+	(*s), nTmp, err = d.DecodeOpaque(128)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -8952,7 +9313,8 @@ func (s UpgradeType) MarshalBinary() ([]byte, error) {
 func (s *UpgradeType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9010,15 +9372,17 @@ func (s StellarValueType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *StellarValueType) DecodeFrom(d *xdr.Decoder) error {
+func (e *StellarValueType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = StellarValueType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9033,7 +9397,8 @@ func (s StellarValueType) MarshalBinary() ([]byte, error) {
 func (s *StellarValueType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9075,17 +9440,20 @@ func (s *LedgerCloseValueSignature) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerCloseValueSignature) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerCloseValueSignature) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.NodeId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.NodeId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Signature.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Signature.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9100,7 +9468,8 @@ func (s LedgerCloseValueSignature) MarshalBinary() ([]byte, error) {
 func (s *LedgerCloseValueSignature) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9208,25 +9577,27 @@ func (s StellarValueExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *StellarValueExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *StellarValueExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = StellarValueType(disc)
 	switch StellarValueType(u.V) {
 	case StellarValueTypeStellarValueBasic:
 		// Void
-		return nil
+		return n, nil
 	case StellarValueTypeStellarValueSigned:
 		u.LcValueSignature = new(LedgerCloseValueSignature)
-		err = (*u.LcValueSignature).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LcValueSignature).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (StellarValueType) switch value '%d' is not valid for union StellarValueExt", u.V)
+	return n, fmt.Errorf("V (StellarValueType) switch value '%d' is not valid for union StellarValueExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9241,7 +9612,8 @@ func (s StellarValueExt) MarshalBinary() ([]byte, error) {
 func (s *StellarValueExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9319,39 +9691,45 @@ func (s *StellarValue) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *StellarValue) DecodeFrom(d *xdr.Decoder) error {
+func (s *StellarValue) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.TxSetHash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.TxSetHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.CloseTime.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.CloseTime.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 6 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (6)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (6)", l)
 	}
 	s.Upgrades = nil
 	if l > 0 {
 		s.Upgrades = make([]UpgradeType, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Upgrades[i].DecodeFrom(d)
+			nTmp, err = s.Upgrades[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9366,7 +9744,8 @@ func (s StellarValue) MarshalBinary() ([]byte, error) {
 func (s *StellarValue) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9433,15 +9812,17 @@ func (s LedgerHeaderFlags) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LedgerHeaderFlags) DecodeFrom(d *xdr.Decoder) error {
+func (e *LedgerHeaderFlags) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LedgerHeaderFlags(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9456,7 +9837,8 @@ func (s LedgerHeaderFlags) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeaderFlags) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9522,18 +9904,18 @@ func (s LedgerHeaderExtensionV1Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerHeaderExtensionV1Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerHeaderExtensionV1Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderExtensionV1Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderExtensionV1Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9548,7 +9930,8 @@ func (s LedgerHeaderExtensionV1Ext) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeaderExtensionV1Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9596,17 +9979,20 @@ func (s *LedgerHeaderExtensionV1) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerHeaderExtensionV1) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerHeaderExtensionV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Flags.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Flags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9621,7 +10007,8 @@ func (s LedgerHeaderExtensionV1) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeaderExtensionV1) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9729,25 +10116,27 @@ func (s LedgerHeaderExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerHeaderExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerHeaderExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	case 1:
 		u.V1 = new(LedgerHeaderExtensionV1)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9762,7 +10151,8 @@ func (s LedgerHeaderExt) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeaderExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -9908,71 +10298,87 @@ func (s *LedgerHeader) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerVersion.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerVersion.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.PreviousLedgerHash.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.PreviousLedgerHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.ScpValue.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.ScpValue.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TxSetResultHash.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TxSetResultHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.BucketListHash.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.BucketListHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.LedgerSeq.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.LedgerSeq.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TotalCoins.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TotalCoins.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.FeePool.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.FeePool.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.InflationSeq.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.InflationSeq.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.IdPool.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.IdPool.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.BaseFee.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.BaseFee.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.BaseReserve.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.BaseReserve.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MaxTxSetSize.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MaxTxSetSize.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	for i := 0; i < len(s.SkipList); i++ {
-		err = s.SkipList[i].DecodeFrom(d)
+		nTmp, err = s.SkipList[i].DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -9987,7 +10393,8 @@ func (s LedgerHeader) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeader) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10054,15 +10461,17 @@ func (s LedgerUpgradeType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LedgerUpgradeType) DecodeFrom(d *xdr.Decoder) error {
+func (e *LedgerUpgradeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LedgerUpgradeType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10077,7 +10486,8 @@ func (s LedgerUpgradeType) MarshalBinary() ([]byte, error) {
 func (s *LedgerUpgradeType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10345,50 +10755,60 @@ func (s LedgerUpgrade) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = LedgerUpgradeType(disc)
 	switch LedgerUpgradeType(u.Type) {
 	case LedgerUpgradeTypeLedgerUpgradeVersion:
 		u.NewLedgerVersion = new(Uint32)
-		err = (*u.NewLedgerVersion).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NewLedgerVersion).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseFee:
 		u.NewBaseFee = new(Uint32)
-		err = (*u.NewBaseFee).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NewBaseFee).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize:
 		u.NewMaxTxSetSize = new(Uint32)
-		err = (*u.NewMaxTxSetSize).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NewMaxTxSetSize).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		u.NewBaseReserve = new(Uint32)
-		err = (*u.NewBaseReserve).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NewBaseReserve).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		u.NewFlags = new(Uint32)
-		err = (*u.NewFlags).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NewFlags).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (LedgerUpgradeType) switch value '%d' is not valid for union LedgerUpgrade", u.Type)
+	return n, fmt.Errorf("Type (LedgerUpgradeType) switch value '%d' is not valid for union LedgerUpgrade", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10403,7 +10823,8 @@ func (s LedgerUpgrade) MarshalBinary() ([]byte, error) {
 func (s *LedgerUpgrade) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10469,15 +10890,17 @@ func (s BucketEntryType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *BucketEntryType) DecodeFrom(d *xdr.Decoder) error {
+func (e *BucketEntryType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = BucketEntryType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10492,7 +10915,8 @@ func (s BucketEntryType) MarshalBinary() ([]byte, error) {
 func (s *BucketEntryType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10558,18 +10982,18 @@ func (s BucketMetadataExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *BucketMetadataExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *BucketMetadataExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union BucketMetadataExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union BucketMetadataExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10584,7 +11008,8 @@ func (s BucketMetadataExt) MarshalBinary() ([]byte, error) {
 func (s *BucketMetadataExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10634,17 +11059,20 @@ func (s *BucketMetadata) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *BucketMetadata) DecodeFrom(d *xdr.Decoder) error {
+func (s *BucketMetadata) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerVersion.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerVersion.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10659,7 +11087,8 @@ func (s BucketMetadata) MarshalBinary() ([]byte, error) {
 func (s *BucketMetadata) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10859,43 +11288,51 @@ func (s BucketEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *BucketEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = BucketEntryType(disc)
 	switch BucketEntryType(u.Type) {
 	case BucketEntryTypeLiveentry:
 		u.LiveEntry = new(LedgerEntry)
-		err = (*u.LiveEntry).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiveEntry).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case BucketEntryTypeInitentry:
 		u.LiveEntry = new(LedgerEntry)
-		err = (*u.LiveEntry).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiveEntry).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case BucketEntryTypeDeadentry:
 		u.DeadEntry = new(LedgerKey)
-		err = (*u.DeadEntry).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.DeadEntry).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case BucketEntryTypeMetaentry:
 		u.MetaEntry = new(BucketMetadata)
-		err = (*u.MetaEntry).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.MetaEntry).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (BucketEntryType) switch value '%d' is not valid for union BucketEntry", u.Type)
+	return n, fmt.Errorf("Type (BucketEntryType) switch value '%d' is not valid for union BucketEntry", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10910,7 +11347,8 @@ func (s BucketEntry) MarshalBinary() ([]byte, error) {
 func (s *BucketEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -10961,28 +11399,32 @@ func (s *TransactionSet) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionSet) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionSet) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.PreviousLedgerHash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.PreviousLedgerHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Txs = nil
 	if l > 0 {
 		s.Txs = make([]TransactionEnvelope, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Txs[i].DecodeFrom(d)
+			nTmp, err = s.Txs[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -10997,7 +11439,8 @@ func (s TransactionSet) MarshalBinary() ([]byte, error) {
 func (s *TransactionSet) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11039,17 +11482,20 @@ func (s *TransactionResultPair) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionResultPair) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionResultPair) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.TransactionHash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.TransactionHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Result.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Result.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11064,7 +11510,8 @@ func (s TransactionResultPair) MarshalBinary() ([]byte, error) {
 func (s *TransactionResultPair) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11109,24 +11556,27 @@ func (s *TransactionResultSet) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionResultSet) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionResultSet) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Results = nil
 	if l > 0 {
 		s.Results = make([]TransactionResultPair, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Results[i].DecodeFrom(d)
+			nTmp, err = s.Results[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11141,7 +11591,8 @@ func (s TransactionResultSet) MarshalBinary() ([]byte, error) {
 func (s *TransactionResultSet) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11207,18 +11658,18 @@ func (s TransactionHistoryEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionHistoryEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionHistoryEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionHistoryEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionHistoryEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11233,7 +11684,8 @@ func (s TransactionHistoryEntryExt) MarshalBinary() ([]byte, error) {
 func (s *TransactionHistoryEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11288,21 +11740,25 @@ func (s *TransactionHistoryEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionHistoryEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerSeq.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerSeq.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TxSet.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TxSet.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11317,7 +11773,8 @@ func (s TransactionHistoryEntry) MarshalBinary() ([]byte, error) {
 func (s *TransactionHistoryEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11383,18 +11840,18 @@ func (s TransactionHistoryResultEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionHistoryResultEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionHistoryResultEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionHistoryResultEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionHistoryResultEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11409,7 +11866,8 @@ func (s TransactionHistoryResultEntryExt) MarshalBinary() ([]byte, error) {
 func (s *TransactionHistoryResultEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11464,21 +11922,25 @@ func (s *TransactionHistoryResultEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionHistoryResultEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionHistoryResultEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerSeq.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerSeq.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TxResultSet.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TxResultSet.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11493,7 +11955,8 @@ func (s TransactionHistoryResultEntry) MarshalBinary() ([]byte, error) {
 func (s *TransactionHistoryResultEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11559,18 +12022,18 @@ func (s LedgerHeaderHistoryEntryExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerHeaderHistoryEntryExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerHeaderHistoryEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderHistoryEntryExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerHeaderHistoryEntryExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11585,7 +12048,8 @@ func (s LedgerHeaderHistoryEntryExt) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeaderHistoryEntryExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11640,21 +12104,25 @@ func (s *LedgerHeaderHistoryEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerHeaderHistoryEntry) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerHeaderHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Hash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Hash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Header.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Header.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11669,7 +12137,8 @@ func (s LedgerHeaderHistoryEntry) MarshalBinary() ([]byte, error) {
 func (s *LedgerHeaderHistoryEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11720,28 +12189,32 @@ func (s *LedgerScpMessages) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerScpMessages) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerScpMessages) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerSeq.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerSeq.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Messages = nil
 	if l > 0 {
 		s.Messages = make([]ScpEnvelope, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Messages[i].DecodeFrom(d)
+			nTmp, err = s.Messages[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11756,7 +12229,8 @@ func (s LedgerScpMessages) MarshalBinary() ([]byte, error) {
 func (s *LedgerScpMessages) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11807,28 +12281,32 @@ func (s *ScpHistoryEntryV0) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ScpHistoryEntryV0) DecodeFrom(d *xdr.Decoder) error {
+func (s *ScpHistoryEntryV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.QuorumSets = nil
 	if l > 0 {
 		s.QuorumSets = make([]ScpQuorumSet, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.QuorumSets[i].DecodeFrom(d)
+			nTmp, err = s.QuorumSets[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.LedgerMessages.DecodeFrom(d)
+	nTmp, err = s.LedgerMessages.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11843,7 +12321,8 @@ func (s ScpHistoryEntryV0) MarshalBinary() ([]byte, error) {
 func (s *ScpHistoryEntryV0) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -11943,22 +12422,24 @@ func (s ScpHistoryEntry) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ScpHistoryEntry) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ScpHistoryEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		u.V0 = new(ScpHistoryEntryV0)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union ScpHistoryEntry", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union ScpHistoryEntry", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -11973,7 +12454,8 @@ func (s ScpHistoryEntry) MarshalBinary() ([]byte, error) {
 func (s *ScpHistoryEntry) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12037,15 +12519,17 @@ func (s LedgerEntryChangeType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LedgerEntryChangeType) DecodeFrom(d *xdr.Decoder) error {
+func (e *LedgerEntryChangeType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LedgerEntryChangeType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12060,7 +12544,8 @@ func (s LedgerEntryChangeType) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryChangeType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12286,43 +12771,51 @@ func (s LedgerEntryChange) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerEntryChange) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = LedgerEntryChangeType(disc)
 	switch LedgerEntryChangeType(u.Type) {
 	case LedgerEntryChangeTypeLedgerEntryCreated:
 		u.Created = new(LedgerEntry)
-		err = (*u.Created).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Created).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryUpdated:
 		u.Updated = new(LedgerEntry)
-		err = (*u.Updated).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Updated).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryRemoved:
 		u.Removed = new(LedgerKey)
-		err = (*u.Removed).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Removed).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case LedgerEntryChangeTypeLedgerEntryState:
 		u.State = new(LedgerEntry)
-		err = (*u.State).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.State).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (LedgerEntryChangeType) switch value '%d' is not valid for union LedgerEntryChange", u.Type)
+	return n, fmt.Errorf("Type (LedgerEntryChangeType) switch value '%d' is not valid for union LedgerEntryChange", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12337,7 +12830,8 @@ func (s LedgerEntryChange) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryChange) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12377,24 +12871,27 @@ func (s LedgerEntryChanges) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerEntryChanges) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerEntryChanges) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	(*s) = nil
 	if l > 0 {
 		(*s) = make([]LedgerEntryChange, l)
 		for i := uint32(0); i < l; i++ {
-			err = (*s)[i].DecodeFrom(d)
+			nTmp, err = (*s)[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12409,7 +12906,8 @@ func (s LedgerEntryChanges) MarshalBinary() ([]byte, error) {
 func (s *LedgerEntryChanges) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12445,13 +12943,15 @@ func (s *OperationMeta) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *OperationMeta) DecodeFrom(d *xdr.Decoder) error {
+func (s *OperationMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Changes.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Changes.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12466,7 +12966,8 @@ func (s OperationMeta) MarshalBinary() ([]byte, error) {
 func (s *OperationMeta) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12517,28 +13018,32 @@ func (s *TransactionMetaV1) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionMetaV1) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionMetaV1) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.TxChanges.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.TxChanges.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]OperationMeta, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Operations[i].DecodeFrom(d)
+			nTmp, err = s.Operations[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12553,7 +13058,8 @@ func (s TransactionMetaV1) MarshalBinary() ([]byte, error) {
 func (s *TransactionMetaV1) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12612,32 +13118,37 @@ func (s *TransactionMetaV2) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionMetaV2) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionMetaV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.TxChangesBefore.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.TxChangesBefore.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]OperationMeta, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Operations[i].DecodeFrom(d)
+			nTmp, err = s.Operations[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.TxChangesAfter.DecodeFrom(d)
+	nTmp, err = s.TxChangesAfter.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12652,7 +13163,8 @@ func (s TransactionMetaV2) MarshalBinary() ([]byte, error) {
 func (s *TransactionMetaV2) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12845,47 +13357,54 @@ func (s TransactionMeta) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		u.Operations = new([]OperationMeta)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.Operations) = nil
 		if l > 0 {
 			(*u.Operations) = make([]OperationMeta, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Operations)[i].DecodeFrom(d)
+				nTmp, err = (*u.Operations)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case 1:
 		u.V1 = new(TransactionMetaV1)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case 2:
 		u.V2 = new(TransactionMetaV2)
-		err = (*u.V2).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V2).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionMeta", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionMeta", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12900,7 +13419,8 @@ func (s TransactionMeta) MarshalBinary() ([]byte, error) {
 func (s *TransactionMeta) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -12948,21 +13468,25 @@ func (s *TransactionResultMeta) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionResultMeta) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionResultMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Result.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Result.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.FeeProcessing.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.FeeProcessing.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TxApplyProcessing.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TxApplyProcessing.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -12977,7 +13501,8 @@ func (s TransactionResultMeta) MarshalBinary() ([]byte, error) {
 func (s *TransactionResultMeta) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13019,17 +13544,20 @@ func (s *UpgradeEntryMeta) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *UpgradeEntryMeta) DecodeFrom(d *xdr.Decoder) error {
+func (s *UpgradeEntryMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Upgrade.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Upgrade.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Changes.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Changes.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13044,7 +13572,8 @@ func (s UpgradeEntryMeta) MarshalBinary() ([]byte, error) {
 func (s *UpgradeEntryMeta) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13140,60 +13669,69 @@ func (s *LedgerCloseMetaV0) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LedgerCloseMetaV0) DecodeFrom(d *xdr.Decoder) error {
+func (s *LedgerCloseMetaV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerHeader.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerHeader.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TxSet.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TxSet.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.TxProcessing = nil
 	if l > 0 {
 		s.TxProcessing = make([]TransactionResultMeta, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.TxProcessing[i].DecodeFrom(d)
+			nTmp, err = s.TxProcessing[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.UpgradesProcessing = nil
 	if l > 0 {
 		s.UpgradesProcessing = make([]UpgradeEntryMeta, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.UpgradesProcessing[i].DecodeFrom(d)
+			nTmp, err = s.UpgradesProcessing[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.ScpInfo = nil
 	if l > 0 {
 		s.ScpInfo = make([]ScpHistoryEntry, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.ScpInfo[i].DecodeFrom(d)
+			nTmp, err = s.ScpInfo[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13208,7 +13746,8 @@ func (s LedgerCloseMetaV0) MarshalBinary() ([]byte, error) {
 func (s *LedgerCloseMetaV0) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13308,22 +13847,24 @@ func (s LedgerCloseMeta) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LedgerCloseMeta) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LedgerCloseMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		u.V0 = new(LedgerCloseMetaV0)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerCloseMeta", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union LedgerCloseMeta", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13338,7 +13879,8 @@ func (s LedgerCloseMeta) MarshalBinary() ([]byte, error) {
 func (s *LedgerCloseMeta) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13405,15 +13947,17 @@ func (s ErrorCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ErrorCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ErrorCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ErrorCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13428,7 +13972,8 @@ func (s ErrorCode) MarshalBinary() ([]byte, error) {
 func (s *ErrorCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13470,17 +14015,20 @@ func (s *Error) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Error) DecodeFrom(d *xdr.Decoder) error {
+func (s *Error) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Code.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Code.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	s.Msg, _, err = d.DecodeString(100)
+	n += nTmp
+	s.Msg, nTmp, err = d.DecodeString(100)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13495,7 +14043,8 @@ func (s Error) MarshalBinary() ([]byte, error) {
 func (s *Error) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13543,21 +14092,25 @@ func (s *AuthCert) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AuthCert) DecodeFrom(d *xdr.Decoder) error {
+func (s *AuthCert) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Pubkey.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Pubkey.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Expiration.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Expiration.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Sig.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Sig.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13572,7 +14125,8 @@ func (s AuthCert) MarshalBinary() ([]byte, error) {
 func (s *AuthCert) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13656,45 +14210,55 @@ func (s *Hello) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Hello) DecodeFrom(d *xdr.Decoder) error {
+func (s *Hello) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LedgerVersion.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LedgerVersion.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OverlayVersion.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OverlayVersion.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OverlayMinVersion.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OverlayMinVersion.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NetworkId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NetworkId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	s.VersionStr, _, err = d.DecodeString(100)
+	n += nTmp
+	s.VersionStr, nTmp, err = d.DecodeString(100)
 	if err != nil {
-		return err
+		return n, err
 	}
-	s.ListeningPort, _, err = d.DecodeInt()
+	n += nTmp
+	s.ListeningPort, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.PeerId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.PeerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Cert.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Cert.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Nonce.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Nonce.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13709,7 +14273,8 @@ func (s Hello) MarshalBinary() ([]byte, error) {
 func (s *Hello) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13747,13 +14312,15 @@ func (s *Auth) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Auth) DecodeFrom(d *xdr.Decoder) error {
+func (s *Auth) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	s.Unused, _, err = d.DecodeInt()
+	var n, nTmp int
+	s.Unused, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13768,7 +14335,8 @@ func (s Auth) MarshalBinary() ([]byte, error) {
 func (s *Auth) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13826,15 +14394,17 @@ func (s IpAddrType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *IpAddrType) DecodeFrom(d *xdr.Decoder) error {
+func (e *IpAddrType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = IpAddrType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -13849,7 +14419,8 @@ func (s IpAddrType) MarshalBinary() ([]byte, error) {
 func (s *IpAddrType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -13991,29 +14562,33 @@ func (s PeerAddressIp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *PeerAddressIp) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *PeerAddressIp) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = IpAddrType(disc)
 	switch IpAddrType(u.Type) {
 	case IpAddrTypeIPv4:
 		u.Ipv4 = new([4]byte)
-		_, err = d.DecodeFixedOpaqueInplace((*u.Ipv4)[:])
+		var nTmp int
+		nTmp, err = d.DecodeFixedOpaqueInplace((*u.Ipv4)[:])
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case IpAddrTypeIPv6:
 		u.Ipv6 = new([16]byte)
-		_, err = d.DecodeFixedOpaqueInplace((*u.Ipv6)[:])
+		var nTmp int
+		nTmp, err = d.DecodeFixedOpaqueInplace((*u.Ipv6)[:])
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (IpAddrType) switch value '%d' is not valid for union PeerAddressIp", u.Type)
+	return n, fmt.Errorf("Type (IpAddrType) switch value '%d' is not valid for union PeerAddressIp", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14028,7 +14603,8 @@ func (s PeerAddressIp) MarshalBinary() ([]byte, error) {
 func (s *PeerAddressIp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14083,21 +14659,25 @@ func (s *PeerAddress) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PeerAddress) DecodeFrom(d *xdr.Decoder) error {
+func (s *PeerAddress) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Ip.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Ip.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Port.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Port.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.NumFailures.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.NumFailures.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14112,7 +14692,8 @@ func (s PeerAddress) MarshalBinary() ([]byte, error) {
 func (s *PeerAddress) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14217,15 +14798,17 @@ func (s MessageType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *MessageType) DecodeFrom(d *xdr.Decoder) error {
+func (e *MessageType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = MessageType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14240,7 +14823,8 @@ func (s MessageType) MarshalBinary() ([]byte, error) {
 func (s *MessageType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14282,17 +14866,20 @@ func (s *DontHave) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *DontHave) DecodeFrom(d *xdr.Decoder) error {
+func (s *DontHave) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Type.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Type.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.ReqHash.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.ReqHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14307,7 +14894,8 @@ func (s DontHave) MarshalBinary() ([]byte, error) {
 func (s *DontHave) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14362,15 +14950,17 @@ func (s SurveyMessageCommandType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *SurveyMessageCommandType) DecodeFrom(d *xdr.Decoder) error {
+func (e *SurveyMessageCommandType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = SurveyMessageCommandType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14385,7 +14975,8 @@ func (s SurveyMessageCommandType) MarshalBinary() ([]byte, error) {
 func (s *SurveyMessageCommandType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14445,29 +15036,35 @@ func (s *SurveyRequestMessage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SurveyRequestMessage) DecodeFrom(d *xdr.Decoder) error {
+func (s *SurveyRequestMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SurveyorPeerId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SurveyorPeerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SurveyedPeerId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SurveyedPeerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.LedgerNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.LedgerNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.EncryptionKey.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.EncryptionKey.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.CommandType.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.CommandType.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14482,7 +15079,8 @@ func (s SurveyRequestMessage) MarshalBinary() ([]byte, error) {
 func (s *SurveyRequestMessage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14524,17 +15122,20 @@ func (s *SignedSurveyRequestMessage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SignedSurveyRequestMessage) DecodeFrom(d *xdr.Decoder) error {
+func (s *SignedSurveyRequestMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.RequestSignature.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.RequestSignature.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Request.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Request.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14549,7 +15150,8 @@ func (s SignedSurveyRequestMessage) MarshalBinary() ([]byte, error) {
 func (s *SignedSurveyRequestMessage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14585,13 +15187,15 @@ func (s EncryptedBody) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *EncryptedBody) DecodeFrom(d *xdr.Decoder) error {
+func (s *EncryptedBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	(*s), _, err = d.DecodeOpaque(64000)
+	var n, nTmp int
+	(*s), nTmp, err = d.DecodeOpaque(64000)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14606,7 +15210,8 @@ func (s EncryptedBody) MarshalBinary() ([]byte, error) {
 func (s *EncryptedBody) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14666,29 +15271,35 @@ func (s *SurveyResponseMessage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SurveyResponseMessage) DecodeFrom(d *xdr.Decoder) error {
+func (s *SurveyResponseMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SurveyorPeerId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SurveyorPeerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SurveyedPeerId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SurveyedPeerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.LedgerNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.LedgerNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.CommandType.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.CommandType.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.EncryptedBody.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.EncryptedBody.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14703,7 +15314,8 @@ func (s SurveyResponseMessage) MarshalBinary() ([]byte, error) {
 func (s *SurveyResponseMessage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14745,17 +15357,20 @@ func (s *SignedSurveyResponseMessage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SignedSurveyResponseMessage) DecodeFrom(d *xdr.Decoder) error {
+func (s *SignedSurveyResponseMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.ResponseSignature.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.ResponseSignature.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Response.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Response.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14770,7 +15385,8 @@ func (s SignedSurveyResponseMessage) MarshalBinary() ([]byte, error) {
 func (s *SignedSurveyResponseMessage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -14892,69 +15508,85 @@ func (s *PeerStats) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PeerStats) DecodeFrom(d *xdr.Decoder) error {
+func (s *PeerStats) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Id.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Id.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	s.VersionStr, _, err = d.DecodeString(100)
+	n += nTmp
+	s.VersionStr, nTmp, err = d.DecodeString(100)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MessagesRead.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MessagesRead.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MessagesWritten.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MessagesWritten.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.BytesRead.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.BytesRead.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.BytesWritten.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.BytesWritten.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SecondsConnected.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SecondsConnected.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.UniqueFloodBytesRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.UniqueFloodBytesRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DuplicateFloodBytesRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DuplicateFloodBytesRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.UniqueFetchBytesRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.UniqueFetchBytesRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DuplicateFetchBytesRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DuplicateFetchBytesRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.UniqueFloodMessageRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.UniqueFloodMessageRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DuplicateFloodMessageRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DuplicateFloodMessageRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.UniqueFetchMessageRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.UniqueFetchMessageRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DuplicateFetchMessageRecv.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DuplicateFetchMessageRecv.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -14969,7 +15601,8 @@ func (s PeerStats) MarshalBinary() ([]byte, error) {
 func (s *PeerStats) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -15014,27 +15647,30 @@ func (s PeerStatList) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PeerStatList) DecodeFrom(d *xdr.Decoder) error {
+func (s *PeerStatList) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 25 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (25)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (25)", l)
 	}
 	(*s) = nil
 	if l > 0 {
 		(*s) = make([]PeerStats, l)
 		for i := uint32(0); i < l; i++ {
-			err = (*s)[i].DecodeFrom(d)
+			nTmp, err = (*s)[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -15049,7 +15685,8 @@ func (s PeerStatList) MarshalBinary() ([]byte, error) {
 func (s *PeerStatList) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -15104,25 +15741,30 @@ func (s *TopologyResponseBody) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TopologyResponseBody) DecodeFrom(d *xdr.Decoder) error {
+func (s *TopologyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.InboundPeers.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.InboundPeers.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OutboundPeers.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OutboundPeers.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TotalInboundPeerCount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TotalInboundPeerCount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TotalOutboundPeerCount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TotalOutboundPeerCount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -15137,7 +15779,8 @@ func (s TopologyResponseBody) MarshalBinary() ([]byte, error) {
 func (s *TopologyResponseBody) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -15237,22 +15880,24 @@ func (s SurveyResponseBody) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *SurveyResponseBody) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *SurveyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = SurveyMessageCommandType(disc)
 	switch SurveyMessageCommandType(u.Type) {
 	case SurveyMessageCommandTypeSurveyTopology:
 		u.TopologyResponseBody = new(TopologyResponseBody)
-		err = (*u.TopologyResponseBody).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.TopologyResponseBody).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (SurveyMessageCommandType) switch value '%d' is not valid for union SurveyResponseBody", u.Type)
+	return n, fmt.Errorf("Type (SurveyMessageCommandType) switch value '%d' is not valid for union SurveyResponseBody", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -15267,7 +15912,8 @@ func (s SurveyResponseBody) MarshalBinary() ([]byte, error) {
 func (s *SurveyResponseBody) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -15936,130 +16582,159 @@ func (s StellarMessage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = MessageType(disc)
 	switch MessageType(u.Type) {
 	case MessageTypeErrorMsg:
 		u.Error = new(Error)
-		err = (*u.Error).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Error).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeHello:
 		u.Hello = new(Hello)
-		err = (*u.Hello).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Hello).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeAuth:
 		u.Auth = new(Auth)
-		err = (*u.Auth).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Auth).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeDontHave:
 		u.DontHave = new(DontHave)
-		err = (*u.DontHave).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.DontHave).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeGetPeers:
 		// Void
-		return nil
+		return n, nil
 	case MessageTypePeers:
 		u.Peers = new([]PeerAddress)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		if l > 100 {
-			return fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
+			return n, fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 		}
 		(*u.Peers) = nil
 		if l > 0 {
 			(*u.Peers) = make([]PeerAddress, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Peers)[i].DecodeFrom(d)
+				nTmp, err = (*u.Peers)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case MessageTypeGetTxSet:
 		u.TxSetHash = new(Uint256)
-		err = (*u.TxSetHash).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.TxSetHash).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeTxSet:
 		u.TxSet = new(TransactionSet)
-		err = (*u.TxSet).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.TxSet).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeTransaction:
 		u.Transaction = new(TransactionEnvelope)
-		err = (*u.Transaction).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Transaction).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeSurveyRequest:
 		u.SignedSurveyRequestMessage = new(SignedSurveyRequestMessage)
-		err = (*u.SignedSurveyRequestMessage).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SignedSurveyRequestMessage).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeSurveyResponse:
 		u.SignedSurveyResponseMessage = new(SignedSurveyResponseMessage)
-		err = (*u.SignedSurveyResponseMessage).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SignedSurveyResponseMessage).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeGetScpQuorumset:
 		u.QSetHash = new(Uint256)
-		err = (*u.QSetHash).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.QSetHash).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeScpQuorumset:
 		u.QSet = new(ScpQuorumSet)
-		err = (*u.QSet).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.QSet).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeScpMessage:
 		u.Envelope = new(ScpEnvelope)
-		err = (*u.Envelope).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Envelope).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MessageTypeGetScpState:
 		u.GetScpLedgerSeq = new(Uint32)
-		err = (*u.GetScpLedgerSeq).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.GetScpLedgerSeq).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (MessageType) switch value '%d' is not valid for union StellarMessage", u.Type)
+	return n, fmt.Errorf("Type (MessageType) switch value '%d' is not valid for union StellarMessage", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16074,7 +16749,8 @@ func (s StellarMessage) MarshalBinary() ([]byte, error) {
 func (s *StellarMessage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16122,21 +16798,25 @@ func (s *AuthenticatedMessageV0) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AuthenticatedMessageV0) DecodeFrom(d *xdr.Decoder) error {
+func (s *AuthenticatedMessageV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Sequence.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Sequence.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Message.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Message.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Mac.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Mac.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16151,7 +16831,8 @@ func (s AuthenticatedMessageV0) MarshalBinary() ([]byte, error) {
 func (s *AuthenticatedMessageV0) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16256,22 +16937,24 @@ func (s AuthenticatedMessage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AuthenticatedMessage) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AuthenticatedMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = Uint32(disc)
 	switch Uint32(u.V) {
 	case 0:
 		u.V0 = new(AuthenticatedMessageV0)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("V (Uint32) switch value '%d' is not valid for union AuthenticatedMessage", u.V)
+	return n, fmt.Errorf("V (Uint32) switch value '%d' is not valid for union AuthenticatedMessage", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16286,7 +16969,8 @@ func (s AuthenticatedMessage) MarshalBinary() ([]byte, error) {
 func (s *AuthenticatedMessage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16386,22 +17070,24 @@ func (s LiquidityPoolParameters) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LiquidityPoolParameters) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LiquidityPoolParameters) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = LiquidityPoolType(disc)
 	switch LiquidityPoolType(u.Type) {
 	case LiquidityPoolTypeLiquidityPoolConstantProduct:
 		u.ConstantProduct = new(LiquidityPoolConstantProductParameters)
-		err = (*u.ConstantProduct).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ConstantProduct).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (LiquidityPoolType) switch value '%d' is not valid for union LiquidityPoolParameters", u.Type)
+	return n, fmt.Errorf("Type (LiquidityPoolType) switch value '%d' is not valid for union LiquidityPoolParameters", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16416,7 +17102,8 @@ func (s LiquidityPoolParameters) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolParameters) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16458,17 +17145,20 @@ func (s *MuxedAccountMed25519) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *MuxedAccountMed25519) DecodeFrom(d *xdr.Decoder) error {
+func (s *MuxedAccountMed25519) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Id.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Id.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ed25519.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ed25519.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16483,7 +17173,8 @@ func (s MuxedAccountMed25519) MarshalBinary() ([]byte, error) {
 func (s *MuxedAccountMed25519) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16629,29 +17320,33 @@ func (s MuxedAccount) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *MuxedAccount) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *MuxedAccount) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = CryptoKeyType(disc)
 	switch CryptoKeyType(u.Type) {
 	case CryptoKeyTypeKeyTypeEd25519:
 		u.Ed25519 = new(Uint256)
-		err = (*u.Ed25519).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Ed25519).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case CryptoKeyTypeKeyTypeMuxedEd25519:
 		u.Med25519 = new(MuxedAccountMed25519)
-		err = (*u.Med25519).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Med25519).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (CryptoKeyType) switch value '%d' is not valid for union MuxedAccount", u.Type)
+	return n, fmt.Errorf("Type (CryptoKeyType) switch value '%d' is not valid for union MuxedAccount", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16666,7 +17361,8 @@ func (s MuxedAccount) MarshalBinary() ([]byte, error) {
 func (s *MuxedAccount) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16708,17 +17404,20 @@ func (s *DecoratedSignature) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *DecoratedSignature) DecodeFrom(d *xdr.Decoder) error {
+func (s *DecoratedSignature) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Hint.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Hint.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Signature.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Signature.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16733,7 +17432,8 @@ func (s DecoratedSignature) MarshalBinary() ([]byte, error) {
 func (s *DecoratedSignature) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16857,15 +17557,17 @@ func (s OperationType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *OperationType) DecodeFrom(d *xdr.Decoder) error {
+func (e *OperationType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = OperationType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16880,7 +17582,8 @@ func (s OperationType) MarshalBinary() ([]byte, error) {
 func (s *OperationType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16922,17 +17625,20 @@ func (s *CreateAccountOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *CreateAccountOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *CreateAccountOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Destination.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.StartingBalance.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.StartingBalance.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -16947,7 +17653,8 @@ func (s CreateAccountOp) MarshalBinary() ([]byte, error) {
 func (s *CreateAccountOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -16995,21 +17702,25 @@ func (s *PaymentOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PaymentOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *PaymentOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Destination.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17024,7 +17735,8 @@ func (s PaymentOp) MarshalBinary() ([]byte, error) {
 func (s *PaymentOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -17103,47 +17815,55 @@ func (s *PathPaymentStrictReceiveOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PathPaymentStrictReceiveOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *PathPaymentStrictReceiveOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SendAsset.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SendAsset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SendMax.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SendMax.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Destination.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DestAsset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DestAsset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DestAmount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DestAmount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 5 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
 	}
 	s.Path = nil
 	if l > 0 {
 		s.Path = make([]Asset, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Path[i].DecodeFrom(d)
+			nTmp, err = s.Path[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17158,7 +17878,8 @@ func (s PathPaymentStrictReceiveOp) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictReceiveOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -17237,47 +17958,55 @@ func (s *PathPaymentStrictSendOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PathPaymentStrictSendOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *PathPaymentStrictSendOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SendAsset.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SendAsset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SendAmount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SendAmount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Destination.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DestAsset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DestAsset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.DestMin.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.DestMin.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 5 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (5)", l)
 	}
 	s.Path = nil
 	if l > 0 {
 		s.Path = make([]Asset, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Path[i].DecodeFrom(d)
+			nTmp, err = s.Path[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17292,7 +18021,8 @@ func (s PathPaymentStrictSendOp) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictSendOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -17354,29 +18084,35 @@ func (s *ManageSellOfferOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ManageSellOfferOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ManageSellOfferOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Selling.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Selling.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Buying.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Buying.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Price.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Price.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OfferId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OfferId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17391,7 +18127,8 @@ func (s ManageSellOfferOp) MarshalBinary() ([]byte, error) {
 func (s *ManageSellOfferOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -17454,29 +18191,35 @@ func (s *ManageBuyOfferOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ManageBuyOfferOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ManageBuyOfferOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Selling.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Selling.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Buying.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Buying.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.BuyAmount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.BuyAmount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Price.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Price.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OfferId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OfferId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17491,7 +18234,8 @@ func (s ManageBuyOfferOp) MarshalBinary() ([]byte, error) {
 func (s *ManageBuyOfferOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -17545,25 +18289,30 @@ func (s *CreatePassiveSellOfferOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *CreatePassiveSellOfferOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *CreatePassiveSellOfferOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Selling.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Selling.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Buying.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Buying.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Price.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Price.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17578,7 +18327,8 @@ func (s CreatePassiveSellOfferOp) MarshalBinary() ([]byte, error) {
 func (s *CreatePassiveSellOfferOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -17723,118 +18473,137 @@ func (s *SetOptionsOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SetOptionsOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *SetOptionsOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.InflationDest = nil
 	if b {
 		s.InflationDest = new(AccountId)
-		err = s.InflationDest.DecodeFrom(d)
+		nTmp, err = s.InflationDest.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.ClearFlags = nil
 	if b {
 		s.ClearFlags = new(Uint32)
-		err = s.ClearFlags.DecodeFrom(d)
+		nTmp, err = s.ClearFlags.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.SetFlags = nil
 	if b {
 		s.SetFlags = new(Uint32)
-		err = s.SetFlags.DecodeFrom(d)
+		nTmp, err = s.SetFlags.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.MasterWeight = nil
 	if b {
 		s.MasterWeight = new(Uint32)
-		err = s.MasterWeight.DecodeFrom(d)
+		nTmp, err = s.MasterWeight.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.LowThreshold = nil
 	if b {
 		s.LowThreshold = new(Uint32)
-		err = s.LowThreshold.DecodeFrom(d)
+		nTmp, err = s.LowThreshold.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.MedThreshold = nil
 	if b {
 		s.MedThreshold = new(Uint32)
-		err = s.MedThreshold.DecodeFrom(d)
+		nTmp, err = s.MedThreshold.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.HighThreshold = nil
 	if b {
 		s.HighThreshold = new(Uint32)
-		err = s.HighThreshold.DecodeFrom(d)
+		nTmp, err = s.HighThreshold.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.HomeDomain = nil
 	if b {
 		s.HomeDomain = new(String32)
-		err = s.HomeDomain.DecodeFrom(d)
+		nTmp, err = s.HomeDomain.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Signer = nil
 	if b {
 		s.Signer = new(Signer)
-		err = s.Signer.DecodeFrom(d)
+		nTmp, err = s.Signer.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17849,7 +18618,8 @@ func (s SetOptionsOp) MarshalBinary() ([]byte, error) {
 func (s *SetOptionsOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18046,39 +18816,45 @@ func (s ChangeTrustAsset) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ChangeTrustAsset) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ChangeTrustAsset) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = AssetType(disc)
 	switch AssetType(u.Type) {
 	case AssetTypeAssetTypeNative:
 		// Void
-		return nil
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum4:
 		u.AlphaNum4 = new(AlphaNum4)
-		err = (*u.AlphaNum4).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AlphaNum4).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case AssetTypeAssetTypeCreditAlphanum12:
 		u.AlphaNum12 = new(AlphaNum12)
-		err = (*u.AlphaNum12).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AlphaNum12).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case AssetTypeAssetTypePoolShare:
 		u.LiquidityPool = new(LiquidityPoolParameters)
-		err = (*u.LiquidityPool).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union ChangeTrustAsset", u.Type)
+	return n, fmt.Errorf("Type (AssetType) switch value '%d' is not valid for union ChangeTrustAsset", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18093,7 +18869,8 @@ func (s ChangeTrustAsset) MarshalBinary() ([]byte, error) {
 func (s *ChangeTrustAsset) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18137,17 +18914,20 @@ func (s *ChangeTrustOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ChangeTrustOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ChangeTrustOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Line.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Line.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Limit.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Limit.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18162,7 +18942,8 @@ func (s ChangeTrustOp) MarshalBinary() ([]byte, error) {
 func (s *ChangeTrustOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18212,21 +18993,25 @@ func (s *AllowTrustOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *AllowTrustOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *AllowTrustOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Trustor.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Trustor.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Authorize.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Authorize.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18241,7 +19026,8 @@ func (s AllowTrustOp) MarshalBinary() ([]byte, error) {
 func (s *AllowTrustOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18289,26 +19075,30 @@ func (s *ManageDataOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ManageDataOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ManageDataOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.DataName.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.DataName.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.DataValue = nil
 	if b {
 		s.DataValue = new(DataValue)
-		err = s.DataValue.DecodeFrom(d)
+		nTmp, err = s.DataValue.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18323,7 +19113,8 @@ func (s ManageDataOp) MarshalBinary() ([]byte, error) {
 func (s *ManageDataOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18359,13 +19150,15 @@ func (s *BumpSequenceOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *BumpSequenceOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *BumpSequenceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.BumpTo.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.BumpTo.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18380,7 +19173,8 @@ func (s BumpSequenceOp) MarshalBinary() ([]byte, error) {
 func (s *BumpSequenceOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18437,35 +19231,40 @@ func (s *CreateClaimableBalanceOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *CreateClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *CreateClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Asset.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 10 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (10)", l)
 	}
 	s.Claimants = nil
 	if l > 0 {
 		s.Claimants = make([]Claimant, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Claimants[i].DecodeFrom(d)
+			nTmp, err = s.Claimants[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18480,7 +19279,8 @@ func (s CreateClaimableBalanceOp) MarshalBinary() ([]byte, error) {
 func (s *CreateClaimableBalanceOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18516,13 +19316,15 @@ func (s *ClaimClaimableBalanceOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.BalanceId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.BalanceId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18537,7 +19339,8 @@ func (s ClaimClaimableBalanceOp) MarshalBinary() ([]byte, error) {
 func (s *ClaimClaimableBalanceOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18573,13 +19376,15 @@ func (s *BeginSponsoringFutureReservesOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *BeginSponsoringFutureReservesOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *BeginSponsoringFutureReservesOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SponsoredId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SponsoredId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18594,7 +19399,8 @@ func (s BeginSponsoringFutureReservesOp) MarshalBinary() ([]byte, error) {
 func (s *BeginSponsoringFutureReservesOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18652,15 +19458,17 @@ func (s RevokeSponsorshipType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *RevokeSponsorshipType) DecodeFrom(d *xdr.Decoder) error {
+func (e *RevokeSponsorshipType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = RevokeSponsorshipType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18675,7 +19483,8 @@ func (s RevokeSponsorshipType) MarshalBinary() ([]byte, error) {
 func (s *RevokeSponsorshipType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18717,17 +19526,20 @@ func (s *RevokeSponsorshipOpSigner) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *RevokeSponsorshipOpSigner) DecodeFrom(d *xdr.Decoder) error {
+func (s *RevokeSponsorshipOpSigner) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.AccountId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.AccountId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SignerKey.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SignerKey.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18742,7 +19554,8 @@ func (s RevokeSponsorshipOpSigner) MarshalBinary() ([]byte, error) {
 func (s *RevokeSponsorshipOpSigner) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18888,29 +19701,33 @@ func (s RevokeSponsorshipOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *RevokeSponsorshipOp) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *RevokeSponsorshipOp) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = RevokeSponsorshipType(disc)
 	switch RevokeSponsorshipType(u.Type) {
 	case RevokeSponsorshipTypeRevokeSponsorshipLedgerEntry:
 		u.LedgerKey = new(LedgerKey)
-		err = (*u.LedgerKey).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LedgerKey).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case RevokeSponsorshipTypeRevokeSponsorshipSigner:
 		u.Signer = new(RevokeSponsorshipOpSigner)
-		err = (*u.Signer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Signer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (RevokeSponsorshipType) switch value '%d' is not valid for union RevokeSponsorshipOp", u.Type)
+	return n, fmt.Errorf("Type (RevokeSponsorshipType) switch value '%d' is not valid for union RevokeSponsorshipOp", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -18925,7 +19742,8 @@ func (s RevokeSponsorshipOp) MarshalBinary() ([]byte, error) {
 func (s *RevokeSponsorshipOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -18973,21 +19791,25 @@ func (s *ClawbackOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClawbackOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClawbackOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Asset.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.From.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.From.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -19002,7 +19824,8 @@ func (s ClawbackOp) MarshalBinary() ([]byte, error) {
 func (s *ClawbackOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -19038,13 +19861,15 @@ func (s *ClawbackClaimableBalanceOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClawbackClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClawbackClaimableBalanceOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.BalanceId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.BalanceId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -19059,7 +19884,8 @@ func (s ClawbackClaimableBalanceOp) MarshalBinary() ([]byte, error) {
 func (s *ClawbackClaimableBalanceOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -19114,25 +19940,30 @@ func (s *SetTrustLineFlagsOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SetTrustLineFlagsOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *SetTrustLineFlagsOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Trustor.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Trustor.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.ClearFlags.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.ClearFlags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SetFlags.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SetFlags.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -19147,7 +19978,8 @@ func (s SetTrustLineFlagsOp) MarshalBinary() ([]byte, error) {
 func (s *SetTrustLineFlagsOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -19213,29 +20045,35 @@ func (s *LiquidityPoolDepositOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LiquidityPoolDepositOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *LiquidityPoolDepositOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LiquidityPoolId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MaxAmountA.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MaxAmountA.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MaxAmountB.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MaxAmountB.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MinPrice.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MinPrice.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MaxPrice.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MaxPrice.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -19250,7 +20088,8 @@ func (s LiquidityPoolDepositOp) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolDepositOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -19304,25 +20143,30 @@ func (s *LiquidityPoolWithdrawOp) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *LiquidityPoolWithdrawOp) DecodeFrom(d *xdr.Decoder) error {
+func (s *LiquidityPoolWithdrawOp) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LiquidityPoolId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MinAmountA.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MinAmountA.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MinAmountB.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MinAmountB.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -19337,7 +20181,8 @@ func (s LiquidityPoolWithdrawOp) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolWithdrawOp) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -20335,175 +21180,219 @@ func (s OperationBody) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *OperationBody) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *OperationBody) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = OperationType(disc)
 	switch OperationType(u.Type) {
 	case OperationTypeCreateAccount:
 		u.CreateAccountOp = new(CreateAccountOp)
-		err = (*u.CreateAccountOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.CreateAccountOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypePayment:
 		u.PaymentOp = new(PaymentOp)
-		err = (*u.PaymentOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PaymentOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypePathPaymentStrictReceive:
 		u.PathPaymentStrictReceiveOp = new(PathPaymentStrictReceiveOp)
-		err = (*u.PathPaymentStrictReceiveOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PathPaymentStrictReceiveOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeManageSellOffer:
 		u.ManageSellOfferOp = new(ManageSellOfferOp)
-		err = (*u.ManageSellOfferOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ManageSellOfferOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeCreatePassiveSellOffer:
 		u.CreatePassiveSellOfferOp = new(CreatePassiveSellOfferOp)
-		err = (*u.CreatePassiveSellOfferOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.CreatePassiveSellOfferOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeSetOptions:
 		u.SetOptionsOp = new(SetOptionsOp)
-		err = (*u.SetOptionsOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SetOptionsOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeChangeTrust:
 		u.ChangeTrustOp = new(ChangeTrustOp)
-		err = (*u.ChangeTrustOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ChangeTrustOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeAllowTrust:
 		u.AllowTrustOp = new(AllowTrustOp)
-		err = (*u.AllowTrustOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AllowTrustOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeAccountMerge:
 		u.Destination = new(MuxedAccount)
-		err = (*u.Destination).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Destination).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeInflation:
 		// Void
-		return nil
+		return n, nil
 	case OperationTypeManageData:
 		u.ManageDataOp = new(ManageDataOp)
-		err = (*u.ManageDataOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ManageDataOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeBumpSequence:
 		u.BumpSequenceOp = new(BumpSequenceOp)
-		err = (*u.BumpSequenceOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.BumpSequenceOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeManageBuyOffer:
 		u.ManageBuyOfferOp = new(ManageBuyOfferOp)
-		err = (*u.ManageBuyOfferOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ManageBuyOfferOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypePathPaymentStrictSend:
 		u.PathPaymentStrictSendOp = new(PathPaymentStrictSendOp)
-		err = (*u.PathPaymentStrictSendOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PathPaymentStrictSendOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeCreateClaimableBalance:
 		u.CreateClaimableBalanceOp = new(CreateClaimableBalanceOp)
-		err = (*u.CreateClaimableBalanceOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.CreateClaimableBalanceOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeClaimClaimableBalance:
 		u.ClaimClaimableBalanceOp = new(ClaimClaimableBalanceOp)
-		err = (*u.ClaimClaimableBalanceOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClaimClaimableBalanceOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeBeginSponsoringFutureReserves:
 		u.BeginSponsoringFutureReservesOp = new(BeginSponsoringFutureReservesOp)
-		err = (*u.BeginSponsoringFutureReservesOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.BeginSponsoringFutureReservesOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeEndSponsoringFutureReserves:
 		// Void
-		return nil
+		return n, nil
 	case OperationTypeRevokeSponsorship:
 		u.RevokeSponsorshipOp = new(RevokeSponsorshipOp)
-		err = (*u.RevokeSponsorshipOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.RevokeSponsorshipOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeClawback:
 		u.ClawbackOp = new(ClawbackOp)
-		err = (*u.ClawbackOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClawbackOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeClawbackClaimableBalance:
 		u.ClawbackClaimableBalanceOp = new(ClawbackClaimableBalanceOp)
-		err = (*u.ClawbackClaimableBalanceOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClawbackClaimableBalanceOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeSetTrustLineFlags:
 		u.SetTrustLineFlagsOp = new(SetTrustLineFlagsOp)
-		err = (*u.SetTrustLineFlagsOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SetTrustLineFlagsOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeLiquidityPoolDeposit:
 		u.LiquidityPoolDepositOp = new(LiquidityPoolDepositOp)
-		err = (*u.LiquidityPoolDepositOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPoolDepositOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeLiquidityPoolWithdraw:
 		u.LiquidityPoolWithdrawOp = new(LiquidityPoolWithdrawOp)
-		err = (*u.LiquidityPoolWithdrawOp).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPoolWithdrawOp).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (OperationType) switch value '%d' is not valid for union OperationBody", u.Type)
+	return n, fmt.Errorf("Type (OperationType) switch value '%d' is not valid for union OperationBody", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -20518,7 +21407,8 @@ func (s OperationBody) MarshalBinary() ([]byte, error) {
 func (s *OperationBody) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -20621,26 +21511,30 @@ func (s *Operation) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Operation) DecodeFrom(d *xdr.Decoder) error {
+func (s *Operation) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.SourceAccount = nil
 	if b {
 		s.SourceAccount = new(MuxedAccount)
-		err = s.SourceAccount.DecodeFrom(d)
+		nTmp, err = s.SourceAccount.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.Body.DecodeFrom(d)
+	nTmp, err = s.Body.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -20655,7 +21549,8 @@ func (s Operation) MarshalBinary() ([]byte, error) {
 func (s *Operation) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -20703,21 +21598,25 @@ func (s *HashIdPreimageOperationId) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *HashIdPreimageOperationId) DecodeFrom(d *xdr.Decoder) error {
+func (s *HashIdPreimageOperationId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SourceAccount.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SourceAccount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SeqNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OpNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OpNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -20732,7 +21631,8 @@ func (s HashIdPreimageOperationId) MarshalBinary() ([]byte, error) {
 func (s *HashIdPreimageOperationId) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -20792,29 +21692,35 @@ func (s *HashIdPreimageRevokeId) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *HashIdPreimageRevokeId) DecodeFrom(d *xdr.Decoder) error {
+func (s *HashIdPreimageRevokeId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SourceAccount.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SourceAccount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SeqNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OpNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OpNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.LiquidityPoolId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -20829,7 +21735,8 @@ func (s HashIdPreimageRevokeId) MarshalBinary() ([]byte, error) {
 func (s *HashIdPreimageRevokeId) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -20983,29 +21890,33 @@ func (s HashIdPreimage) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *HashIdPreimage) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *HashIdPreimage) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = EnvelopeType(disc)
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeOpId:
 		u.OperationId = new(HashIdPreimageOperationId)
-		err = (*u.OperationId).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.OperationId).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case EnvelopeTypeEnvelopeTypePoolRevokeOpId:
 		u.RevokeId = new(HashIdPreimageRevokeId)
-		err = (*u.RevokeId).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.RevokeId).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union HashIdPreimage", u.Type)
+	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union HashIdPreimage", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21020,7 +21931,8 @@ func (s HashIdPreimage) MarshalBinary() ([]byte, error) {
 func (s *HashIdPreimage) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21087,15 +21999,17 @@ func (s MemoType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *MemoType) DecodeFrom(d *xdr.Decoder) error {
+func (e *MemoType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = MemoType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21110,7 +22024,8 @@ func (s MemoType) MarshalBinary() ([]byte, error) {
 func (s *MemoType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21344,46 +22259,54 @@ func (s Memo) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *Memo) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *Memo) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = MemoType(disc)
 	switch MemoType(u.Type) {
 	case MemoTypeMemoNone:
 		// Void
-		return nil
+		return n, nil
 	case MemoTypeMemoText:
 		u.Text = new(string)
-		(*u.Text), _, err = d.DecodeString(28)
+		var nTmp int
+		(*u.Text), nTmp, err = d.DecodeString(28)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MemoTypeMemoId:
 		u.Id = new(Uint64)
-		err = (*u.Id).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Id).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MemoTypeMemoHash:
 		u.Hash = new(Hash)
-		err = (*u.Hash).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Hash).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case MemoTypeMemoReturn:
 		u.RetHash = new(Hash)
-		err = (*u.RetHash).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.RetHash).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (MemoType) switch value '%d' is not valid for union Memo", u.Type)
+	return n, fmt.Errorf("Type (MemoType) switch value '%d' is not valid for union Memo", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21398,7 +22321,8 @@ func (s Memo) MarshalBinary() ([]byte, error) {
 func (s *Memo) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21440,17 +22364,20 @@ func (s *TimeBounds) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TimeBounds) DecodeFrom(d *xdr.Decoder) error {
+func (s *TimeBounds) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.MinTime.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.MinTime.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.MaxTime.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.MaxTime.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21465,7 +22392,8 @@ func (s TimeBounds) MarshalBinary() ([]byte, error) {
 func (s *TimeBounds) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21537,18 +22465,18 @@ func (s TransactionV0Ext) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionV0Ext) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionV0Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionV0Ext", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionV0Ext", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21563,7 +22491,8 @@ func (s TransactionV0Ext) MarshalBinary() ([]byte, error) {
 func (s *TransactionV0Ext) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21655,60 +22584,70 @@ func (s *TransactionV0) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SourceAccountEd25519.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SourceAccountEd25519.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Fee.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Fee.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SeqNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.TimeBounds = nil
 	if b {
 		s.TimeBounds = new(TimeBounds)
-		err = s.TimeBounds.DecodeFrom(d)
+		nTmp, err = s.TimeBounds.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.Memo.DecodeFrom(d)
+	nTmp, err = s.Memo.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 100 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 	}
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]Operation, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Operations[i].DecodeFrom(d)
+			nTmp, err = s.Operations[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21723,7 +22662,8 @@ func (s TransactionV0) MarshalBinary() ([]byte, error) {
 func (s *TransactionV0) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21776,31 +22716,35 @@ func (s *TransactionV0Envelope) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionV0Envelope) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionV0Envelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Tx.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Tx.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 20 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signatures = nil
 	if l > 0 {
 		s.Signatures = make([]DecoratedSignature, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Signatures[i].DecodeFrom(d)
+			nTmp, err = s.Signatures[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21815,7 +22759,8 @@ func (s TransactionV0Envelope) MarshalBinary() ([]byte, error) {
 func (s *TransactionV0Envelope) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -21881,18 +22826,18 @@ func (s TransactionExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -21907,7 +22852,8 @@ func (s TransactionExt) MarshalBinary() ([]byte, error) {
 func (s *TransactionExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22010,60 +22956,70 @@ func (s *Transaction) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Transaction) DecodeFrom(d *xdr.Decoder) error {
+func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SourceAccount.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SourceAccount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Fee.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Fee.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.SeqNum.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.SeqNum.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var b bool
-	b, _, err = d.DecodeBool()
+	b, nTmp, err = d.DecodeBool()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.TimeBounds = nil
 	if b {
 		s.TimeBounds = new(TimeBounds)
-		err = s.TimeBounds.DecodeFrom(d)
+		nTmp, err = s.TimeBounds.DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 	}
-	err = s.Memo.DecodeFrom(d)
+	nTmp, err = s.Memo.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 100 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (100)", l)
 	}
 	s.Operations = nil
 	if l > 0 {
 		s.Operations = make([]Operation, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Operations[i].DecodeFrom(d)
+			nTmp, err = s.Operations[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Ext.DecodeFrom(d)
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22078,7 +23034,8 @@ func (s Transaction) MarshalBinary() ([]byte, error) {
 func (s *Transaction) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22131,31 +23088,35 @@ func (s *TransactionV1Envelope) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionV1Envelope) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionV1Envelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Tx.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Tx.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 20 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signatures = nil
 	if l > 0 {
 		s.Signatures = make([]DecoratedSignature, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Signatures[i].DecodeFrom(d)
+			nTmp, err = s.Signatures[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22170,7 +23131,8 @@ func (s TransactionV1Envelope) MarshalBinary() ([]byte, error) {
 func (s *TransactionV1Envelope) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22270,22 +23232,24 @@ func (s FeeBumpTransactionInnerTx) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *FeeBumpTransactionInnerTx) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *FeeBumpTransactionInnerTx) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = EnvelopeType(disc)
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.V1 = new(TransactionV1Envelope)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union FeeBumpTransactionInnerTx", u.Type)
+	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union FeeBumpTransactionInnerTx", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22300,7 +23264,8 @@ func (s FeeBumpTransactionInnerTx) MarshalBinary() ([]byte, error) {
 func (s *FeeBumpTransactionInnerTx) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22366,18 +23331,18 @@ func (s FeeBumpTransactionExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *FeeBumpTransactionExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *FeeBumpTransactionExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union FeeBumpTransactionExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union FeeBumpTransactionExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22392,7 +23357,8 @@ func (s FeeBumpTransactionExt) MarshalBinary() ([]byte, error) {
 func (s *FeeBumpTransactionExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22456,25 +23422,30 @@ func (s *FeeBumpTransaction) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *FeeBumpTransaction) DecodeFrom(d *xdr.Decoder) error {
+func (s *FeeBumpTransaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.FeeSource.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.FeeSource.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Fee.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Fee.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.InnerTx.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.InnerTx.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22489,7 +23460,8 @@ func (s FeeBumpTransaction) MarshalBinary() ([]byte, error) {
 func (s *FeeBumpTransaction) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22542,31 +23514,35 @@ func (s *FeeBumpTransactionEnvelope) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *FeeBumpTransactionEnvelope) DecodeFrom(d *xdr.Decoder) error {
+func (s *FeeBumpTransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Tx.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Tx.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	if l > 20 {
-		return fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
+		return n, fmt.Errorf("data size (%d) exceeds max slice limit (20)", l)
 	}
 	s.Signatures = nil
 	if l > 0 {
 		s.Signatures = make([]DecoratedSignature, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Signatures[i].DecodeFrom(d)
+			nTmp, err = s.Signatures[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22581,7 +23557,8 @@ func (s FeeBumpTransactionEnvelope) MarshalBinary() ([]byte, error) {
 func (s *FeeBumpTransactionEnvelope) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22765,36 +23742,42 @@ func (s TransactionEnvelope) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionEnvelope) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionEnvelope) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = EnvelopeType(disc)
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeTxV0:
 		u.V0 = new(TransactionV0Envelope)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.V1 = new(TransactionV1Envelope)
-		err = (*u.V1).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V1).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case EnvelopeTypeEnvelopeTypeTxFeeBump:
 		u.FeeBump = new(FeeBumpTransactionEnvelope)
-		err = (*u.FeeBump).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.FeeBump).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union TransactionEnvelope", u.Type)
+	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union TransactionEnvelope", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22809,7 +23792,8 @@ func (s TransactionEnvelope) MarshalBinary() ([]byte, error) {
 func (s *TransactionEnvelope) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -22952,29 +23936,33 @@ func (s TransactionSignaturePayloadTaggedTransaction) EncodeTo(e *xdr.Encoder) e
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionSignaturePayloadTaggedTransaction) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionSignaturePayloadTaggedTransaction) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = EnvelopeType(disc)
 	switch EnvelopeType(u.Type) {
 	case EnvelopeTypeEnvelopeTypeTx:
 		u.Tx = new(Transaction)
-		err = (*u.Tx).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Tx).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case EnvelopeTypeEnvelopeTypeTxFeeBump:
 		u.FeeBump = new(FeeBumpTransaction)
-		err = (*u.FeeBump).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.FeeBump).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union TransactionSignaturePayloadTaggedTransaction", u.Type)
+	return n, fmt.Errorf("Type (EnvelopeType) switch value '%d' is not valid for union TransactionSignaturePayloadTaggedTransaction", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -22989,7 +23977,8 @@ func (s TransactionSignaturePayloadTaggedTransaction) MarshalBinary() ([]byte, e
 func (s *TransactionSignaturePayloadTaggedTransaction) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23039,17 +24028,20 @@ func (s *TransactionSignaturePayload) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionSignaturePayload) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionSignaturePayload) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.NetworkId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.NetworkId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.TaggedTransaction.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.TaggedTransaction.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23064,7 +24056,8 @@ func (s TransactionSignaturePayload) MarshalBinary() ([]byte, error) {
 func (s *TransactionSignaturePayload) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23125,15 +24118,17 @@ func (s ClaimAtomType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClaimAtomType) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClaimAtomType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClaimAtomType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23148,7 +24143,8 @@ func (s ClaimAtomType) MarshalBinary() ([]byte, error) {
 func (s *ClaimAtomType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23219,33 +24215,40 @@ func (s *ClaimOfferAtomV0) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimOfferAtomV0) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimOfferAtomV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SellerEd25519.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SellerEd25519.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OfferId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OfferId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetSold.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetSold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AmountSold.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AmountSold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetBought.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetBought.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AmountBought.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AmountBought.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23260,7 +24263,8 @@ func (s ClaimOfferAtomV0) MarshalBinary() ([]byte, error) {
 func (s *ClaimOfferAtomV0) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23331,33 +24335,40 @@ func (s *ClaimOfferAtom) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimOfferAtom) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimOfferAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.SellerId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.SellerId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.OfferId.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.OfferId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetSold.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetSold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AmountSold.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AmountSold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetBought.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetBought.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AmountBought.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AmountBought.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23372,7 +24383,8 @@ func (s ClaimOfferAtom) MarshalBinary() ([]byte, error) {
 func (s *ClaimOfferAtom) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23436,29 +24448,35 @@ func (s *ClaimLiquidityAtom) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ClaimLiquidityAtom) DecodeFrom(d *xdr.Decoder) error {
+func (s *ClaimLiquidityAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.LiquidityPoolId.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.LiquidityPoolId.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetSold.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetSold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AmountSold.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AmountSold.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AssetBought.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AssetBought.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.AmountBought.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.AmountBought.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23473,7 +24491,8 @@ func (s ClaimLiquidityAtom) MarshalBinary() ([]byte, error) {
 func (s *ClaimLiquidityAtom) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23657,36 +24676,42 @@ func (s ClaimAtom) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClaimAtom) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClaimAtom) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = ClaimAtomType(disc)
 	switch ClaimAtomType(u.Type) {
 	case ClaimAtomTypeClaimAtomTypeV0:
 		u.V0 = new(ClaimOfferAtomV0)
-		err = (*u.V0).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.V0).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ClaimAtomTypeClaimAtomTypeOrderBook:
 		u.OrderBook = new(ClaimOfferAtom)
-		err = (*u.OrderBook).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.OrderBook).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ClaimAtomTypeClaimAtomTypeLiquidityPool:
 		u.LiquidityPool = new(ClaimLiquidityAtom)
-		err = (*u.LiquidityPool).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPool).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (ClaimAtomType) switch value '%d' is not valid for union ClaimAtom", u.Type)
+	return n, fmt.Errorf("Type (ClaimAtomType) switch value '%d' is not valid for union ClaimAtom", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23701,7 +24726,8 @@ func (s ClaimAtom) MarshalBinary() ([]byte, error) {
 func (s *ClaimAtom) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23772,15 +24798,17 @@ func (s CreateAccountResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *CreateAccountResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *CreateAccountResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = CreateAccountResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23795,7 +24823,8 @@ func (s CreateAccountResultCode) MarshalBinary() ([]byte, error) {
 func (s *CreateAccountResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23868,21 +24897,21 @@ func (s CreateAccountResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *CreateAccountResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *CreateAccountResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = CreateAccountResultCode(disc)
 	switch CreateAccountResultCode(u.Code) {
 	case CreateAccountResultCodeCreateAccountSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (CreateAccountResultCode) switch value '%d' is not valid for union CreateAccountResult", u.Code)
+	return n, fmt.Errorf("Code (CreateAccountResultCode) switch value '%d' is not valid for union CreateAccountResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -23897,7 +24926,8 @@ func (s CreateAccountResult) MarshalBinary() ([]byte, error) {
 func (s *CreateAccountResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -23982,15 +25012,17 @@ func (s PaymentResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *PaymentResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *PaymentResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = PaymentResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24005,7 +25037,8 @@ func (s PaymentResultCode) MarshalBinary() ([]byte, error) {
 func (s *PaymentResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24078,21 +25111,21 @@ func (s PaymentResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *PaymentResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *PaymentResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = PaymentResultCode(disc)
 	switch PaymentResultCode(u.Code) {
 	case PaymentResultCodePaymentSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (PaymentResultCode) switch value '%d' is not valid for union PaymentResult", u.Code)
+	return n, fmt.Errorf("Code (PaymentResultCode) switch value '%d' is not valid for union PaymentResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24107,7 +25140,8 @@ func (s PaymentResult) MarshalBinary() ([]byte, error) {
 func (s *PaymentResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24210,15 +25244,17 @@ func (s PathPaymentStrictReceiveResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *PathPaymentStrictReceiveResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *PathPaymentStrictReceiveResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = PathPaymentStrictReceiveResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24233,7 +25269,8 @@ func (s PathPaymentStrictReceiveResultCode) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictReceiveResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24281,21 +25318,25 @@ func (s *SimplePaymentResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SimplePaymentResult) DecodeFrom(d *xdr.Decoder) error {
+func (s *SimplePaymentResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Destination.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Asset.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Asset.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24310,7 +25351,8 @@ func (s SimplePaymentResult) MarshalBinary() ([]byte, error) {
 func (s *SimplePaymentResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24361,28 +25403,32 @@ func (s *PathPaymentStrictReceiveResultSuccess) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PathPaymentStrictReceiveResultSuccess) DecodeFrom(d *xdr.Decoder) error {
+func (s *PathPaymentStrictReceiveResultSuccess) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Offers = nil
 	if l > 0 {
 		s.Offers = make([]ClaimAtom, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Offers[i].DecodeFrom(d)
+			nTmp, err = s.Offers[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Last.DecodeFrom(d)
+	nTmp, err = s.Last.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24397,7 +25443,8 @@ func (s PathPaymentStrictReceiveResultSuccess) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictReceiveResultSuccess) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24551,32 +25598,36 @@ func (s PathPaymentStrictReceiveResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = PathPaymentStrictReceiveResultCode(disc)
 	switch PathPaymentStrictReceiveResultCode(u.Code) {
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSuccess:
 		u.Success = new(PathPaymentStrictReceiveResultSuccess)
-		err = (*u.Success).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Success).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		u.NoIssuer = new(Asset)
-		err = (*u.NoIssuer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (PathPaymentStrictReceiveResultCode) switch value '%d' is not valid for union PathPaymentStrictReceiveResult", u.Code)
+	return n, fmt.Errorf("Code (PathPaymentStrictReceiveResultCode) switch value '%d' is not valid for union PathPaymentStrictReceiveResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24591,7 +25642,8 @@ func (s PathPaymentStrictReceiveResult) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictReceiveResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24693,15 +25745,17 @@ func (s PathPaymentStrictSendResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *PathPaymentStrictSendResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *PathPaymentStrictSendResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = PathPaymentStrictSendResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24716,7 +25770,8 @@ func (s PathPaymentStrictSendResultCode) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictSendResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24767,28 +25822,32 @@ func (s *PathPaymentStrictSendResultSuccess) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *PathPaymentStrictSendResultSuccess) DecodeFrom(d *xdr.Decoder) error {
+func (s *PathPaymentStrictSendResultSuccess) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.Offers = nil
 	if l > 0 {
 		s.Offers = make([]ClaimAtom, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.Offers[i].DecodeFrom(d)
+			nTmp, err = s.Offers[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Last.DecodeFrom(d)
+	nTmp, err = s.Last.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24803,7 +25862,8 @@ func (s PathPaymentStrictSendResultSuccess) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictSendResultSuccess) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -24956,32 +26016,36 @@ func (s PathPaymentStrictSendResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = PathPaymentStrictSendResultCode(disc)
 	switch PathPaymentStrictSendResultCode(u.Code) {
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendSuccess:
 		u.Success = new(PathPaymentStrictSendResultSuccess)
-		err = (*u.Success).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Success).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		u.NoIssuer = new(Asset)
-		err = (*u.NoIssuer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (PathPaymentStrictSendResultCode) switch value '%d' is not valid for union PathPaymentStrictSendResult", u.Code)
+	return n, fmt.Errorf("Code (PathPaymentStrictSendResultCode) switch value '%d' is not valid for union PathPaymentStrictSendResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24996,7 +26060,8 @@ func (s PathPaymentStrictSendResult) MarshalBinary() ([]byte, error) {
 func (s *PathPaymentStrictSendResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25097,15 +26162,17 @@ func (s ManageSellOfferResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ManageSellOfferResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ManageSellOfferResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ManageSellOfferResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25120,7 +26187,8 @@ func (s ManageSellOfferResultCode) MarshalBinary() ([]byte, error) {
 func (s *ManageSellOfferResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25181,15 +26249,17 @@ func (s ManageOfferEffect) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ManageOfferEffect) DecodeFrom(d *xdr.Decoder) error {
+func (e *ManageOfferEffect) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ManageOfferEffect(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25204,7 +26274,8 @@ func (s ManageOfferEffect) MarshalBinary() ([]byte, error) {
 func (s *ManageOfferEffect) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25326,32 +26397,36 @@ func (s ManageOfferSuccessResultOffer) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Effect = ManageOfferEffect(disc)
 	switch ManageOfferEffect(u.Effect) {
 	case ManageOfferEffectManageOfferCreated:
 		u.Offer = new(OfferEntry)
-		err = (*u.Offer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Offer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case ManageOfferEffectManageOfferUpdated:
 		u.Offer = new(OfferEntry)
-		err = (*u.Offer).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Offer).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Effect (ManageOfferEffect) switch value '%d' is not valid for union ManageOfferSuccessResultOffer", u.Effect)
+	return n, fmt.Errorf("Effect (ManageOfferEffect) switch value '%d' is not valid for union ManageOfferSuccessResultOffer", u.Effect)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25366,7 +26441,8 @@ func (s ManageOfferSuccessResultOffer) MarshalBinary() ([]byte, error) {
 func (s *ManageOfferSuccessResultOffer) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25427,28 +26503,32 @@ func (s *ManageOfferSuccessResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *ManageOfferSuccessResult) DecodeFrom(d *xdr.Decoder) error {
+func (s *ManageOfferSuccessResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var l uint32
-	l, _, err = d.DecodeUint()
+	l, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	s.OffersClaimed = nil
 	if l > 0 {
 		s.OffersClaimed = make([]ClaimAtom, l)
 		for i := uint32(0); i < l; i++ {
-			err = s.OffersClaimed[i].DecodeFrom(d)
+			nTmp, err = s.OffersClaimed[i].DecodeFrom(d)
 			if err != nil {
-				return err
+				return n, err
 			}
+			n += nTmp
 		}
 	}
-	err = s.Offer.DecodeFrom(d)
+	nTmp, err = s.Offer.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25463,7 +26543,8 @@ func (s ManageOfferSuccessResult) MarshalBinary() ([]byte, error) {
 func (s *ManageOfferSuccessResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25570,25 +26651,27 @@ func (s ManageSellOfferResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ManageSellOfferResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ManageSellOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ManageSellOfferResultCode(disc)
 	switch ManageSellOfferResultCode(u.Code) {
 	case ManageSellOfferResultCodeManageSellOfferSuccess:
 		u.Success = new(ManageOfferSuccessResult)
-		err = (*u.Success).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Success).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ManageSellOfferResultCode) switch value '%d' is not valid for union ManageSellOfferResult", u.Code)
+	return n, fmt.Errorf("Code (ManageSellOfferResultCode) switch value '%d' is not valid for union ManageSellOfferResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25603,7 +26686,8 @@ func (s ManageSellOfferResult) MarshalBinary() ([]byte, error) {
 func (s *ManageSellOfferResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25701,15 +26785,17 @@ func (s ManageBuyOfferResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ManageBuyOfferResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ManageBuyOfferResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ManageBuyOfferResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25724,7 +26810,8 @@ func (s ManageBuyOfferResultCode) MarshalBinary() ([]byte, error) {
 func (s *ManageBuyOfferResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25831,25 +26918,27 @@ func (s ManageBuyOfferResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ManageBuyOfferResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ManageBuyOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ManageBuyOfferResultCode(disc)
 	switch ManageBuyOfferResultCode(u.Code) {
 	case ManageBuyOfferResultCodeManageBuyOfferSuccess:
 		u.Success = new(ManageOfferSuccessResult)
-		err = (*u.Success).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Success).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ManageBuyOfferResultCode) switch value '%d' is not valid for union ManageBuyOfferResult", u.Code)
+	return n, fmt.Errorf("Code (ManageBuyOfferResultCode) switch value '%d' is not valid for union ManageBuyOfferResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25864,7 +26953,8 @@ func (s ManageBuyOfferResult) MarshalBinary() ([]byte, error) {
 func (s *ManageBuyOfferResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -25952,15 +27042,17 @@ func (s SetOptionsResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *SetOptionsResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *SetOptionsResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = SetOptionsResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25975,7 +27067,8 @@ func (s SetOptionsResultCode) MarshalBinary() ([]byte, error) {
 func (s *SetOptionsResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26048,21 +27141,21 @@ func (s SetOptionsResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *SetOptionsResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *SetOptionsResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = SetOptionsResultCode(disc)
 	switch SetOptionsResultCode(u.Code) {
 	case SetOptionsResultCodeSetOptionsSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (SetOptionsResultCode) switch value '%d' is not valid for union SetOptionsResult", u.Code)
+	return n, fmt.Errorf("Code (SetOptionsResultCode) switch value '%d' is not valid for union SetOptionsResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26077,7 +27170,8 @@ func (s SetOptionsResult) MarshalBinary() ([]byte, error) {
 func (s *SetOptionsResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26160,15 +27254,17 @@ func (s ChangeTrustResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ChangeTrustResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ChangeTrustResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ChangeTrustResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26183,7 +27279,8 @@ func (s ChangeTrustResultCode) MarshalBinary() ([]byte, error) {
 func (s *ChangeTrustResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26256,21 +27353,21 @@ func (s ChangeTrustResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ChangeTrustResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ChangeTrustResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ChangeTrustResultCode(disc)
 	switch ChangeTrustResultCode(u.Code) {
 	case ChangeTrustResultCodeChangeTrustSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ChangeTrustResultCode) switch value '%d' is not valid for union ChangeTrustResult", u.Code)
+	return n, fmt.Errorf("Code (ChangeTrustResultCode) switch value '%d' is not valid for union ChangeTrustResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26285,7 +27382,8 @@ func (s ChangeTrustResult) MarshalBinary() ([]byte, error) {
 func (s *ChangeTrustResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26362,15 +27460,17 @@ func (s AllowTrustResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *AllowTrustResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *AllowTrustResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = AllowTrustResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26385,7 +27485,8 @@ func (s AllowTrustResultCode) MarshalBinary() ([]byte, error) {
 func (s *AllowTrustResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26458,21 +27559,21 @@ func (s AllowTrustResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AllowTrustResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AllowTrustResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = AllowTrustResultCode(disc)
 	switch AllowTrustResultCode(u.Code) {
 	case AllowTrustResultCodeAllowTrustSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (AllowTrustResultCode) switch value '%d' is not valid for union AllowTrustResult", u.Code)
+	return n, fmt.Errorf("Code (AllowTrustResultCode) switch value '%d' is not valid for union AllowTrustResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26487,7 +27588,8 @@ func (s AllowTrustResult) MarshalBinary() ([]byte, error) {
 func (s *AllowTrustResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26566,15 +27668,17 @@ func (s AccountMergeResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *AccountMergeResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *AccountMergeResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = AccountMergeResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26589,7 +27693,8 @@ func (s AccountMergeResultCode) MarshalBinary() ([]byte, error) {
 func (s *AccountMergeResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26696,25 +27801,27 @@ func (s AccountMergeResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *AccountMergeResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *AccountMergeResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = AccountMergeResultCode(disc)
 	switch AccountMergeResultCode(u.Code) {
 	case AccountMergeResultCodeAccountMergeSuccess:
 		u.SourceAccountBalance = new(Int64)
-		err = (*u.SourceAccountBalance).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SourceAccountBalance).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (AccountMergeResultCode) switch value '%d' is not valid for union AccountMergeResult", u.Code)
+	return n, fmt.Errorf("Code (AccountMergeResultCode) switch value '%d' is not valid for union AccountMergeResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26729,7 +27836,8 @@ func (s AccountMergeResult) MarshalBinary() ([]byte, error) {
 func (s *AccountMergeResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26789,15 +27897,17 @@ func (s InflationResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *InflationResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *InflationResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = InflationResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26812,7 +27922,8 @@ func (s InflationResultCode) MarshalBinary() ([]byte, error) {
 func (s *InflationResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26854,17 +27965,20 @@ func (s *InflationPayout) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *InflationPayout) DecodeFrom(d *xdr.Decoder) error {
+func (s *InflationPayout) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.Destination.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.Destination.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Amount.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Amount.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26879,7 +27993,8 @@ func (s InflationPayout) MarshalBinary() ([]byte, error) {
 func (s *InflationPayout) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -26995,36 +28110,39 @@ func (s InflationResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *InflationResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *InflationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = InflationResultCode(disc)
 	switch InflationResultCode(u.Code) {
 	case InflationResultCodeInflationSuccess:
 		u.Payouts = new([]InflationPayout)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.Payouts) = nil
 		if l > 0 {
 			(*u.Payouts) = make([]InflationPayout, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Payouts)[i].DecodeFrom(d)
+				nTmp, err = (*u.Payouts)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (InflationResultCode) switch value '%d' is not valid for union InflationResult", u.Code)
+	return n, fmt.Errorf("Code (InflationResultCode) switch value '%d' is not valid for union InflationResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27039,7 +28157,8 @@ func (s InflationResult) MarshalBinary() ([]byte, error) {
 func (s *InflationResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27110,15 +28229,17 @@ func (s ManageDataResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ManageDataResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ManageDataResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ManageDataResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27133,7 +28254,8 @@ func (s ManageDataResultCode) MarshalBinary() ([]byte, error) {
 func (s *ManageDataResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27206,21 +28328,21 @@ func (s ManageDataResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ManageDataResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ManageDataResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ManageDataResultCode(disc)
 	switch ManageDataResultCode(u.Code) {
 	case ManageDataResultCodeManageDataSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ManageDataResultCode) switch value '%d' is not valid for union ManageDataResult", u.Code)
+	return n, fmt.Errorf("Code (ManageDataResultCode) switch value '%d' is not valid for union ManageDataResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27235,7 +28357,8 @@ func (s ManageDataResult) MarshalBinary() ([]byte, error) {
 func (s *ManageDataResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27295,15 +28418,17 @@ func (s BumpSequenceResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *BumpSequenceResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *BumpSequenceResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = BumpSequenceResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27318,7 +28443,8 @@ func (s BumpSequenceResultCode) MarshalBinary() ([]byte, error) {
 func (s *BumpSequenceResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27391,21 +28517,21 @@ func (s BumpSequenceResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *BumpSequenceResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *BumpSequenceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = BumpSequenceResultCode(disc)
 	switch BumpSequenceResultCode(u.Code) {
 	case BumpSequenceResultCodeBumpSequenceSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (BumpSequenceResultCode) switch value '%d' is not valid for union BumpSequenceResult", u.Code)
+	return n, fmt.Errorf("Code (BumpSequenceResultCode) switch value '%d' is not valid for union BumpSequenceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27420,7 +28546,8 @@ func (s BumpSequenceResult) MarshalBinary() ([]byte, error) {
 func (s *BumpSequenceResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27490,15 +28617,17 @@ func (s CreateClaimableBalanceResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *CreateClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *CreateClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = CreateClaimableBalanceResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27513,7 +28642,8 @@ func (s CreateClaimableBalanceResultCode) MarshalBinary() ([]byte, error) {
 func (s *CreateClaimableBalanceResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27621,25 +28751,27 @@ func (s CreateClaimableBalanceResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *CreateClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *CreateClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = CreateClaimableBalanceResultCode(disc)
 	switch CreateClaimableBalanceResultCode(u.Code) {
 	case CreateClaimableBalanceResultCodeCreateClaimableBalanceSuccess:
 		u.BalanceId = new(ClaimableBalanceId)
-		err = (*u.BalanceId).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.BalanceId).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (CreateClaimableBalanceResultCode) switch value '%d' is not valid for union CreateClaimableBalanceResult", u.Code)
+	return n, fmt.Errorf("Code (CreateClaimableBalanceResultCode) switch value '%d' is not valid for union CreateClaimableBalanceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27654,7 +28786,8 @@ func (s CreateClaimableBalanceResult) MarshalBinary() ([]byte, error) {
 func (s *CreateClaimableBalanceResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27725,15 +28858,17 @@ func (s ClaimClaimableBalanceResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClaimClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClaimClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClaimClaimableBalanceResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27748,7 +28883,8 @@ func (s ClaimClaimableBalanceResultCode) MarshalBinary() ([]byte, error) {
 func (s *ClaimClaimableBalanceResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27821,21 +28957,21 @@ func (s ClaimClaimableBalanceResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClaimClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClaimClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ClaimClaimableBalanceResultCode(disc)
 	switch ClaimClaimableBalanceResultCode(u.Code) {
 	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ClaimClaimableBalanceResultCode) switch value '%d' is not valid for union ClaimClaimableBalanceResult", u.Code)
+	return n, fmt.Errorf("Code (ClaimClaimableBalanceResultCode) switch value '%d' is not valid for union ClaimClaimableBalanceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27850,7 +28986,8 @@ func (s ClaimClaimableBalanceResult) MarshalBinary() ([]byte, error) {
 func (s *ClaimClaimableBalanceResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -27917,15 +29054,17 @@ func (s BeginSponsoringFutureReservesResultCode) EncodeTo(e *xdr.Encoder) error 
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *BeginSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *BeginSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = BeginSponsoringFutureReservesResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27940,7 +29079,8 @@ func (s BeginSponsoringFutureReservesResultCode) MarshalBinary() ([]byte, error)
 func (s *BeginSponsoringFutureReservesResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28014,21 +29154,21 @@ func (s BeginSponsoringFutureReservesResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *BeginSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *BeginSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = BeginSponsoringFutureReservesResultCode(disc)
 	switch BeginSponsoringFutureReservesResultCode(u.Code) {
 	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (BeginSponsoringFutureReservesResultCode) switch value '%d' is not valid for union BeginSponsoringFutureReservesResult", u.Code)
+	return n, fmt.Errorf("Code (BeginSponsoringFutureReservesResultCode) switch value '%d' is not valid for union BeginSponsoringFutureReservesResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28043,7 +29183,8 @@ func (s BeginSponsoringFutureReservesResult) MarshalBinary() ([]byte, error) {
 func (s *BeginSponsoringFutureReservesResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28104,15 +29245,17 @@ func (s EndSponsoringFutureReservesResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *EndSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *EndSponsoringFutureReservesResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = EndSponsoringFutureReservesResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28127,7 +29270,8 @@ func (s EndSponsoringFutureReservesResultCode) MarshalBinary() ([]byte, error) {
 func (s *EndSponsoringFutureReservesResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28201,21 +29345,21 @@ func (s EndSponsoringFutureReservesResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *EndSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *EndSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = EndSponsoringFutureReservesResultCode(disc)
 	switch EndSponsoringFutureReservesResultCode(u.Code) {
 	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (EndSponsoringFutureReservesResultCode) switch value '%d' is not valid for union EndSponsoringFutureReservesResult", u.Code)
+	return n, fmt.Errorf("Code (EndSponsoringFutureReservesResultCode) switch value '%d' is not valid for union EndSponsoringFutureReservesResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28230,7 +29374,8 @@ func (s EndSponsoringFutureReservesResult) MarshalBinary() ([]byte, error) {
 func (s *EndSponsoringFutureReservesResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28303,15 +29448,17 @@ func (s RevokeSponsorshipResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *RevokeSponsorshipResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *RevokeSponsorshipResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = RevokeSponsorshipResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28326,7 +29473,8 @@ func (s RevokeSponsorshipResultCode) MarshalBinary() ([]byte, error) {
 func (s *RevokeSponsorshipResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28399,21 +29547,21 @@ func (s RevokeSponsorshipResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *RevokeSponsorshipResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *RevokeSponsorshipResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = RevokeSponsorshipResultCode(disc)
 	switch RevokeSponsorshipResultCode(u.Code) {
 	case RevokeSponsorshipResultCodeRevokeSponsorshipSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (RevokeSponsorshipResultCode) switch value '%d' is not valid for union RevokeSponsorshipResult", u.Code)
+	return n, fmt.Errorf("Code (RevokeSponsorshipResultCode) switch value '%d' is not valid for union RevokeSponsorshipResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28428,7 +29576,8 @@ func (s RevokeSponsorshipResult) MarshalBinary() ([]byte, error) {
 func (s *RevokeSponsorshipResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28498,15 +29647,17 @@ func (s ClawbackResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClawbackResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClawbackResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClawbackResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28521,7 +29672,8 @@ func (s ClawbackResultCode) MarshalBinary() ([]byte, error) {
 func (s *ClawbackResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28594,21 +29746,21 @@ func (s ClawbackResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClawbackResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClawbackResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ClawbackResultCode(disc)
 	switch ClawbackResultCode(u.Code) {
 	case ClawbackResultCodeClawbackSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ClawbackResultCode) switch value '%d' is not valid for union ClawbackResult", u.Code)
+	return n, fmt.Errorf("Code (ClawbackResultCode) switch value '%d' is not valid for union ClawbackResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28623,7 +29775,8 @@ func (s ClawbackResult) MarshalBinary() ([]byte, error) {
 func (s *ClawbackResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28690,15 +29843,17 @@ func (s ClawbackClaimableBalanceResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *ClawbackClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *ClawbackClaimableBalanceResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = ClawbackClaimableBalanceResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28713,7 +29868,8 @@ func (s ClawbackClaimableBalanceResultCode) MarshalBinary() ([]byte, error) {
 func (s *ClawbackClaimableBalanceResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28787,21 +29943,21 @@ func (s ClawbackClaimableBalanceResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *ClawbackClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *ClawbackClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = ClawbackClaimableBalanceResultCode(disc)
 	switch ClawbackClaimableBalanceResultCode(u.Code) {
 	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (ClawbackClaimableBalanceResultCode) switch value '%d' is not valid for union ClawbackClaimableBalanceResult", u.Code)
+	return n, fmt.Errorf("Code (ClawbackClaimableBalanceResultCode) switch value '%d' is not valid for union ClawbackClaimableBalanceResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28816,7 +29972,8 @@ func (s ClawbackClaimableBalanceResult) MarshalBinary() ([]byte, error) {
 func (s *ClawbackClaimableBalanceResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28890,15 +30047,17 @@ func (s SetTrustLineFlagsResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *SetTrustLineFlagsResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *SetTrustLineFlagsResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = SetTrustLineFlagsResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28913,7 +30072,8 @@ func (s SetTrustLineFlagsResultCode) MarshalBinary() ([]byte, error) {
 func (s *SetTrustLineFlagsResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -28986,21 +30146,21 @@ func (s SetTrustLineFlagsResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *SetTrustLineFlagsResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *SetTrustLineFlagsResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = SetTrustLineFlagsResultCode(disc)
 	switch SetTrustLineFlagsResultCode(u.Code) {
 	case SetTrustLineFlagsResultCodeSetTrustLineFlagsSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (SetTrustLineFlagsResultCode) switch value '%d' is not valid for union SetTrustLineFlagsResult", u.Code)
+	return n, fmt.Errorf("Code (SetTrustLineFlagsResultCode) switch value '%d' is not valid for union SetTrustLineFlagsResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29015,7 +30175,8 @@ func (s SetTrustLineFlagsResult) MarshalBinary() ([]byte, error) {
 func (s *SetTrustLineFlagsResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -29098,15 +30259,17 @@ func (s LiquidityPoolDepositResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LiquidityPoolDepositResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *LiquidityPoolDepositResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LiquidityPoolDepositResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29121,7 +30284,8 @@ func (s LiquidityPoolDepositResultCode) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolDepositResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -29195,21 +30359,21 @@ func (s LiquidityPoolDepositResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LiquidityPoolDepositResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LiquidityPoolDepositResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = LiquidityPoolDepositResultCode(disc)
 	switch LiquidityPoolDepositResultCode(u.Code) {
 	case LiquidityPoolDepositResultCodeLiquidityPoolDepositSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (LiquidityPoolDepositResultCode) switch value '%d' is not valid for union LiquidityPoolDepositResult", u.Code)
+	return n, fmt.Errorf("Code (LiquidityPoolDepositResultCode) switch value '%d' is not valid for union LiquidityPoolDepositResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29224,7 +30388,8 @@ func (s LiquidityPoolDepositResult) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolDepositResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -29300,15 +30465,17 @@ func (s LiquidityPoolWithdrawResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *LiquidityPoolWithdrawResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *LiquidityPoolWithdrawResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = LiquidityPoolWithdrawResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29323,7 +30490,8 @@ func (s LiquidityPoolWithdrawResultCode) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolWithdrawResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -29397,21 +30565,21 @@ func (s LiquidityPoolWithdrawResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *LiquidityPoolWithdrawResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *LiquidityPoolWithdrawResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = LiquidityPoolWithdrawResultCode(disc)
 	switch LiquidityPoolWithdrawResultCode(u.Code) {
 	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawSuccess:
 		// Void
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (LiquidityPoolWithdrawResultCode) switch value '%d' is not valid for union LiquidityPoolWithdrawResult", u.Code)
+	return n, fmt.Errorf("Code (LiquidityPoolWithdrawResultCode) switch value '%d' is not valid for union LiquidityPoolWithdrawResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29426,7 +30594,8 @@ func (s LiquidityPoolWithdrawResult) MarshalBinary() ([]byte, error) {
 func (s *LiquidityPoolWithdrawResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -29500,15 +30669,17 @@ func (s OperationResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *OperationResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *OperationResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = OperationResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29523,7 +30694,8 @@ func (s OperationResultCode) MarshalBinary() ([]byte, error) {
 func (s *OperationResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -30589,183 +31761,231 @@ func (s OperationResultTr) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *OperationResultTr) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = OperationType(disc)
 	switch OperationType(u.Type) {
 	case OperationTypeCreateAccount:
 		u.CreateAccountResult = new(CreateAccountResult)
-		err = (*u.CreateAccountResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.CreateAccountResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypePayment:
 		u.PaymentResult = new(PaymentResult)
-		err = (*u.PaymentResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PaymentResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypePathPaymentStrictReceive:
 		u.PathPaymentStrictReceiveResult = new(PathPaymentStrictReceiveResult)
-		err = (*u.PathPaymentStrictReceiveResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PathPaymentStrictReceiveResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeManageSellOffer:
 		u.ManageSellOfferResult = new(ManageSellOfferResult)
-		err = (*u.ManageSellOfferResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ManageSellOfferResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeCreatePassiveSellOffer:
 		u.CreatePassiveSellOfferResult = new(ManageSellOfferResult)
-		err = (*u.CreatePassiveSellOfferResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.CreatePassiveSellOfferResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeSetOptions:
 		u.SetOptionsResult = new(SetOptionsResult)
-		err = (*u.SetOptionsResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SetOptionsResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeChangeTrust:
 		u.ChangeTrustResult = new(ChangeTrustResult)
-		err = (*u.ChangeTrustResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ChangeTrustResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeAllowTrust:
 		u.AllowTrustResult = new(AllowTrustResult)
-		err = (*u.AllowTrustResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AllowTrustResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeAccountMerge:
 		u.AccountMergeResult = new(AccountMergeResult)
-		err = (*u.AccountMergeResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.AccountMergeResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeInflation:
 		u.InflationResult = new(InflationResult)
-		err = (*u.InflationResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.InflationResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeManageData:
 		u.ManageDataResult = new(ManageDataResult)
-		err = (*u.ManageDataResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ManageDataResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeBumpSequence:
 		u.BumpSeqResult = new(BumpSequenceResult)
-		err = (*u.BumpSeqResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.BumpSeqResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeManageBuyOffer:
 		u.ManageBuyOfferResult = new(ManageBuyOfferResult)
-		err = (*u.ManageBuyOfferResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ManageBuyOfferResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypePathPaymentStrictSend:
 		u.PathPaymentStrictSendResult = new(PathPaymentStrictSendResult)
-		err = (*u.PathPaymentStrictSendResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PathPaymentStrictSendResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeCreateClaimableBalance:
 		u.CreateClaimableBalanceResult = new(CreateClaimableBalanceResult)
-		err = (*u.CreateClaimableBalanceResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.CreateClaimableBalanceResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeClaimClaimableBalance:
 		u.ClaimClaimableBalanceResult = new(ClaimClaimableBalanceResult)
-		err = (*u.ClaimClaimableBalanceResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClaimClaimableBalanceResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeBeginSponsoringFutureReserves:
 		u.BeginSponsoringFutureReservesResult = new(BeginSponsoringFutureReservesResult)
-		err = (*u.BeginSponsoringFutureReservesResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.BeginSponsoringFutureReservesResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeEndSponsoringFutureReserves:
 		u.EndSponsoringFutureReservesResult = new(EndSponsoringFutureReservesResult)
-		err = (*u.EndSponsoringFutureReservesResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.EndSponsoringFutureReservesResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeRevokeSponsorship:
 		u.RevokeSponsorshipResult = new(RevokeSponsorshipResult)
-		err = (*u.RevokeSponsorshipResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.RevokeSponsorshipResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeClawback:
 		u.ClawbackResult = new(ClawbackResult)
-		err = (*u.ClawbackResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClawbackResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeClawbackClaimableBalance:
 		u.ClawbackClaimableBalanceResult = new(ClawbackClaimableBalanceResult)
-		err = (*u.ClawbackClaimableBalanceResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.ClawbackClaimableBalanceResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeSetTrustLineFlags:
 		u.SetTrustLineFlagsResult = new(SetTrustLineFlagsResult)
-		err = (*u.SetTrustLineFlagsResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.SetTrustLineFlagsResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeLiquidityPoolDeposit:
 		u.LiquidityPoolDepositResult = new(LiquidityPoolDepositResult)
-		err = (*u.LiquidityPoolDepositResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPoolDepositResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case OperationTypeLiquidityPoolWithdraw:
 		u.LiquidityPoolWithdrawResult = new(LiquidityPoolWithdrawResult)
-		err = (*u.LiquidityPoolWithdrawResult).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.LiquidityPoolWithdrawResult).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (OperationType) switch value '%d' is not valid for union OperationResultTr", u.Type)
+	return n, fmt.Errorf("Type (OperationType) switch value '%d' is not valid for union OperationResultTr", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30780,7 +32000,8 @@ func (s OperationResultTr) MarshalBinary() ([]byte, error) {
 func (s *OperationResultTr) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -30938,25 +32159,27 @@ func (s OperationResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *OperationResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *OperationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = OperationResultCode(disc)
 	switch OperationResultCode(u.Code) {
 	case OperationResultCodeOpInner:
 		u.Tr = new(OperationResultTr)
-		err = (*u.Tr).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Tr).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (OperationResultCode) switch value '%d' is not valid for union OperationResult", u.Code)
+	return n, fmt.Errorf("Code (OperationResultCode) switch value '%d' is not valid for union OperationResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30971,7 +32194,8 @@ func (s OperationResult) MarshalBinary() ([]byte, error) {
 func (s *OperationResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -31075,15 +32299,17 @@ func (s TransactionResultCode) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *TransactionResultCode) DecodeFrom(d *xdr.Decoder) error {
+func (e *TransactionResultCode) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = TransactionResultCode(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31098,7 +32324,8 @@ func (s TransactionResultCode) MarshalBinary() ([]byte, error) {
 func (s *TransactionResultCode) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -31318,87 +32545,93 @@ func (s InnerTransactionResultResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = TransactionResultCode(disc)
 	switch TransactionResultCode(u.Code) {
 	case TransactionResultCodeTxSuccess:
 		u.Results = new([]OperationResult)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Results)[i].DecodeFrom(d)
+				nTmp, err = (*u.Results)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case TransactionResultCodeTxFailed:
 		u.Results = new([]OperationResult)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Results)[i].DecodeFrom(d)
+				nTmp, err = (*u.Results)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case TransactionResultCodeTxTooEarly:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxTooLate:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxMissingOperation:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxBadSeq:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxBadAuth:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxInsufficientBalance:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxNoAccount:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxInsufficientFee:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxBadAuthExtra:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxInternalError:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxNotSupported:
 		// Void
-		return nil
+		return n, nil
 	case TransactionResultCodeTxBadSponsorship:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union InnerTransactionResultResult", u.Code)
+	return n, fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union InnerTransactionResultResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31413,7 +32646,8 @@ func (s InnerTransactionResultResult) MarshalBinary() ([]byte, error) {
 func (s *InnerTransactionResultResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -31479,18 +32713,18 @@ func (s InnerTransactionResultExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *InnerTransactionResultExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *InnerTransactionResultExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union InnerTransactionResultExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union InnerTransactionResultExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31505,7 +32739,8 @@ func (s InnerTransactionResultExt) MarshalBinary() ([]byte, error) {
 func (s *InnerTransactionResultExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -31583,21 +32818,25 @@ func (s *InnerTransactionResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *InnerTransactionResult) DecodeFrom(d *xdr.Decoder) error {
+func (s *InnerTransactionResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.FeeCharged.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.FeeCharged.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Result.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Result.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31612,7 +32851,8 @@ func (s InnerTransactionResult) MarshalBinary() ([]byte, error) {
 func (s *InnerTransactionResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -31654,17 +32894,20 @@ func (s *InnerTransactionResultPair) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *InnerTransactionResultPair) DecodeFrom(d *xdr.Decoder) error {
+func (s *InnerTransactionResultPair) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.TransactionHash.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.TransactionHash.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Result.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Result.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31679,7 +32922,8 @@ func (s InnerTransactionResultPair) MarshalBinary() ([]byte, error) {
 func (s *InnerTransactionResultPair) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -31876,68 +33120,78 @@ func (s TransactionResultResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Code = TransactionResultCode(disc)
 	switch TransactionResultCode(u.Code) {
 	case TransactionResultCodeTxFeeBumpInnerSuccess:
 		u.InnerResultPair = new(InnerTransactionResultPair)
-		err = (*u.InnerResultPair).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.InnerResultPair).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case TransactionResultCodeTxFeeBumpInnerFailed:
 		u.InnerResultPair = new(InnerTransactionResultPair)
-		err = (*u.InnerResultPair).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.InnerResultPair).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case TransactionResultCodeTxSuccess:
 		u.Results = new([]OperationResult)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Results)[i].DecodeFrom(d)
+				nTmp, err = (*u.Results)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	case TransactionResultCodeTxFailed:
 		u.Results = new([]OperationResult)
+		var nTmp int
 		var l uint32
-		l, _, err = d.DecodeUint()
+		l, nTmp, err = d.DecodeUint()
 		if err != nil {
-			return err
+			return n, err
 		}
+		n += nTmp
 		(*u.Results) = nil
 		if l > 0 {
 			(*u.Results) = make([]OperationResult, l)
 			for i := uint32(0); i < l; i++ {
-				err = (*u.Results)[i].DecodeFrom(d)
+				nTmp, err = (*u.Results)[i].DecodeFrom(d)
 				if err != nil {
-					return err
+					return n, err
 				}
+				n += nTmp
 			}
 		}
-		return nil
+		return n, nil
 	default:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union TransactionResultResult", u.Code)
+	return n, fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union TransactionResultResult", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31952,7 +33206,8 @@ func (s TransactionResultResult) MarshalBinary() ([]byte, error) {
 func (s *TransactionResultResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32018,18 +33273,18 @@ func (s TransactionResultExt) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *TransactionResultExt) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *TransactionResultExt) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.V = int32(disc)
 	switch int32(u.V) {
 	case 0:
 		// Void
-		return nil
+		return n, nil
 	}
-	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionResultExt", u.V)
+	return n, fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionResultExt", u.V)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32044,7 +33299,8 @@ func (s TransactionResultExt) MarshalBinary() ([]byte, error) {
 func (s *TransactionResultExt) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32111,21 +33367,25 @@ func (s *TransactionResult) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TransactionResult) DecodeFrom(d *xdr.Decoder) error {
+func (s *TransactionResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = s.FeeCharged.DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = s.FeeCharged.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Result.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Result.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	nTmp, err = s.Ext.DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32140,7 +33400,8 @@ func (s TransactionResult) MarshalBinary() ([]byte, error) {
 func (s *TransactionResult) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32176,13 +33437,15 @@ func (s *Hash) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Hash) DecodeFrom(d *xdr.Decoder) error {
+func (s *Hash) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32197,7 +33460,8 @@ func (s Hash) MarshalBinary() ([]byte, error) {
 func (s *Hash) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32233,13 +33497,15 @@ func (s *Uint256) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Uint256) DecodeFrom(d *xdr.Decoder) error {
+func (s *Uint256) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32254,7 +33520,8 @@ func (s Uint256) MarshalBinary() ([]byte, error) {
 func (s *Uint256) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32285,15 +33552,17 @@ func (s Uint32) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Uint32) DecodeFrom(d *xdr.Decoder) error {
+func (s *Uint32) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var v uint32
-	v, _, err = d.DecodeUint()
+	v, nTmp, err = d.DecodeUint()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*s = Uint32(v)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32308,7 +33577,8 @@ func (s Uint32) MarshalBinary() ([]byte, error) {
 func (s *Uint32) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32339,15 +33609,17 @@ func (s Int32) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int32) DecodeFrom(d *xdr.Decoder) error {
+func (s *Int32) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var v int32
-	v, _, err = d.DecodeInt()
+	v, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*s = Int32(v)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32362,7 +33634,8 @@ func (s Int32) MarshalBinary() ([]byte, error) {
 func (s *Int32) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32393,15 +33666,17 @@ func (s Uint64) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Uint64) DecodeFrom(d *xdr.Decoder) error {
+func (s *Uint64) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var v uint64
-	v, _, err = d.DecodeUhyper()
+	v, nTmp, err = d.DecodeUhyper()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*s = Uint64(v)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32416,7 +33691,8 @@ func (s Uint64) MarshalBinary() ([]byte, error) {
 func (s *Uint64) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32447,15 +33723,17 @@ func (s Int64) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Int64) DecodeFrom(d *xdr.Decoder) error {
+func (s *Int64) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var v int64
-	v, _, err = d.DecodeHyper()
+	v, nTmp, err = d.DecodeHyper()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*s = Int64(v)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32470,7 +33748,8 @@ func (s Int64) MarshalBinary() ([]byte, error) {
 func (s *Int64) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32536,15 +33815,17 @@ func (s CryptoKeyType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *CryptoKeyType) DecodeFrom(d *xdr.Decoder) error {
+func (e *CryptoKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = CryptoKeyType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32559,7 +33840,8 @@ func (s CryptoKeyType) MarshalBinary() ([]byte, error) {
 func (s *CryptoKeyType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32614,15 +33896,17 @@ func (s PublicKeyType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *PublicKeyType) DecodeFrom(d *xdr.Decoder) error {
+func (e *PublicKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = PublicKeyType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32637,7 +33921,8 @@ func (s PublicKeyType) MarshalBinary() ([]byte, error) {
 func (s *PublicKeyType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32698,15 +33983,17 @@ func (s SignerKeyType) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (e *SignerKeyType) DecodeFrom(d *xdr.Decoder) error {
+func (e *SignerKeyType) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
+	var n, nTmp int
 	var i int32
-	i, _, err = d.DecodeInt()
+	i, nTmp, err = d.DecodeInt()
 	if err != nil {
-		return err
+		return n, err
 	}
+	n += nTmp
 	*e = SignerKeyType(i)
-	return nil
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32721,7 +34008,8 @@ func (s SignerKeyType) MarshalBinary() ([]byte, error) {
 func (s *SignerKeyType) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -32821,22 +34109,24 @@ func (s PublicKey) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *PublicKey) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *PublicKey) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = PublicKeyType(disc)
 	switch PublicKeyType(u.Type) {
 	case PublicKeyTypePublicKeyTypeEd25519:
 		u.Ed25519 = new(Uint256)
-		err = (*u.Ed25519).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Ed25519).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (PublicKeyType) switch value '%d' is not valid for union PublicKey", u.Type)
+	return n, fmt.Errorf("Type (PublicKeyType) switch value '%d' is not valid for union PublicKey", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -32851,7 +34141,8 @@ func (s PublicKey) MarshalBinary() ([]byte, error) {
 func (s *PublicKey) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33037,36 +34328,42 @@ func (s SignerKey) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (u *SignerKey) DecodeFrom(d *xdr.Decoder) error {
-	disc, _, err := d.DecodeInt()
+func (u *SignerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
+	disc, n, err := d.DecodeInt()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	u.Type = SignerKeyType(disc)
 	switch SignerKeyType(u.Type) {
 	case SignerKeyTypeSignerKeyTypeEd25519:
 		u.Ed25519 = new(Uint256)
-		err = (*u.Ed25519).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.Ed25519).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case SignerKeyTypeSignerKeyTypePreAuthTx:
 		u.PreAuthTx = new(Uint256)
-		err = (*u.PreAuthTx).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.PreAuthTx).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	case SignerKeyTypeSignerKeyTypeHashX:
 		u.HashX = new(Uint256)
-		err = (*u.HashX).DecodeFrom(d)
+		var nTmp int
+		nTmp, err = (*u.HashX).DecodeFrom(d)
 		if err != nil {
-			return err
+			return n, err
 		}
-		return nil
+		n += nTmp
+		return n, nil
 	}
-	return fmt.Errorf("Type (SignerKeyType) switch value '%d' is not valid for union SignerKey", u.Type)
+	return n, fmt.Errorf("Type (SignerKeyType) switch value '%d' is not valid for union SignerKey", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33081,7 +34378,8 @@ func (s SignerKey) MarshalBinary() ([]byte, error) {
 func (s *SignerKey) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33117,13 +34415,15 @@ func (s Signature) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Signature) DecodeFrom(d *xdr.Decoder) error {
+func (s *Signature) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	(*s), _, err = d.DecodeOpaque(64)
+	var n, nTmp int
+	(*s), nTmp, err = d.DecodeOpaque(64)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33138,7 +34438,8 @@ func (s Signature) MarshalBinary() ([]byte, error) {
 func (s *Signature) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33174,13 +34475,15 @@ func (s *SignatureHint) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *SignatureHint) DecodeFrom(d *xdr.Decoder) error {
+func (s *SignatureHint) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33195,7 +34498,8 @@ func (s SignatureHint) MarshalBinary() ([]byte, error) {
 func (s *SignatureHint) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33257,13 +34561,15 @@ func (s NodeId) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *NodeId) DecodeFrom(d *xdr.Decoder) error {
+func (s *NodeId) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	err = (*PublicKey)(s).DecodeFrom(d)
+	var n, nTmp int
+	nTmp, err = (*PublicKey)(s).DecodeFrom(d)
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33278,7 +34584,8 @@ func (s NodeId) MarshalBinary() ([]byte, error) {
 func (s *NodeId) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33314,13 +34621,15 @@ func (s *Curve25519Secret) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Curve25519Secret) DecodeFrom(d *xdr.Decoder) error {
+func (s *Curve25519Secret) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s.Key[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s.Key[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33335,7 +34644,8 @@ func (s Curve25519Secret) MarshalBinary() ([]byte, error) {
 func (s *Curve25519Secret) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33371,13 +34681,15 @@ func (s *Curve25519Public) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *Curve25519Public) DecodeFrom(d *xdr.Decoder) error {
+func (s *Curve25519Public) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s.Key[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s.Key[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33392,7 +34704,8 @@ func (s Curve25519Public) MarshalBinary() ([]byte, error) {
 func (s *Curve25519Public) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33428,13 +34741,15 @@ func (s *HmacSha256Key) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *HmacSha256Key) DecodeFrom(d *xdr.Decoder) error {
+func (s *HmacSha256Key) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s.Key[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s.Key[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33449,7 +34764,8 @@ func (s HmacSha256Key) MarshalBinary() ([]byte, error) {
 func (s *HmacSha256Key) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
@@ -33485,13 +34801,15 @@ func (s *HmacSha256Mac) EncodeTo(e *xdr.Encoder) error {
 }
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *HmacSha256Mac) DecodeFrom(d *xdr.Decoder) error {
+func (s *HmacSha256Mac) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
-	_, err = d.DecodeFixedOpaqueInplace(s.Mac[:])
+	var n, nTmp int
+	nTmp, err = d.DecodeFixedOpaqueInplace(s.Mac[:])
 	if err != nil {
-		return err
+		return n, err
 	}
-	return nil
+	n += nTmp
+	return n, nil
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33506,7 +34824,8 @@ func (s HmacSha256Mac) MarshalBinary() ([]byte, error) {
 func (s *HmacSha256Mac) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
-	return s.DecodeFrom(d)
+	_, err := s.DecodeFrom(d)
+	return err
 }
 
 var (
