@@ -9,6 +9,7 @@ import (
 	"github.com/stellar/go/services/horizon/internal/test"
 	"github.com/stellar/go/services/horizon/internal/toid"
 	"github.com/stellar/go/xdr"
+	"github.com/stellar/go/support/log"
 )
 
 func TestOperationQueries(t *testing.T) {
@@ -156,6 +157,19 @@ func TestOperationByLiquidityPool(t *testing.T) {
 	tt.Assert.Len(ops, 2)
 	tt.Assert.Equal(ops[0].ID, opID2)
 	tt.Assert.Equal(ops[1].ID, opID1)
+}
+
+func TestFeeStats(t *testing.T) {
+	log.DefaultLogger.SetLevel(log.DebugLevel)
+	tt := test.Start(t)
+	tt.Scenario("operation_fee_stats_1")
+	defer tt.Finish()
+	q := &Q{tt.HorizonSession()}
+	feeStats := &FeeStats{}
+
+	err := q.FeeStats(tt.Ctx, 7, feeStats)
+	tt.Assert.NoError(err)
+	tt.Assert.Equal(feeStats.FeeChargedMax, null.NewInt(100,true))
 }
 
 func TestOperationQueryBuilder(t *testing.T) {

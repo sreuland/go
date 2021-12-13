@@ -18,6 +18,7 @@ require (
 	github.com/getsentry/raven-go v0.0.0-20160805001729-c9d3cc542ad1
 	github.com/go-chi/chi v4.0.3+incompatible
 	github.com/go-errors/errors v0.0.0-20150906023321-a41850380601
+	github.com/go-jet/jet/v2 v2.5.1-0.20211207130744-5ec19e1f5d86
 	github.com/gobuffalo/packr v1.12.1 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/google/go-querystring v0.0.0-20160401233042-9235644dd9e5 // indirect
@@ -27,38 +28,33 @@ require (
 	github.com/guregu/null v2.1.3-0.20151024101046-79c5bd36b615+incompatible
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
 	github.com/imkira/go-interpol v1.1.0 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jarcoal/httpmock v0.0.0-20161210151336-4442edb3db31
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/klauspost/compress v0.0.0-20161106143436-e3b7981a12dd // indirect
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.7.0
 	github.com/magiconair/properties v1.5.4 // indirect
 	github.com/manucorporat/sse v0.0.0-20160126180136-ee05b128a739
-	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mitchellh/mapstructure v0.0.0-20150613213606-2caf8efc9366 // indirect
 	github.com/moul/http2curl v0.0.0-20161031194548-4e24498b31db // indirect
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
-	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
-	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
+	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_model v0.2.0
 	github.com/rs/cors v0.0.0-20160617231935-a62a804a8a00
 	github.com/rs/xhandler v0.0.0-20160618193221-ed27b6fd6521 // indirect
 	github.com/rubenv/sql-migrate v0.0.0-20190717103323-87ce952f7079
 	github.com/segmentio/go-loggly v0.5.1-0.20171222203950-eb91657e62b2
 	github.com/sergi/go-diff v0.0.0-20161205080420-83532ca1c1ca // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
-	github.com/sirupsen/logrus v1.4.1
-	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cast v0.0.0-20150508191742-4d07383ffe94 // indirect
-	github.com/spf13/cobra v0.0.0-20160830174925-9c28e4bbd74e
+	github.com/spf13/cobra v0.0.3
 	github.com/spf13/jwalterweatherman v0.0.0-20141219030609-3d60171a6431 // indirect
-	github.com/spf13/pflag v0.0.0-20161005214240-4bd69631f475
+	github.com/spf13/pflag v1.0.1
 	github.com/spf13/viper v0.0.0-20150621231900-db7ff930a189
 	github.com/stellar/go-xdr v0.0.0-20211103144802-8017fc4bdfee
 	github.com/stellar/throttled v2.2.3-0.20190823235211-89d75816f59d+incompatible
