@@ -4,10 +4,14 @@ import (
 	"context"
 
 	sq "github.com/Masterminds/squirrel"
-
+    jet "github.com/go-jet/jet/v2/postgres"
+	"github.com/go-jet/jet/v2/qrm"
 	"github.com/stellar/go/services/horizon/internal/db2"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/xdr"
+
+	"github.com/stellar/go/services/horizon/internal/db2/schema/generated/db/horizon/public/table"
+	"github.com/stellar/go/support/log"
 )
 
 // IsAuthRequired returns true if the account has the "AUTH_REQUIRED" option
@@ -241,27 +245,42 @@ func (q *Q) AccountsForSponsor(ctx context.Context, sponsor string, page db2.Pag
 	return results, nil
 }
 
+func currentDBConn(q *Q, tableName string) qrm.DB{
+	 if q.GetTx() != nil  {
+		return q.GetTx();
+	} else {
+		return q.GetTable(tableName).Session.DB
+	}
+}
+
 // AccountEntriesForSigner returns a list of `AccountEntry` rows for a given signer
 func (q *Q) AccountEntriesForSigner(ctx context.Context, signer string, page db2.PageQuery) ([]AccountEntry, error) {
-	sql := sq.
-		Select("accounts.*").
-		From("accounts").
-		Join("accounts_signers ON accounts.account_id = accounts_signers.account_id").
-		Where(map[string]interface{}{
-			"accounts_signers.signer": signer,
-		})
+	var results []AccountEntry
+	
+	byId := table.AccountsSigners.Signer.EQ(jet.String(signer))
+	sql := jet.SELECT(table.Accounts.AS("AccountEntry").AllColumns).
+		FROM(table.Accounts.AS("AccountEntry").
+			INNER_JOIN(table.AccountsSigners, 
+				table.Accounts.AS("AccountEntry").AccountID.EQ(table.AccountsSigners.AccountID))).
+			WHERE(byId)
 
-	sql, err := page.ApplyToUsingCursor(sql, "accounts_signers.account_id", page.Cursor)
+	sql, err := page.ApplyToJetUsingCursor(sql, 
+		table.AccountsSigners.AccountID,
+		table.AccountsSigners.AccountID.GT(jet.String(page.Cursor)),
+		table.AccountsSigners.AccountID.LT(jet.String(page.Cursor)),
+		byId,
+	)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "could not apply query to page")
 	}
 
-	var results []AccountEntry
-	if err := q.Select(ctx, &results, sql); err != nil {
-		return nil, errors.Wrap(err, "could not run select query")
-	}
+    query, args := sql.Sql() 
+	log.Debugf("sql was :%v values: %v)", query, args)
 
-	return results, nil
+    err = sql.Query(currentDBConn(q,table.Accounts.TableName()), &results)
+	
+	return results, err
 }
 
 var selectAccounts = sq.Select(`

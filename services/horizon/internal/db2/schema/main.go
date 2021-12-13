@@ -13,6 +13,7 @@ import (
 )
 
 //go:generate go-bindata -nometadata -pkg schema -o bindata.go migrations/
+//go:generate jet -dsn=postgres://postgres@localhost/horizon?sslmode=disable -path=./generated/db
 
 // MigrateDir represents a direction in which to perform schema migrations.
 type MigrateDir string

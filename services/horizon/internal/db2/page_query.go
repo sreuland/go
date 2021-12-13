@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	jet "github.com/go-jet/jet/v2/postgres"
 
 	"github.com/stellar/go/support/errors"
 )
@@ -68,6 +69,37 @@ func (p PageQuery) ApplyRawTo(
 	col string,
 ) (sq.SelectBuilder, error) {
 	return p.ApplyToUsingCursor(sql, col, p.Cursor)
+}
+
+    
+func applyCursor(cursor string, cursorClause jet.BoolExpression, whereClause jet.BoolExpression, sql jet.SelectStatement) jet.SelectStatement {
+    if cursor != "" {
+	   return sql.WHERE(whereClause.AND(cursorClause));
+	}
+    return sql
+}
+
+func (p PageQuery) ApplyToJetUsingCursor(
+	sql jet.SelectStatement,
+	col jet.Column,
+	gt jet.BoolExpression,
+	lt jet.BoolExpression,
+	where jet.BoolExpression,
+) (jet.SelectStatement, error) {
+	sql = sql.LIMIT(int64(p.Limit))
+
+	switch p.Order {
+	case "asc":
+		sql = sql.ORDER_BY(col.ASC())
+        sql = applyCursor(p.Cursor, gt, where, sql)
+	case "desc":
+		sql = sql.ORDER_BY(col.DESC())
+		sql = applyCursor(p.Cursor, lt, where, sql)
+	default:
+		return sql, errors.Errorf("invalid order: %s", p.Order)
+	}
+
+	return sql, nil
 }
 
 // ApplyToUsingCursor returns a new SelectBuilder after applying the paging effects of
