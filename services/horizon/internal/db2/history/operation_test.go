@@ -8,8 +8,8 @@ import (
 	"github.com/stellar/go/services/horizon/internal/db2"
 	"github.com/stellar/go/services/horizon/internal/test"
 	"github.com/stellar/go/services/horizon/internal/toid"
-	"github.com/stellar/go/xdr"
 	"github.com/stellar/go/support/log"
+	"github.com/stellar/go/xdr"
 )
 
 func TestOperationQueries(t *testing.T) {
@@ -169,7 +169,7 @@ func TestFeeStats(t *testing.T) {
 
 	err := q.FeeStats(tt.Ctx, 7, feeStats)
 	tt.Assert.NoError(err)
-	tt.Assert.Equal(feeStats.FeeChargedMax, null.NewInt(100,true))
+	tt.Assert.Equal(feeStats.FeeChargedMax, null.NewInt(100, true))
 }
 
 func TestOperationQueryBuilder(t *testing.T) {

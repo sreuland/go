@@ -71,12 +71,11 @@ func (p PageQuery) ApplyRawTo(
 	return p.ApplyToUsingCursor(sql, col, p.Cursor)
 }
 
-    
 func applyCursor(cursor string, cursorClause jet.BoolExpression, whereClause jet.BoolExpression, sql jet.SelectStatement) jet.SelectStatement {
-    if cursor != "" {
-	   return sql.WHERE(whereClause.AND(cursorClause));
+	if cursor != "" {
+		return sql.WHERE(whereClause.AND(cursorClause))
 	}
-    return sql
+	return sql
 }
 
 func (p PageQuery) ApplyToJetUsingCursor(
@@ -91,7 +90,7 @@ func (p PageQuery) ApplyToJetUsingCursor(
 	switch p.Order {
 	case "asc":
 		sql = sql.ORDER_BY(col.ASC())
-        sql = applyCursor(p.Cursor, gt, where, sql)
+		sql = applyCursor(p.Cursor, gt, where, sql)
 	case "desc":
 		sql = sql.ORDER_BY(col.DESC())
 		sql = applyCursor(p.Cursor, lt, where, sql)
