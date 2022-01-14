@@ -323,9 +323,9 @@ func (m *mockDBQ) GetExpStateInvalid(ctx context.Context) (bool, error) {
 	return args.Get(0).(bool), args.Error(1)
 }
 
-func (m *mockDBQ) GetAllOffers(ctx context.Context) ([]history.Offer, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]history.Offer), args.Error(1)
+func (m *mockDBQ) StreamAllOffers(ctx context.Context, callback func(history.Offer) error) error {
+	a := m.Called(ctx, callback)
+	return a.Error(0)
 }
 
 func (m *mockDBQ) GetLatestHistoryLedger(ctx context.Context) (uint32, error) {
@@ -435,29 +435,25 @@ func (m *mockProcessorsRunner) RunHistoryArchiveIngestion(
 }
 
 func (m *mockProcessorsRunner) RunAllProcessorsOnLedger(ledger xdr.LedgerCloseMeta) (
-	ingest.StatsChangeProcessorResults,
-	processorsRunDurations,
-	processors.StatsLedgerTransactionProcessorResults,
-	processorsRunDurations,
+	ledgerStats,
 	error,
 ) {
 	args := m.Called(ledger)
-	return args.Get(0).(ingest.StatsChangeProcessorResults),
-		args.Get(1).(processorsRunDurations),
-		args.Get(2).(processors.StatsLedgerTransactionProcessorResults),
-		args.Get(3).(processorsRunDurations),
-		args.Error(4)
+	return args.Get(0).(ledgerStats),
+		args.Error(1)
 }
 
 func (m *mockProcessorsRunner) RunTransactionProcessorsOnLedger(ledger xdr.LedgerCloseMeta) (
 	processors.StatsLedgerTransactionProcessorResults,
 	processorsRunDurations,
+	processors.TradeStats,
 	error,
 ) {
 	args := m.Called(ledger)
 	return args.Get(0).(processors.StatsLedgerTransactionProcessorResults),
 		args.Get(1).(processorsRunDurations),
-		args.Error(2)
+		args.Get(2).(processors.TradeStats),
+		args.Error(3)
 }
 
 var _ ProcessorRunnerInterface = (*mockProcessorsRunner)(nil)

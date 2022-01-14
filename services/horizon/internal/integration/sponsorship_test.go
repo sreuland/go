@@ -20,7 +20,7 @@ import (
 
 func TestSponsorships(t *testing.T) {
 	tt := assert.New(t)
-	itest := integration.NewTest(t, protocol15Config)
+	itest := integration.NewTest(t, integration.Config{})
 	client := itest.Client()
 
 	/* Query helpers that can/should? probably be added to IntegrationTest. */
@@ -516,7 +516,7 @@ func TestSponsorships(t *testing.T) {
 				Selling:       txnbuild.NativeAsset{},
 				Buying:        asset,
 				Amount:        "3",
-				Price:         "1",
+				Price:         xdr.Price{1, 1},
 			})
 
 		signers := []*keypair.Full{sponsorPair, newAccountPair}

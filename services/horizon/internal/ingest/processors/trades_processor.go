@@ -18,12 +18,26 @@ type TradeProcessor struct {
 	tradesQ history.QTrades
 	ledger  xdr.LedgerHeaderHistoryEntry
 	trades  []ingestTrade
+	stats   TradeStats
 }
 
 func NewTradeProcessor(tradesQ history.QTrades, ledger xdr.LedgerHeaderHistoryEntry) *TradeProcessor {
 	return &TradeProcessor{
 		tradesQ: tradesQ,
 		ledger:  ledger,
+	}
+}
+
+type TradeStats struct {
+	count int64
+}
+
+func (p *TradeProcessor) GetStats() TradeStats {
+	return p.stats
+}
+func (stats *TradeStats) Map() map[string]interface{} {
+	return map[string]interface{}{
+		"stats_count": stats.count,
 	}
 }
 
@@ -39,6 +53,7 @@ func (p *TradeProcessor) ProcessTransaction(ctx context.Context, transaction ing
 	}
 
 	p.trades = append(p.trades, trades...)
+	p.stats.count += int64(len(trades))
 	return nil
 }
 
@@ -284,9 +299,11 @@ func (p *TradeProcessor) extractTrades(
 					return nil, err
 				}
 				row.LiquidityPoolFee = null.IntFrom(int64(fee))
+				row.Type = history.LiquidityPoolTradeType
 			} else {
 				row.BaseOfferID = null.IntFrom(int64(trade.OfferId()))
 				sellerAccount = trade.SellerId().Address()
+				row.Type = history.OrderbookTradeType
 			}
 
 			if buyOfferExists {
