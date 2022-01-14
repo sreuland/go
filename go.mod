@@ -26,6 +26,7 @@ require (
 	github.com/gorilla/schema v1.1.0
 	github.com/graph-gophers/graphql-go v0.0.0-20190225005345-3e8838d4614c
 	github.com/guregu/null v2.1.3-0.20151024101046-79c5bd36b615+incompatible
+	github.com/holiman/uint256 v1.2.0
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
 	github.com/imkira/go-interpol v1.1.0 // indirect
 	github.com/jarcoal/httpmock v0.0.0-20161210151336-4442edb3db31
@@ -72,7 +73,7 @@ require (
 	github.com/yudai/golcs v0.0.0-20150405163532-d1c525dea8ce // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
+	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	google.golang.org/api v0.50.0
 	gopkg.in/gavv/httpexpect.v1 v1.0.0-20170111145843-40724cf1e4a0
