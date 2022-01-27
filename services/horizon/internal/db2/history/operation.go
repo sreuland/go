@@ -1,11 +1,13 @@
 package history
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
-	"text/template"
+
+	jet "github.com/go-jet/jet/v2/postgres"
+	"github.com/stellar/go/services/horizon/internal/db2/schema/generated/db/horizon/public/table"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/stellar/go/services/horizon/internal/db2"
@@ -58,38 +60,61 @@ func preprocessDetails(details string) ([]byte, error) {
 	return json.Marshal(dest)
 }
 
-var feeStatsQueryTemplate = template.Must(template.New("trade_aggregations_query").Parse(`
-{{define "operation_count"}}(CASE WHEN new_max_fee IS NULL THEN operation_count ELSE operation_count + 1 END){{end}}
-SELECT
-	{{range .}}
-	ceil(percentile_disc(0.{{ . }}) WITHIN GROUP (ORDER BY fee_charged/{{template "operation_count"}}))::bigint AS "fee_charged_p{{ . }}",
-	{{end}}
-	ceil(max(fee_charged/{{template "operation_count"}}))::bigint AS "fee_charged_max",
-	ceil(min(fee_charged/{{template "operation_count"}}))::bigint AS "fee_charged_min",
-	ceil(mode() within group (order by fee_charged/{{template "operation_count"}}))::bigint AS "fee_charged_mode",
+func generateFeePercentileProjections(percentiles []int, operationCount jet.IntegerExpression) []jet.Projection {
+	var projections []jet.Projection
+	for _, percentile := range percentiles {
+		//ceil(percentile_disc(0.{{ . }}) WITHIN GROUP (ORDER BY fee_charged/{{template "operation_count"}}))::bigint AS "fee_charged_p{{ . }}",
+		projection := jet.CAST(
+			jet.CEIL(
+				jet.CAST(
+					jet.PERCENTILE_DISC(jet.Float(float64(percentile) / 100)).WITHIN_GROUP(
+						jet.ORDER_BY(table.HistoryTransactions.FeeCharged.DIV(operationCount)))).
+					AS_DOUBLE())).
+			AS_BIGINT().AS(fmt.Sprintf("FeeStats.fee_charged_p%d", percentile))
+		projections = append(projections, (projection))
 
-	{{range .}}
-	ceil(percentile_disc(0.{{ . }}) WITHIN GROUP (ORDER BY COALESCE(new_max_fee, max_fee)/{{template "operation_count"}}))::bigint AS "max_fee_p{{ . }}",
-	{{end}}
-	ceil(max(COALESCE(new_max_fee, max_fee)/{{template "operation_count"}}))::bigint AS "max_fee_max",
-	ceil(min(COALESCE(new_max_fee, max_fee)/{{template "operation_count"}}))::bigint AS "max_fee_min",
-	ceil(mode() within group (order by COALESCE(new_max_fee, max_fee)/{{template "operation_count"}}))::bigint AS "max_fee_mode"
-FROM history_transactions
-WHERE ledger_sequence > $1 AND ledger_sequence <= $2`))
+		//ceil(percentile_disc(0.{{ . }}) WITHIN GROUP (ORDER BY COALESCE(new_max_fee, max_fee)/{{template "operation_count"}}))::bigint AS "max_fee_p{{ . }}",
+		projection = jet.CAST(
+			jet.CEIL(
+				jet.CAST(
+					jet.PERCENTILE_DISC(jet.Float(float64(percentile) / 100)).WITHIN_GROUP(
+						jet.ORDER_BY(jet.IntExp(
+							jet.COALESCE(table.HistoryTransactions.NewMaxFee, table.HistoryTransactions.MaxFee)).
+							DIV(operationCount)))).
+					AS_DOUBLE())).
+			AS_BIGINT().AS(fmt.Sprintf("FeeStats.max_fee_p%d", percentile))
+		projections = append(projections, (projection))
+	}
+	return projections
+}
+
+func generateFeeStatsQuery(percentiles []int, fromSeq int32, toSeq int32) jet.SelectStatement {
+
+	//{{define "operation_count"}}(CASE WHEN new_max_fee IS NULL THEN operation_count ELSE operation_count + 1 END){{end}}
+	operationCount := jet.IntExp(jet.CASE().WHEN(table.HistoryTransactions.NewMaxFee.IS_NULL()).THEN(table.HistoryTransactions.OperationCount).
+		ELSE(table.HistoryTransactions.OperationCount.ADD(jet.Int(1))))
+
+	projections := append(generateFeePercentileProjections(percentiles, operationCount),
+		jet.CAST(jet.CEIL(jet.FloatExp(jet.MAX(table.HistoryTransactions.FeeCharged.DIV(operationCount))))).AS_BIGINT().AS("FeeStats.fee_charged_max"),
+		jet.CAST(jet.CEIL(jet.FloatExp(jet.MIN(table.HistoryTransactions.FeeCharged.DIV(operationCount))))).AS_BIGINT().AS("FeeStats.fee_charged_min"),
+		jet.CAST(jet.CEIL(jet.CAST(jet.MODE().WITHIN_GROUP(jet.ORDER_BY(table.HistoryTransactions.FeeCharged.DIV(operationCount)))).AS_DOUBLE())).AS_BIGINT().AS("FeeStats.fee_charged_mode"),
+		jet.CAST(jet.MAX(jet.IntExp(jet.COALESCE(table.HistoryTransactions.NewMaxFee, table.HistoryTransactions.MaxFee)).DIV(operationCount))).AS_BIGINT().AS("FeeStats.max_fee_max"),
+		jet.CAST(jet.MIN(jet.IntExp(jet.COALESCE(table.HistoryTransactions.NewMaxFee, table.HistoryTransactions.MaxFee)).DIV(operationCount))).AS_BIGINT().AS("FeeStats.max_fee_min"),
+		jet.CAST(jet.CEIL(jet.CAST(jet.MODE().WITHIN_GROUP(jet.ORDER_BY(jet.IntExp(jet.COALESCE(table.HistoryTransactions.NewMaxFee, table.HistoryTransactions.MaxFee)).DIV(operationCount)))).AS_DOUBLE())).AS_BIGINT().AS("FeeStats.max_fee_mode"))
+
+	sql := jet.SELECT(projections[0], projections[1:]...).FROM(table.HistoryTransactions).WHERE(
+		table.HistoryTransactions.LedgerSequence.GT(jet.Int32(fromSeq)).AND(table.HistoryTransactions.LedgerSequence.LT_EQ(jet.Int32(toSeq))))
+
+	return sql
+}
 
 // FeeStats returns operation fee stats for the last 5 ledgers.
 // Currently, we hard code the query to return the last 5 ledgers worth of transactions.
 // TODO: make the number of ledgers configurable.
 func (q *Q) FeeStats(ctx context.Context, currentSeq int32, dest *FeeStats) error {
 	percentiles := []int{10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99}
-
-	var buf bytes.Buffer
-	err := feeStatsQueryTemplate.Execute(&buf, percentiles)
-	if err != nil {
-		return errors.Wrap(err, "error executing the query template")
-	}
-
-	return q.GetRaw(ctx, dest, buf.String(), currentSeq-5, currentSeq)
+	sql := generateFeeStatsQuery(percentiles, currentSeq-5, currentSeq)
+	return sql.QueryContext(ctx, currentDBConn(q, table.HistoryTransactions.TableName()), dest)
 }
 
 // Operations provides a helper to filter the operations table with pre-defined

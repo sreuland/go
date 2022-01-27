@@ -4,6 +4,7 @@
 /local-archive
 /.vscode/*.sql
 /.vscode/settings.json
+/.vscode/tasks.json.old
 .idea
 debug
 .bundle
@@ -13,3 +14,5 @@ debug
 *.key
 *.prof
 *.test
+/captive-core-*/
+/services/horizon/internal/db2/schema/generated

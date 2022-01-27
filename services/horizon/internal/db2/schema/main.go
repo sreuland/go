@@ -12,6 +12,7 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
+//go:generate jet -dsn=postgres://postgres@localhost/horizon?sslmode=disable -path=./generated/db
 //go:generate go run github.com/kevinburke/go-bindata/go-bindata@v3.18.0+incompatible -nometadata -pkg schema -o bindata.go migrations/
 
 // MigrateDir represents a direction in which to perform schema migrations.
