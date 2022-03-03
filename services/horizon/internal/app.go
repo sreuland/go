@@ -211,6 +211,10 @@ func (a *App) Config() Config {
 func (a *App) UpdateCoreLedgerState(ctx context.Context) {
 	var next ledger.CoreStatus
 
+	if ctx.Err() != nil {
+		return
+	}
+
 	logErr := func(err error, msg string) {
 		log.WithStack(err).WithField("err", err.Error()).Error(msg)
 	}
@@ -389,7 +393,7 @@ func (a *App) UpdateFeeStatsState(ctx context.Context) {
 // Warning: This method should only return an error if it is fatal. See usage
 // in `App.Tick`
 func (a *App) UpdateStellarCoreInfo(ctx context.Context) error {
-	if a.config.StellarCoreURL == "" {
+	if a.config.StellarCoreURL == "" || ctx.Err() != nil {
 		return nil
 	}
 

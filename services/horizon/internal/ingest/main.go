@@ -372,7 +372,7 @@ func (s *system) initMetrics() {
 			Help: "1 if sync, 0 if not synced, -1 if unable to connect or HTTP server disabled.",
 		},
 		func() float64 {
-			if !s.config.EnableCaptiveCore || (s.config.CaptiveCoreToml.HTTPPort == 0) {
+			if !s.config.EnableCaptiveCore || s.config.CaptiveCoreToml.HTTPPort == 0 || s.ctx.Err() != nil {
 				return -1
 			}
 
@@ -403,7 +403,7 @@ func (s *system) initMetrics() {
 			Help: "determines the supported version of the protocol by Captive-Core",
 		},
 		func() float64 {
-			if !s.config.EnableCaptiveCore || (s.config.CaptiveCoreToml.HTTPPort == 0) {
+			if !s.config.EnableCaptiveCore || s.config.CaptiveCoreToml.HTTPPort == 0 || s.ctx.Err() != nil {
 				return -1
 			}
 

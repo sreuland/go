@@ -68,6 +68,18 @@ func TestTick(t *testing.T) {
 	ht.Assert.EqualError(err, context.Canceled.Error())
 }
 
+func TestNoUpdateCoreStateWhenCtxCancelled(t *testing.T) {
+	ht := StartHTTPTest(t, "base")
+	defer ht.Finish()
+
+	// Just sanity-check that we return the context error...
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	state := ht.App.ledgerState.CurrentStatus().CoreStatus
+	ht.App.UpdateCoreLedgerState(ctx)
+	ht.Assert.EqualValues(state, ht.App.ledgerState.CurrentStatus().CoreStatus)
+}
+
 func getMetricValue(metric prometheus.Metric) *dto.Metric {
 	value := &dto.Metric{}
 	err := metric.Write(value)
