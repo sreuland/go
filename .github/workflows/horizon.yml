@@ -149,3 +149,42 @@ jobs:
       - if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/lighthorizon'
         name: Push to DockerHub
         run: docker push stellar/horizon-ledgerexporter:latest
+
+  indexer:
+    name: Test (and push) indexer image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # For pull requests, build and test the PR head not a merge of the PR with the destination.
+          ref:  ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: Build and test the Indexer Docker image
+        run: |
+          docker build --build-arg GIT_COMMIT=$(git rev-parse HEAD) -f services/horizon/docker/indexer/Dockerfile -t stellar/horizon-indexer services/horizon/docker/indexer/
+          # Any range should do for basic testing, this range was chosen pretty early in history so that it only takes a few mins to run
+          # Download the public files via curl instead of using s3 to avoid managing AWS credentials 
+          mkdir -p ledgermeta/ledgers
+          for I in $(seq -f "%.0f" 10000064 10000127); do echo $I; curl --fail -s https://horizon-ledgermeta-prodnet-test.s3.amazonaws.com/ledgers/$I -o ledgermeta/ledgers/$I ; done
+          
+          # run map job
+          docker run -e NETWORK_PASSPHRASE='pubnet' -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e BATCH_SIZE=64 -e FIRST_CHECKPOINT=10000064 \
+                     -e WORKER_COUNT=1 -v $PWD/ledgermeta/:/ledgermeta -e TXMETA_SOURCE=file:///ledgermeta -v $PWD/index:/index -e INDEX_TARGET=file:///index stellar/horizon-indexer map
+
+          # run reduce job
+          docker run -e NETWORK_PASSPHRASE='pubnet' -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e MAP_JOB_COUNT=1 -e REDUCE_JOB_COUNT=1 \
+                     -e WORKER_COUNT=1 -v $PWD/index:/index -e INDEX_SOURCE_ROOT=file:///index -e INDEX_TARGET=file:///index stellar/horizon-indexer reduce
+          
+      
+
+      # Push image
+      - if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/lighthorizon'
+        name: Login to DockerHub
+        uses: docker/login-action@bb984efc561711aaa26e433c32c3521176eae55b
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/lighthorizon'
+        name: Push to DockerHub
+        run: docker push stellar/horizon-indexer:latest

@@ -8,8 +8,6 @@ import (
 	"github.com/stellar/go/xdr"
 )
 
-const CheckpointIndexVersion = 1
-
 type CheckpointIndex struct {
 	mutex           sync.RWMutex
 	bitmap          []byte
