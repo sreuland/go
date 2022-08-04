@@ -168,11 +168,11 @@ jobs:
           for I in $(seq -f "%.0f" 10000064 10000127); do echo $I; curl --fail -s https://horizon-ledgermeta-prodnet-test.s3.amazonaws.com/ledgers/$I -o ledgermeta/ledgers/$I ; done
           
           # run map job
-          docker run -e NETWORK_PASSPHRASE='pubnet' -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e BATCH_SIZE=64 -e FIRST_CHECKPOINT=10000064 \
+          docker run -e NETWORK_PASSPHRASE='pubnet' -e JOB_INDEX_ENV=AWS_BATCH_JOB_ARRAY_INDEX -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e BATCH_SIZE=64 -e FIRST_CHECKPOINT=10000064 \
                      -e WORKER_COUNT=1 -v $PWD/ledgermeta/:/ledgermeta -e TXMETA_SOURCE=file:///ledgermeta -v $PWD/index:/index -e INDEX_TARGET=file:///index stellar/horizon-indexer map
 
           # run reduce job
-          docker run -e NETWORK_PASSPHRASE='pubnet' -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e MAP_JOB_COUNT=1 -e REDUCE_JOB_COUNT=1 \
+          docker run -e NETWORK_PASSPHRASE='pubnet' -e JOB_INDEX_ENV=AWS_BATCH_JOB_ARRAY_INDEX -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e MAP_JOB_COUNT=1 -e REDUCE_JOB_COUNT=1 \
                      -e WORKER_COUNT=1 -v $PWD/index:/index -e INDEX_SOURCE_ROOT=file:///index -e INDEX_TARGET=file:///index stellar/horizon-indexer reduce
           
       
