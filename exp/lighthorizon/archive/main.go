@@ -3,6 +3,7 @@ package archive
 import (
 	"context"
 
+	"github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/xdr"
 )
 
@@ -13,6 +14,7 @@ import (
 // have to download many ledgers until it's able to fill the list completely.
 // This can be solved by keeping an index/list of empty ledgers.
 // TODO: make this configurable.
+//
 //lint:ignore U1000 Ignore unused temporarily
 const checkpointsToLookup = 1
 
@@ -48,10 +50,10 @@ type Archive interface {
 
 	// GetTransactionParticipants - takes a LedgerTransaction and returns a set of all
 	// participants(accounts) in the transaction. If there is any error, it will return nil and the error.
-	GetTransactionParticipants(transaction LedgerTransaction) (map[string]struct{}, error)
+	GetTransactionParticipants(tx LedgerTransaction) (set.Set[string], error)
 
 	// GetOperationParticipants - takes a LedgerTransaction, the Operation within the transaction, and
 	// the 0 based index of the operation within the transaction. It will return a set of all participants(accounts)
 	// in the operation. If there is any error, it will return nil and the error.
-	GetOperationParticipants(transaction LedgerTransaction, operation xdr.Operation, opIndex int) (map[string]struct{}, error)
+	GetOperationParticipants(tx LedgerTransaction, op xdr.Operation, opIndex int) (set.Set[string], error)
 }

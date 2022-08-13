@@ -3,7 +3,6 @@ package actions
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -55,6 +54,7 @@ type pagination struct {
 }
 
 func sendPageResponse(w http.ResponseWriter, page hal.Page) {
+	w.Header().Set("Content-Type", "application/hal+json; charset=utf-8")
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 	err := encoder.Encode(page)
@@ -65,10 +65,26 @@ func sendPageResponse(w http.ResponseWriter, page hal.Page) {
 }
 
 func sendErrorResponse(w http.ResponseWriter, errorCode int, errorMsg string) {
-	if errorMsg != "" {
-		http.Error(w, fmt.Sprintf("Error: %s", errorMsg), errorCode)
-	} else {
-		http.Error(w, string(serverError), errorCode)
+	if errorMsg == "" {
+		errorMsg = string(serverError)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	// TODO: Use Horizon's existing Problem
+	errBlob := struct {
+		Message string `json:"error"`
+		Status  int    `json:"status"`
+	}{
+		Message: errorMsg,
+		Status:  errorCode,
+	}
+
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(errBlob); err != nil {
+		log.Error(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
