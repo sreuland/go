@@ -4,4 +4,4 @@ This docker image contains the ledger/checkpoint indexing executables. It allows
 
 ## Env variables
 
-See the [package documentation](../../../../exp/lighthorizon/index/cmd/batch/doc.go) for more details
+See the [package documentation](../../index/cmd/batch/doc.go) for more details
