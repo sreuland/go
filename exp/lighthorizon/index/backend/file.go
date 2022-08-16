@@ -25,6 +25,12 @@ func NewFileBackend(dir string, parallel uint32) (*FileBackend, error) {
 		parallel = 1
 	}
 
+	err := os.MkdirAll(dir, fs.ModeDir|0755)
+	if err != nil {
+		log.Errorf("Unable to mkdir %s, %v", dir, err)
+		return nil, err
+	}
+
 	return &FileBackend{
 		dir:      dir,
 		parallel: parallel,
