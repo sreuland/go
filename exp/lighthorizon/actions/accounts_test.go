@@ -16,7 +16,12 @@ import (
 	"github.com/stellar/go/support/render/problem"
 )
 
+func setupTest() {
+	problem.RegisterHost("")
+}
+
 func TestTxByAccountMissingParamError(t *testing.T) {
+	setupTest()
 	recorder := httptest.NewRecorder()
 	request := makeRequest(
 		t,
@@ -45,11 +50,14 @@ func TestTxByAccountMissingParamError(t *testing.T) {
 	err = json.Unmarshal(raw, &problem)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bad Request", problem.Title)
-	assert.Equal(t, "invalid request parameters", problem.Extras["invalid_field"])
+	assert.Equal(t, "bad_request", problem.Type)
+	assert.Equal(t, "account_id", problem.Extras["invalid_field"])
+	assert.Equal(t, "The request you sent was invalid in some way.", problem.Detail)
 	assert.Equal(t, "unable to find account_id in url path", problem.Extras["reason"])
 }
 
 func TestTxByAccountServerError(t *testing.T) {
+	setupTest()
 	recorder := httptest.NewRecorder()
 	pathParams := make(map[string]string)
 	pathParams["account_id"] = "G1234"
@@ -81,9 +89,11 @@ func TestTxByAccountServerError(t *testing.T) {
 	err = json.Unmarshal(raw, &problem)
 	assert.NoError(t, err)
 	assert.Equal(t, "Internal Server Error", problem.Title)
+	assert.Equal(t, "server_error", problem.Type)
 }
 
 func TestOpsByAccountMissingParamError(t *testing.T) {
+	setupTest()
 	recorder := httptest.NewRecorder()
 	request := makeRequest(
 		t,
@@ -112,11 +122,14 @@ func TestOpsByAccountMissingParamError(t *testing.T) {
 	err = json.Unmarshal(raw, &problem)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bad Request", problem.Title)
-	assert.Equal(t, "invalid request parameters", problem.Extras["invalid_field"])
+	assert.Equal(t, "bad_request", problem.Type)
+	assert.Equal(t, "account_id", problem.Extras["invalid_field"])
+	assert.Equal(t, "The request you sent was invalid in some way.", problem.Detail)
 	assert.Equal(t, "unable to find account_id in url path", problem.Extras["reason"])
 }
 
 func TestOpsByAccountServerError(t *testing.T) {
+	setupTest()
 	recorder := httptest.NewRecorder()
 	pathParams := make(map[string]string)
 	pathParams["account_id"] = "G1234"
@@ -148,4 +161,5 @@ func TestOpsByAccountServerError(t *testing.T) {
 	err = json.Unmarshal(raw, &problem)
 	assert.NoError(t, err)
 	assert.Equal(t, "Internal Server Error", problem.Title)
+	assert.Equal(t, "server_error", problem.Type)
 }

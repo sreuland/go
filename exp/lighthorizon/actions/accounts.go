@@ -52,7 +52,7 @@ func NewTXByAccountHandler(lightHorizon services.LightHorizon) func(http.Respons
 		var err error
 
 		if accountId, paginate, err = accountRequestParams(w, r); err != nil {
-			errorMsg := supportProblem.MakeInvalidFieldProblem("invalid request parameters", err)
+			errorMsg := supportProblem.MakeInvalidFieldProblem("account_id", err)
 			sendErrorResponse(r.Context(), w, *errorMsg)
 			return
 		}
@@ -97,7 +97,7 @@ func NewOpsByAccountHandler(lightHorizon services.LightHorizon) func(http.Respon
 		var err error
 
 		if accountId, paginate, err = accountRequestParams(w, r); err != nil {
-			errorMsg := supportProblem.MakeInvalidFieldProblem("invalid request parameters", err)
+			errorMsg := supportProblem.MakeInvalidFieldProblem("account_id", err)
 			sendErrorResponse(r.Context(), w, *errorMsg)
 			return
 		}
