@@ -7,6 +7,7 @@ import (
 )
 
 // Well-known and reused problems below:
+// inspired by similar default established in horizon - services/horizon/internal/render/problem/problem.go
 var (
 
 	// ClientDisconnected, represented by a non-standard HTTP status code of 499, which was introduced by

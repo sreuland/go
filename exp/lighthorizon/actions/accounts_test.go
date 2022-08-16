@@ -1,15 +1,19 @@
 package actions
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stellar/go/exp/lighthorizon/common"
 	"github.com/stellar/go/exp/lighthorizon/services"
@@ -23,7 +27,7 @@ func setupTest() {
 func TestTxByAccountMissingParamError(t *testing.T) {
 	setupTest()
 	recorder := httptest.NewRecorder()
-	request := makeRequest(
+	request := buildHttpRequest(
 		t,
 		map[string]string{},
 		map[string]string{},
@@ -61,7 +65,7 @@ func TestTxByAccountServerError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	pathParams := make(map[string]string)
 	pathParams["account_id"] = "G1234"
-	request := makeRequest(
+	request := buildHttpRequest(
 		t,
 		map[string]string{},
 		pathParams,
@@ -95,7 +99,7 @@ func TestTxByAccountServerError(t *testing.T) {
 func TestOpsByAccountMissingParamError(t *testing.T) {
 	setupTest()
 	recorder := httptest.NewRecorder()
-	request := makeRequest(
+	request := buildHttpRequest(
 		t,
 		map[string]string{},
 		map[string]string{},
@@ -133,7 +137,7 @@ func TestOpsByAccountServerError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	pathParams := make(map[string]string)
 	pathParams["account_id"] = "G1234"
-	request := makeRequest(
+	request := buildHttpRequest(
 		t,
 		map[string]string{},
 		pathParams,
@@ -162,4 +166,26 @@ func TestOpsByAccountServerError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Internal Server Error", problem.Title)
 	assert.Equal(t, "server_error", problem.Type)
+}
+
+func buildHttpRequest(
+	t *testing.T,
+	queryParams map[string]string,
+	routeParams map[string]string,
+) *http.Request {
+	request, err := http.NewRequest("GET", "/", nil)
+	require.NoError(t, err)
+
+	query := url.Values{}
+	for key, value := range queryParams {
+		query.Set(key, value)
+	}
+	request.URL.RawQuery = query.Encode()
+
+	chiRouteContext := chi.NewRouteContext()
+	for key, value := range routeParams {
+		chiRouteContext.URLParams.Add(key, value)
+	}
+	ctx := context.WithValue(context.Background(), chi.RouteCtxKey, chiRouteContext)
+	return request.WithContext(ctx)
 }

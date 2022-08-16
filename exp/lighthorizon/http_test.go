@@ -9,6 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stellar/go/exp/lighthorizon/services"
 	"github.com/stellar/go/support/render/problem"
@@ -17,9 +18,7 @@ import (
 func TestUnknownUrl(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/unknown", nil)
-	if err != nil {
-		t.Fatalf("unexpected error %v", err)
-	}
+	require.NoError(t, err)
 
 	mockOperationService := &services.MockOperationService{}
 	mockTransactionService := &services.MockTransactionService{}
