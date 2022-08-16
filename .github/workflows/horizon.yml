@@ -145,11 +145,11 @@ jobs:
           
           # run map job
           docker run -e NETWORK_PASSPHRASE='testnet' -e JOB_INDEX_ENV=AWS_BATCH_JOB_ARRAY_INDEX -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e BATCH_SIZE=64 -e FIRST_CHECKPOINT=64 \
-                     -e WORKER_COUNT=1 -v /ledgerexport-test/:/ledgermeta -e TXMETA_SOURCE=file:///ledgermeta -v $PWD/index:/index -e INDEX_TARGET=file:///index stellar/lighthorizon-index-batch map
+                     -e WORKER_COUNT=1 -e RUN_MODE=map -v /ledgerexport-test/:/ledgermeta -e TXMETA_SOURCE=file:///ledgermeta -v $PWD/index:/index -e INDEX_TARGET=file:///index stellar/lighthorizon-index-batch
 
           # run reduce job
           docker run -e NETWORK_PASSPHRASE='testnet' -e JOB_INDEX_ENV=AWS_BATCH_JOB_ARRAY_INDEX -e AWS_BATCH_JOB_ARRAY_INDEX=0 -e MAP_JOB_COUNT=1 -e REDUCE_JOB_COUNT=1 \
-                     -e WORKER_COUNT=1 -v $PWD/index:/index -e INDEX_SOURCE_ROOT=file:///index -e INDEX_TARGET=file:///index stellar/lighthorizon-index-batch reduce
+                     -e WORKER_COUNT=1 -e RUN_MODE=reduce -v $PWD/index:/index -e INDEX_SOURCE_ROOT=file:///index -e INDEX_TARGET=file:///index stellar/lighthorizon-index-batch
                      
       # Push images
       - if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/lighthorizon'
