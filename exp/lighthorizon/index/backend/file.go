@@ -20,7 +20,7 @@ type FileBackend struct {
 	parallel uint32
 }
 
-// NewFileBackend connects to indices stored at `dir`, creating the directory if one doesn't 
+// NewFileBackend connects to indices stored at `dir`, creating the directory if one doesn't
 // exist, and uses `parallel` to control how many workers to use when flushing to disk.
 func NewFileBackend(dir string, parallel uint32) (*FileBackend, error) {
 	if parallel <= 0 {
