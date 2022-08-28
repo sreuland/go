@@ -40,7 +40,7 @@ func ReduceConfigFromEnvironment() (*ReduceConfig, error) {
 		indexTargetEnv     = "INDEX_TARGET"
 	)
 
-	jobIndexEnv := os.Getenv(jobIndexEnvName)
+	jobIndexEnv := strings.TrimSpace(os.Getenv(jobIndexEnvName))
 	if jobIndexEnv == "" {
 		return nil, errors.New("env variable can't be empty " + jobIndexEnvName)
 	}
