@@ -263,5 +263,7 @@ func (b *S3Storage) s3HttpProxy() s3HttpProxy {
 	if b.s3Http != nil {
 		return b.s3Http
 	}
-	return &defaultS3HttpProxy{}
+	return &defaultS3HttpProxy{
+		S3Storage: b,
+	}
 }

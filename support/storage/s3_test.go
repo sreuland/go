@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -88,4 +89,26 @@ func TestGetFileNotFound(t *testing.T) {
 	_, err := s3Storage.GetFile("path")
 
 	assert.Equal(t, err, os.ErrNotExist)
+}
+
+func TestGetFileFound(t *testing.T) {
+	mockS3 := &MockS3{}
+	mockS3HttpProxy := &MockS3HttpProxy{}
+	testCloser := io.NopCloser(strings.NewReader(""))
+
+	mockS3HttpProxy.On("Send", mock.Anything).Return(testCloser, nil)
+
+	s3Storage := S3Storage{
+		ctx:              context.Background(),
+		svc:              mockS3,
+		bucket:           "bucket",
+		prefix:           "prefix",
+		unsignedRequests: false,
+		writeACLrule:     "",
+		s3Http:           mockS3HttpProxy,
+	}
+
+	closer, err := s3Storage.GetFile("path")
+	assert.Nil(t, err)
+	assert.Equal(t, closer, testCloser)
 }
