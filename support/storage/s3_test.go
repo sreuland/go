@@ -6,8 +6,12 @@ package storage
 
 import (
 	"context"
+	"errors"
+	"io"
+	"os"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +21,19 @@ import (
 type MockS3 struct {
 	mock.Mock
 	s3iface.S3API
+}
+
+type MockS3HttpProxy struct {
+	mock.Mock
+	s3HttpProxy
+}
+
+func (m *MockS3HttpProxy) Send(input *s3.GetObjectInput) (io.ReadCloser, error) {
+	args := m.Called(input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(io.ReadCloser), args.Error(1)
 }
 
 func TestWriteACLRuleOverride(t *testing.T) {
@@ -49,4 +66,26 @@ func TestWriteACLRuleDefault(t *testing.T) {
 
 	aclRule := s3Storage.GetACLWriteRule()
 	assert.Equal(t, aclRule, s3.ObjectCannedACLPublicRead)
+}
+
+func TestGetFileNotFound(t *testing.T) {
+	mockS3 := &MockS3{}
+	mockS3HttpProxy := &MockS3HttpProxy{}
+
+	mockS3HttpProxy.On("Send", mock.Anything).Return(nil,
+		awserr.New(s3.ErrCodeNoSuchKey, "message", errors.New("not found")))
+
+	s3Storage := S3Storage{
+		ctx:              context.Background(),
+		svc:              mockS3,
+		bucket:           "bucket",
+		prefix:           "prefix",
+		unsignedRequests: false,
+		writeACLrule:     "",
+		s3Http:           mockS3HttpProxy,
+	}
+
+	_, err := s3Storage.GetFile("path")
+
+	assert.Equal(t, err, os.ErrNotExist)
 }
