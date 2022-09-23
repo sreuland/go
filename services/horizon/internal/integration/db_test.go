@@ -162,6 +162,19 @@ func submitPaymentOps(itest *integration.Test, tt *assert.Assertions) (submitted
 	return ops, txResp.Ledger
 }
 
+func submitInvokeHostFunction(itest *integration.Test, tt *assert.Assertions) (submittedOperations []txnbuild.Operation, lastLedger int32) {
+	ops := []txnbuild.Operation{
+		&txnbuild.InvokeHostFunction{
+			Function:   xdr.HostFunctionHostFnCall,
+			Footprint:  xdr.LedgerFootprint{},
+			Parameters: xdr.ScVec{},
+		},
+	}
+	txResp := itest.MustSubmitOperations(itest.MasterAccount(), itest.Master(), ops...)
+
+	return ops, txResp.Ledger
+}
+
 func submitSponsorshipOps(itest *integration.Test, tt *assert.Assertions) (submittedOperations []txnbuild.Operation, lastLedger int32) {
 	keys, accounts := itest.CreateAccounts(1, "1000")
 	sponsor, sponsorPair := accounts[0], keys[0]
@@ -415,6 +428,8 @@ func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reached
 	submittedOps = append(submittedOps, ops...)
 	ops, reachedLedger = submitLiquidityPoolOps(itest, tt)
 	submittedOps = append(submittedOps, ops...)
+	ops, _ = submitInvokeHostFunction(itest, tt)
+	submittedOps = append(submittedOps, ops...)
 
 	// Make sure all possible operations are covered by reingestion
 	allOpTypes := set.Set[xdr.OperationType]{}
@@ -423,8 +438,6 @@ func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reached
 	}
 	// Inflation is not supported
 	delete(allOpTypes, xdr.OperationTypeInflation)
-	// TODO:
-	delete(allOpTypes, xdr.OperationTypeInvokeHostFunction)
 
 	for _, op := range submittedOps {
 		opXDR, err := op.BuildXDR()
@@ -441,6 +454,14 @@ func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reached
 }
 
 func TestReingestDB(t *testing.T) {
+
+	os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
+	os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE", "true")
+	os.Setenv("HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL", "19")
+	os.Setenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN", "/usr/local/bin/stellar-core")
+	os.Setenv("HORIZON_INTEGRATION_TESTS_DOCKER_IMG", "stellar/stellar-core:19.0.0-891.rc1.9d0704eb4.focal")
+	integration.RunWithCaptiveCore = true
+
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
