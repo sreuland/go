@@ -1,41 +1,73 @@
 package integration
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/sha256"
+	"io"
+	"os"
 	"testing"
 
+	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/services/horizon/internal/test/integration"
+	"github.com/stellar/go/strkey"
 
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInvokeHostFunctionCreateContract(t *testing.T) {
-	tt := assert.New(t)
-	itest := integration.NewTest(t, integration.Config{})
+	os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
+	//os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE", "true")
+	os.Setenv("HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL", "20")
+	//os.Setenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN", "/usr/local/bin/stellar-core")
+	os.Setenv("HORIZON_INTEGRATION_TESTS_DOCKER_IMG", "bartekno/stellar-core:19.4.1-1078.c4dee576f.focal-soroban2")
+	//integration.RunWithCaptiveCore = true
 
-	seed := "SDHOAMBNLGCE2MV5ZKIVZAQD3VCLGP53P3OBSBI6UN5L5XZI5TKHFQL4"
-	seedBytes := [32]byte{}
-	copy(seedBytes[:], []byte(seed)[:32])
-	privateKey := ed25519.NewKeyFromSeed(seedBytes[:])
+	if integration.GetCoreMaxSupportedProtocol() < 20 {
+		t.Skip("This test run does not support Protocol 20")
+	}
+
+	itest := integration.NewTest(t, integration.Config{
+		ProtocolVersion: 20,
+	})
+
+	var rawSeed [32]byte
+	_, err := io.ReadFull(rand.Reader, rawSeed[:])
+	require.NoError(t, err)
+	strSeed, err := strkey.Encode(strkey.VersionByteSeed, rawSeed[:])
+	require.NoError(t, err)
+
+	reader := bytes.NewReader(rawSeed[:])
+	publicKey, privateKey, err := ed25519.GenerateKey(reader)
+	require.NoError(t, err)
+
 	privateKeyBytes := [32]byte{}
 	copy(privateKeyBytes[:], privateKey[:32])
 	publicKeyBytes := [32]byte{}
-	copy(publicKeyBytes[:], privateKey[32:])
+	copy(publicKeyBytes[:], publicKey[:32])
 
-	sourceKp, err := keypair.FromRawSeed([32]byte(seedBytes))
-	tt.NoError(err)
-	sourceAccount := txnbuild.NewSimpleAccount(sourceKp.Address(), 5)
+	sourceKp := keypair.MustParseFull(strSeed)
 
-	/*
-		kp2 := keypair.MustParseFull("SDHOAMBNLGCE2MV5ZKIVZAQD3VCLGP53P3OBSBI6UN5L5XZI5TKHFQL4")
-		publicKey2 := ed25519.PublicKey{98, 252, 29, 11, 208, 145, 178, 182, 28, 13, 214, 86, 52, 107, 42, 104, 215, 211, 71, 198, 242, 194, 200, 238, 109, 4, 71, 2, 86, 252, 5, 247}
-		privateKey2 := ed25519.PrivateKey{206, 224, 48, 45, 89, 132, 77, 50, 189, 202, 145, 92, 130, 3, 221, 68, 179, 63, 187, 126, 220, 25, 5, 30, 163, 122, 190, 223, 40, 236, 212, 114, 98, 252, 29, 11, 208, 145, 178, 182, 28, 13, 214, 86, 52, 107, 42, 104, 215, 211, 71, 198, 242, 194, 200, 238, 109, 4, 71, 2, 86, 252, 5, 247}
-	*/
+	// fund the contract owner account on network
+	createAccountOp := txnbuild.CreateAccount{
+		Destination: sourceKp.Address(),
+		Amount:      "5000",
+	}
+
+	tx, err := itest.SubmitOperations(itest.MasterAccount(), itest.Master(), &createAccountOp)
+	require.NoError(t, err)
+
+	// get the account and it's current seq
+	sourceAccount, err := itest.Client().AccountDetail(horizonclient.AccountRequest{
+		AccountID: sourceKp.Address(),
+	})
+	require.NoError(t, err)
 
 	sha256Hash := sha256.New()
 	contract := []byte("test_contract")
@@ -48,14 +80,14 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 
 	contractHash := sha256Hash.Sum([]byte{})
 	contractSig, err := privateKey.Sign(nil, contractHash, crypto.Hash(0))
-	tt.NoError(err)
+	require.NoError(t, err)
 
 	preImage := xdr.HashIdPreimageEd25519ContractId{
 		Ed25519: xdr.Uint256(privateKeyBytes),
 		Salt:    xdr.Uint256(salt),
 	}
 	xdrPreImageBytes, err := preImage.MarshalBinary()
-	tt.NoError(err)
+	require.NoError(t, err)
 	hashedContractID := sha256.Sum256(xdrPreImageBytes)
 
 	contractNameParameterAddr := &xdr.ScObject{
@@ -105,7 +137,7 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		},
 	}
 
-	tx, err := itest.SubmitOperations(&sourceAccount, itest.Master(),
+	tx, err = itest.SubmitOperations(&sourceAccount, sourceKp,
 		&txnbuild.InvokeHostFunction{
 			Function: xdr.HostFunctionHostFnCreateContract,
 			Footprint: xdr.LedgerFootprint{
@@ -124,18 +156,18 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 			},
 		},
 	)
+	require.NoError(t, err)
 
-	tt.NoError(err)
 	clientTx, err := itest.Client().TransactionDetail(tx.Hash)
-	tt.NoError(err)
-	tt.Equal(tx.Hash, clientTx.Hash)
+	require.NoError(t, err)
 
+	assert.Equal(t, tx.Hash, clientTx.Hash)
 	var txResult xdr.TransactionResult
 	xdr.SafeUnmarshalBase64(clientTx.ResultXdr, &txResult)
 	opResults, ok := txResult.OperationResults()
-	tt.True(ok)
-	tt.Equal(len(opResults), 1)
+	assert.True(t, ok)
+	assert.Equal(t, len(opResults), 1)
 	invokeHostFunctionResult, ok := opResults[0].MustTr().GetInvokeHostFunctionResult()
-	tt.True(ok)
-	tt.Equal(invokeHostFunctionResult.Code, xdr.InvokeHostFunctionResultCodeInvokeHostFunctionSuccess)
+	assert.True(t, ok)
+	assert.Equal(t, invokeHostFunctionResult.Code, xdr.InvokeHostFunctionResultCodeInvokeHostFunctionSuccess)
 }
