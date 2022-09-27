@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInvokeHostFunction(t *testing.T) {
+func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	tt := assert.New(t)
 	itest := integration.NewTest(t, integration.Config{})
 
