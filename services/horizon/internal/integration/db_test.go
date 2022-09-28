@@ -170,7 +170,7 @@ func submitInvokeHostFunction(itest *integration.Test, tt *assert.Assertions) (s
 			Parameters: xdr.ScVec{},
 		},
 	}
-	txResp := itest.MustSubmitOperations(itest.MasterAccount(), itest.Master(), ops...)
+	txResp, _ := itest.SubmitOperations(itest.MasterAccount(), itest.Master(), ops...)
 
 	return ops, txResp.Ledger
 }
@@ -413,6 +413,12 @@ func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reached
 	itest = integration.NewTest(t, integration.Config{})
 	tt := assert.New(t)
 
+	// Make sure all possible operations are covered by reingestion
+	allOpTypes := set.Set[xdr.OperationType]{}
+	for typ := range xdr.OperationTypeToStringMap {
+		allOpTypes.Add(xdr.OperationType(typ))
+	}
+
 	// submit all possible operations
 	ops, _ := submitAccountOps(itest, tt)
 	submittedOps := ops
@@ -428,14 +434,13 @@ func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reached
 	submittedOps = append(submittedOps, ops...)
 	ops, reachedLedger = submitLiquidityPoolOps(itest, tt)
 	submittedOps = append(submittedOps, ops...)
-	ops, _ = submitInvokeHostFunction(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-
-	// Make sure all possible operations are covered by reingestion
-	allOpTypes := set.Set[xdr.OperationType]{}
-	for typ := range xdr.OperationTypeToStringMap {
-		allOpTypes.Add(xdr.OperationType(typ))
+	if integration.GetCoreMaxSupportedProtocol() > 19 {
+		ops, _ = submitInvokeHostFunction(itest, tt)
+		submittedOps = append(submittedOps, ops...)
+	} else {
+		delete(allOpTypes, xdr.OperationTypeInvokeHostFunction)
 	}
+
 	// Inflation is not supported
 	delete(allOpTypes, xdr.OperationTypeInflation)
 
