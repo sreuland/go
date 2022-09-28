@@ -61,29 +61,29 @@ func assembleCreateContractOp(t *testing.T, account txnbuild.Account, accountKp 
 	// this defines a simple contract with interface of one func
 
 	/*
-	    {
-			"type": "function",
-			"name": "add",
-			"inputs": [
-				{
-				"name": "a",
-				"value": {
+		    {
+				"type": "function",
+				"name": "add",
+				"inputs": [
+					{
+					"name": "a",
+					"value": {
+						"type": "i32"
+					}
+					},
+					{
+					"name": "b",
+					"value": {
+						"type": "i32"
+					}
+					}
+				],
+				"outputs": [
+					{
 					"type": "i32"
-				}
-				},
-				{
-				"name": "b",
-				"value": {
-					"type": "i32"
-				}
-				}
-			],
-			"outputs": [
-				{
-				"type": "i32"
-				}
-			]
-		}
+					}
+				]
+			}
 	*/
 
 	sha256Hash := sha256.New()

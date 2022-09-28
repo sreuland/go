@@ -606,7 +606,7 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 			details["footprint"] = base64.StdEncoding.EncodeToString(raw)
 		}
 	default:
-		panic(fmt.Errorf("unknown operation type: %s", operation.OperationType()))
+		panic(fmt.Errorf("Unknown operation type: %s", operation.OperationType()))
 	}
 
 	sponsor, err := operation.getSponsor()
