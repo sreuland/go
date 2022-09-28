@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stellar/go/clients/horizonclient"
@@ -73,8 +74,9 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	// specs in CAP-0047 - https://github.com/stellar/stellar-protocol/blob/master/core/cap-0047.md#creating-a-contract-using-invokehostfunctionop
 	// also using soroban-cli as a reference for InvokeHostFunction tx creation - https://github.com/stellar/soroban-cli/pull/152/files#diff-a1009ce51ac98a8e648338a8315b8e3e75ea9849daf84c572f1600a03a6a94b9R111
 	sha256Hash := sha256.New()
-	contract := []byte("test_contract")
-	salt := sha256.Sum256(([]byte("a1")))
+	contract, err := os.ReadFile(filepath.Join("testdata", "example_add_i32.wasm"))
+	require.NoError(t, err)
+	salt := sha256.Sum256([]byte("salt"))
 	separator := []byte("create_contract_from_ed25519(contract: Vec<u8>, salt: u256, key: u256, sig: Vec<u8>)")
 
 	sha256Hash.Write(separator)
@@ -86,7 +88,7 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	require.NoError(t, err)
 
 	preImage := xdr.HashIdPreimageEd25519ContractId{
-		Ed25519: xdr.Uint256(privateKeyBytes),
+		Ed25519: xdr.Uint256(publicKeyBytes),
 		Salt:    xdr.Uint256(salt),
 	}
 	xdrPreImageBytes, err := preImage.MarshalBinary()
