@@ -1,21 +1,13 @@
 package integration
 
 import (
-	"bytes"
-	"crypto"
-	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/sha256"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stellar/go/clients/horizonclient"
-	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/services/horizon/internal/test/integration"
-	"github.com/stellar/go/strkey"
-
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
@@ -38,35 +30,33 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		ProtocolVersion: 20,
 	})
 
-	var rawSeed [32]byte
-	_, err := io.ReadFull(rand.Reader, rawSeed[:])
-	require.NoError(t, err)
-	strSeed, err := strkey.Encode(strkey.VersionByteSeed, rawSeed[:])
-	require.NoError(t, err)
-
-	reader := bytes.NewReader(rawSeed[:])
-	publicKey, privateKey, err := ed25519.GenerateKey(reader)
-	require.NoError(t, err)
-
-	privateKeyBytes := [32]byte{}
-	copy(privateKeyBytes[:], privateKey[:32])
-	publicKeyBytes := [32]byte{}
-	copy(publicKeyBytes[:], publicKey[:32])
-
-	sourceKp := keypair.MustParseFull(strSeed)
+	//var rawSeed [32]byte
+	//_, err := io.ReadFull(rand.Reader, rawSeed[:])
+	//require.NoError(t, err)
+	//strSeed, err := strkey.Encode(strkey.VersionByteSeed, rawSeed[:])
+	//require.NoError(t, err)
+	//
+	//reader := bytes.NewReader(rawSeed[:])
+	//publicKey, privateKey, err := ed25519.GenerateKey(reader)
+	//require.NoError(t, err)
+	//
+	//privateKeyBytes := [32]byte{}
+	//copy(privateKeyBytes[:], privateKey[:32])
+	//publicKeyBytes := [32]byte{}
+	//copy(publicKeyBytes[:], publicKey[:32])
 
 	// fund the contract owner account on network
-	createAccountOp := txnbuild.CreateAccount{
-		Destination: sourceKp.Address(),
-		Amount:      "5000",
-	}
-
-	tx, err := itest.SubmitOperations(itest.MasterAccount(), itest.Master(), &createAccountOp)
-	require.NoError(t, err)
+	//createAccountOp := txnbuild.CreateAccount{
+	//	Destination: itest.Master().Address(),
+	//	Amount:      "5000",
+	//}
+	//
+	//tx, err := itest.SubmitOperations(itest.MasterAccount(), itest.Master(), &createAccountOp)
+	//require.NoError(t, err)
 
 	// get the account and it's current seq
 	sourceAccount, err := itest.Client().AccountDetail(horizonclient.AccountRequest{
-		AccountID: sourceKp.Address(),
+		AccountID: itest.Master().Address(),
 	})
 	require.NoError(t, err)
 
@@ -76,7 +66,8 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	sha256Hash := sha256.New()
 	contract, err := os.ReadFile(filepath.Join("testdata", "example_add_i32.wasm"))
 	require.NoError(t, err)
-	salt := sha256.Sum256([]byte("salt"))
+	contract = []byte("test_contract")
+	salt := sha256.Sum256([]byte("b1"))
 	separator := []byte("create_contract_from_ed25519(contract: Vec<u8>, salt: u256, key: u256, sig: Vec<u8>)")
 
 	sha256Hash.Write(separator)
@@ -84,13 +75,13 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	sha256Hash.Write(contract)
 
 	contractHash := sha256Hash.Sum([]byte{})
-	contractSig, err := privateKey.Sign(nil, contractHash, crypto.Hash(0))
+	contractSig, err := itest.Master().Sign(contractHash)
 	require.NoError(t, err)
 
 	preImage := xdr.HashIdPreimageEd25519ContractId{
-		Ed25519: xdr.Uint256(publicKeyBytes),
-		Salt:    xdr.Uint256(salt),
+		Salt: xdr.Uint256(salt),
 	}
+	copy(preImage.Ed25519[:], itest.Master().PublicKey())
 	xdrPreImageBytes, err := preImage.MarshalBinary()
 	require.NoError(t, err)
 	hashedContractID := sha256.Sum256(xdrPreImageBytes)
@@ -114,7 +105,7 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		Obj:  &saltParameterAddr,
 	}
 
-	publicKeySlice := publicKeyBytes[:]
+	publicKeySlice := []byte(itest.Master().PublicKey())
 	publicKeyParameterAddr := &xdr.ScObject{
 		Type: xdr.ScObjectTypeScoBytes,
 		Bin:  &publicKeySlice,
@@ -142,7 +133,7 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		},
 	}
 
-	tx, err = itest.SubmitOperations(&sourceAccount, sourceKp,
+	tx, err := itest.SubmitOperations(&sourceAccount, itest.Master(),
 		&txnbuild.InvokeHostFunction{
 			Function: xdr.HostFunctionHostFnCreateContract,
 			Footprint: xdr.LedgerFootprint{
