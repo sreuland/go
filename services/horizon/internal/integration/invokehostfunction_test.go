@@ -2,6 +2,7 @@ package integration
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,30 +31,6 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		ProtocolVersion: 20,
 	})
 
-	//var rawSeed [32]byte
-	//_, err := io.ReadFull(rand.Reader, rawSeed[:])
-	//require.NoError(t, err)
-	//strSeed, err := strkey.Encode(strkey.VersionByteSeed, rawSeed[:])
-	//require.NoError(t, err)
-	//
-	//reader := bytes.NewReader(rawSeed[:])
-	//publicKey, privateKey, err := ed25519.GenerateKey(reader)
-	//require.NoError(t, err)
-	//
-	//privateKeyBytes := [32]byte{}
-	//copy(privateKeyBytes[:], privateKey[:32])
-	//publicKeyBytes := [32]byte{}
-	//copy(publicKeyBytes[:], publicKey[:32])
-
-	// fund the contract owner account on network
-	//createAccountOp := txnbuild.CreateAccount{
-	//	Destination: itest.Master().Address(),
-	//	Amount:      "5000",
-	//}
-	//
-	//tx, err := itest.SubmitOperations(itest.MasterAccount(), itest.Master(), &createAccountOp)
-	//require.NoError(t, err)
-
 	// get the account and it's current seq
 	sourceAccount, err := itest.Client().AccountDetail(horizonclient.AccountRequest{
 		AccountID: itest.Master().Address(),
@@ -66,8 +43,9 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	sha256Hash := sha256.New()
 	contract, err := os.ReadFile(filepath.Join("testdata", "example_add_i32.wasm"))
 	require.NoError(t, err)
-	contract = []byte("test_contract")
-	salt := sha256.Sum256([]byte("b1"))
+	t.Logf("Contract File Contents: %v", hex.EncodeToString(contract))
+	salt := sha256.Sum256([]byte("a1"))
+	t.Logf("Salt hash: %v", hex.EncodeToString(salt[:]))
 	separator := []byte("create_contract_from_ed25519(contract: Vec<u8>, salt: u256, key: u256, sig: Vec<u8>)")
 
 	sha256Hash.Write(separator)
@@ -75,16 +53,24 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	sha256Hash.Write(contract)
 
 	contractHash := sha256Hash.Sum([]byte{})
+	t.Logf("hash to sign: %v", hex.EncodeToString(contractHash))
 	contractSig, err := itest.Master().Sign(contractHash)
 	require.NoError(t, err)
 
-	preImage := xdr.HashIdPreimageEd25519ContractId{
-		Salt: xdr.Uint256(salt),
+	t.Logf("Signature of Hash: %v", hex.EncodeToString(contractSig))
+	var publicKeyXDR xdr.Uint256
+	copy(publicKeyXDR[:], itest.Master().PublicKey())
+	preImage := xdr.HashIdPreimage{
+		Type: xdr.EnvelopeTypeEnvelopeTypeContractIdFromEd25519,
+		Ed25519ContractId: &xdr.HashIdPreimageEd25519ContractId{
+			Salt:    salt,
+			Ed25519: publicKeyXDR,
+		},
 	}
-	copy(preImage.Ed25519[:], itest.Master().PublicKey())
 	xdrPreImageBytes, err := preImage.MarshalBinary()
 	require.NoError(t, err)
 	hashedContractID := sha256.Sum256(xdrPreImageBytes)
+	t.Log(hashedContractID)
 
 	contractNameParameterAddr := &xdr.ScObject{
 		Type: xdr.ScObjectTypeScoBytes,
@@ -132,6 +118,16 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 			Ic:   &ledgerKeyContractCodeAddr,
 		},
 	}
+
+	params := xdr.ScVec{
+		contractNameParameter,
+		saltParameter,
+		publicKeyParameter,
+		contractSignatureParameter,
+	}
+	paramsBin, err := params.MarshalBinary()
+	require.NoError(t, err)
+	t.Log("XDR args to Submit:", hex.EncodeToString(paramsBin))
 
 	tx, err := itest.SubmitOperations(&sourceAccount, itest.Master(),
 		&txnbuild.InvokeHostFunction{
