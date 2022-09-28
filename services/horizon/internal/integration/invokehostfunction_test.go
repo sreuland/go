@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stellar/go/clients/horizonclient"
+	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/services/horizon/internal/test/integration"
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
@@ -15,14 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInvokeHostFunctionCreateContract(t *testing.T) {
-	os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
-	//os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE", "true")
-	os.Setenv("HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL", "20")
-	//os.Setenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN", "/usr/local/bin/stellar-core")
-	os.Setenv("HORIZON_INTEGRATION_TESTS_DOCKER_IMG", "bartekno/stellar-core:19.4.1-1078.c4dee576f.focal-soroban2")
-	//integration.RunWithCaptiveCore = true
-
+func TestInvokeHostFunctionCreateContractByKey(t *testing.T) {
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support Protocol 20")
 	}
@@ -31,15 +25,67 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		ProtocolVersion: 20,
 	})
 
-	// get the account and it's current seq
+	// establish which account will be contract owner, and load it's current seq
 	sourceAccount, err := itest.Client().AccountDetail(horizonclient.AccountRequest{
 		AccountID: itest.Master().Address(),
 	})
 	require.NoError(t, err)
 
+	createContractOp := assembleCreateContractOp(t, &sourceAccount, itest.Master())
+
+	paramsBin, err := createContractOp.Parameters.MarshalBinary()
+	require.NoError(t, err)
+	t.Log("XDR create contract args to Submit:", hex.EncodeToString(paramsBin))
+
+	tx, err := itest.SubmitOperations(&sourceAccount, itest.Master(), createContractOp)
+	require.NoError(t, err)
+
+	clientTx, err := itest.Client().TransactionDetail(tx.Hash)
+	require.NoError(t, err)
+
+	assert.Equal(t, tx.Hash, clientTx.Hash)
+	var txResult xdr.TransactionResult
+	xdr.SafeUnmarshalBase64(clientTx.ResultXdr, &txResult)
+	opResults, ok := txResult.OperationResults()
+	assert.True(t, ok)
+	assert.Equal(t, len(opResults), 1)
+	invokeHostFunctionResult, ok := opResults[0].MustTr().GetInvokeHostFunctionResult()
+	assert.True(t, ok)
+	assert.Equal(t, invokeHostFunctionResult.Code, xdr.InvokeHostFunctionResultCodeInvokeHostFunctionSuccess)
+}
+
+func assembleCreateContractOp(t *testing.T, account txnbuild.Account, accountKp *keypair.Full) *txnbuild.InvokeHostFunction {
 	// Assemble the InvokeHostFunction CreateContract operation, this is supposed to follow the
 	// specs in CAP-0047 - https://github.com/stellar/stellar-protocol/blob/master/core/cap-0047.md#creating-a-contract-using-invokehostfunctionop
-	// also using soroban-cli as a reference for InvokeHostFunction tx creation - https://github.com/stellar/soroban-cli/pull/152/files#diff-a1009ce51ac98a8e648338a8315b8e3e75ea9849daf84c572f1600a03a6a94b9R111
+
+	// this defines a simple contract with interface of one func
+
+	/*
+	    {
+			"type": "function",
+			"name": "add",
+			"inputs": [
+				{
+				"name": "a",
+				"value": {
+					"type": "i32"
+				}
+				},
+				{
+				"name": "b",
+				"value": {
+					"type": "i32"
+				}
+				}
+			],
+			"outputs": [
+				{
+				"type": "i32"
+				}
+			]
+		}
+	*/
+
 	sha256Hash := sha256.New()
 	contract, err := os.ReadFile(filepath.Join("testdata", "example_add_i32.wasm"))
 	require.NoError(t, err)
@@ -54,12 +100,12 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 
 	contractHash := sha256Hash.Sum([]byte{})
 	t.Logf("hash to sign: %v", hex.EncodeToString(contractHash))
-	contractSig, err := itest.Master().Sign(contractHash)
+	contractSig, err := accountKp.Sign(contractHash)
 	require.NoError(t, err)
 
-	t.Logf("Signature of Hash: %v", hex.EncodeToString(contractSig))
+	t.Logf("Signature of contract hash: %v", hex.EncodeToString(contractSig))
 	var publicKeyXDR xdr.Uint256
-	copy(publicKeyXDR[:], itest.Master().PublicKey())
+	copy(publicKeyXDR[:], accountKp.PublicKey())
 	preImage := xdr.HashIdPreimage{
 		Type: xdr.EnvelopeTypeEnvelopeTypeContractIdFromEd25519,
 		Ed25519ContractId: &xdr.HashIdPreimageEd25519ContractId{
@@ -70,7 +116,6 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 	xdrPreImageBytes, err := preImage.MarshalBinary()
 	require.NoError(t, err)
 	hashedContractID := sha256.Sum256(xdrPreImageBytes)
-	t.Log(hashedContractID)
 
 	contractNameParameterAddr := &xdr.ScObject{
 		Type: xdr.ScObjectTypeScoBytes,
@@ -91,7 +136,7 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		Obj:  &saltParameterAddr,
 	}
 
-	publicKeySlice := []byte(itest.Master().PublicKey())
+	publicKeySlice := []byte(accountKp.PublicKey())
 	publicKeyParameterAddr := &xdr.ScObject{
 		Type: xdr.ScObjectTypeScoBytes,
 		Bin:  &publicKeySlice,
@@ -119,47 +164,21 @@ func TestInvokeHostFunctionCreateContract(t *testing.T) {
 		},
 	}
 
-	params := xdr.ScVec{
-		contractNameParameter,
-		saltParameter,
-		publicKeyParameter,
-		contractSignatureParameter,
-	}
-	paramsBin, err := params.MarshalBinary()
-	require.NoError(t, err)
-	t.Log("XDR args to Submit:", hex.EncodeToString(paramsBin))
-
-	tx, err := itest.SubmitOperations(&sourceAccount, itest.Master(),
-		&txnbuild.InvokeHostFunction{
-			Function: xdr.HostFunctionHostFnCreateContract,
-			Footprint: xdr.LedgerFootprint{
-				ReadWrite: []xdr.LedgerKey{
-					{
-						Type:         xdr.LedgerEntryTypeContractData,
-						ContractData: &ledgerKey,
-					},
+	return &txnbuild.InvokeHostFunction{
+		Function: xdr.HostFunctionHostFnCreateContract,
+		Footprint: xdr.LedgerFootprint{
+			ReadWrite: []xdr.LedgerKey{
+				{
+					Type:         xdr.LedgerEntryTypeContractData,
+					ContractData: &ledgerKey,
 				},
 			},
-			Parameters: []xdr.ScVal{
-				contractNameParameter,
-				saltParameter,
-				publicKeyParameter,
-				contractSignatureParameter,
-			},
 		},
-	)
-	require.NoError(t, err)
-
-	clientTx, err := itest.Client().TransactionDetail(tx.Hash)
-	require.NoError(t, err)
-
-	assert.Equal(t, tx.Hash, clientTx.Hash)
-	var txResult xdr.TransactionResult
-	xdr.SafeUnmarshalBase64(clientTx.ResultXdr, &txResult)
-	opResults, ok := txResult.OperationResults()
-	assert.True(t, ok)
-	assert.Equal(t, len(opResults), 1)
-	invokeHostFunctionResult, ok := opResults[0].MustTr().GetInvokeHostFunctionResult()
-	assert.True(t, ok)
-	assert.Equal(t, invokeHostFunctionResult.Code, xdr.InvokeHostFunctionResultCodeInvokeHostFunctionSuccess)
+		Parameters: xdr.ScVec{
+			contractNameParameter,
+			saltParameter,
+			publicKeyParameter,
+			contractSignatureParameter,
+		},
+	}
 }
