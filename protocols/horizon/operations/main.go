@@ -599,7 +599,7 @@ func UnmarshalOperation(operationTypeID int32, dataString []byte) (ops Operation
 		}
 		ops = op
 	default:
-		err = errors.New("invalid operation format, unable to unmarshal json response")
+		err = errors.New("Invalid operation format, unable to unmarshal json response")
 	}
 
 	return
