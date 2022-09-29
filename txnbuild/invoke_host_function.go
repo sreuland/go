@@ -47,6 +47,12 @@ func (f *InvokeHostFunction) FromXDR(xdrOp xdr.Operation) error {
 }
 
 func (f *InvokeHostFunction) Validate() error {
+	if f.SourceAccount != "" {
+		_, err := xdr.AddressToMuxedAccount(f.SourceAccount)
+		if err != nil {
+			return NewValidationError("SourceAccount", err.Error())
+		}
+	}
 	return nil
 }
 
