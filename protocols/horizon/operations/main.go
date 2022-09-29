@@ -360,9 +360,8 @@ type InvokeHostFunction struct {
 // InvokeHostFunction parameter model, intentionally simplified, Value
 // just contains a base64 encoded string of the ScVal xdr serialization.
 type HostFunctionParameter struct {
-	Position string `json:"position"`
-	Value    string `json:"value"`
-	Type     string `json:"type"`
+	Value string `json:"value"`
+	Type  string `json:"type"`
 }
 
 // Operation interface contains methods implemented by the operation types

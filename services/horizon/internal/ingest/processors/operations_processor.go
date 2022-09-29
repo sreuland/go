@@ -589,11 +589,9 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 		details["function"] = op.Function.String()
 		params := make([]map[string]string, 0)
 
-		for idx, param := range op.Parameters {
+		for _, param := range op.Parameters {
 			name, _ := param.ArmForSwitch(int32(param.Type))
-			ordinal := fmt.Sprint(idx)
 			serializedParam := map[string]string{}
-			serializedParam["position"] = ordinal
 			serializedParam["type"] = name
 			if raw, err := param.MarshalBinary(); err == nil {
 				serializedParam["value"] = base64.StdEncoding.EncodeToString(raw)

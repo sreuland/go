@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"strconv"
 	"testing"
 
 	"github.com/guregu/null"
@@ -166,11 +165,11 @@ func (s *OperationsProcessorTestSuiteLedger) TestInvokeFunctionDetails() {
 
 	details, err := wrapper.Details()
 	s.Assert().NoError(err)
-
 	s.Assert().Equal(details["function"].(string), "HostFunctionHostFnCall")
-	if raw, err := wrapper.operation.Body.InvokeHostFunctionOp.Footprint.MarshalBinary(); err == nil {
-		s.Assert().Equal(details["footprint"].(string), base64.StdEncoding.EncodeToString(raw))
-	}
+
+	raw, err := wrapper.operation.Body.InvokeHostFunctionOp.Footprint.MarshalBinary()
+	s.Assert().NoError(err)
+	s.Assert().Equal(details["footprint"].(string), base64.StdEncoding.EncodeToString(raw))
 
 	serializedParams := details["parameters"].([]map[string]string)
 	s.assertInvokeHostFunctionParameter(serializedParams, 0, "Sym", wrapper.operation.Body.InvokeHostFunctionOp.Parameters[0])
@@ -183,7 +182,6 @@ func (s *OperationsProcessorTestSuiteLedger) TestInvokeFunctionDetails() {
 
 func (s *OperationsProcessorTestSuiteLedger) assertInvokeHostFunctionParameter(parameters []map[string]string, paramPosition int, expectedType string, expectedVal xdr.ScVal) {
 	serializedParam := parameters[paramPosition]
-	s.Assert().Equal(serializedParam["position"], strconv.Itoa(paramPosition))
 	s.Assert().Equal(serializedParam["type"], expectedType)
 	if expectedSerializedXdr, err := expectedVal.MarshalBinary(); err == nil {
 		s.Assert().Equal(serializedParam["value"], base64.StdEncoding.EncodeToString(expectedSerializedXdr))

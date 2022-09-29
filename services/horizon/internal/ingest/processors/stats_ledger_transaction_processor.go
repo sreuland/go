@@ -165,7 +165,7 @@ func (stats *StatsLedgerTransactionProcessorResults) Map() map[string]interface{
 		"stats_operations_clawback_claimable_balance":       stats.OperationsClawbackClaimableBalance,
 		"stats_operations_liquidity_pool_deposit":           stats.OperationsLiquidityPoolDeposit,
 		"stats_operations_liquidity_pool_withdraw":          stats.OperationsLiquidityPoolWithdraw,
-		"stats_operations_invoke_host_function":             stats.OperationsLiquidityPoolWithdraw,
+		"stats_operations_invoke_host_function":             stats.OperationsInvokeHostFunction,
 	}
 }
 
