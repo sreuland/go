@@ -45,7 +45,9 @@ func TestInvokeHostFunctionCreateContractByKey(t *testing.T) {
 
 	assert.Equal(t, tx.Hash, clientTx.Hash)
 	var txResult xdr.TransactionResult
-	xdr.SafeUnmarshalBase64(clientTx.ResultXdr, &txResult)
+	err = xdr.SafeUnmarshalBase64(clientTx.ResultXdr, &txResult)
+	require.NoError(t, err)
+
 	opResults, ok := txResult.OperationResults()
 	assert.True(t, ok)
 	assert.Equal(t, len(opResults), 1)

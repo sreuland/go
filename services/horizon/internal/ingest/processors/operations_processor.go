@@ -587,14 +587,18 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 	case xdr.OperationTypeInvokeHostFunction:
 		op := operation.operation.Body.MustInvokeHostFunctionOp()
 		details["function"] = op.Function.String()
-		params := make([]map[string]string, 0)
+		params := make([]map[string]string, 0, len(op.Parameters))
 
 		for _, param := range op.Parameters {
-			name, _ := param.ArmForSwitch(int32(param.Type))
 			serializedParam := map[string]string{}
-			serializedParam["type"] = name
-			if raw, err := param.MarshalBinary(); err == nil {
-				serializedParam["value"] = base64.StdEncoding.EncodeToString(raw)
+			serializedParam["value"] = "n/a"
+			serializedParam["type"] = "n/a"
+
+			if name, ok := param.ArmForSwitch(int32(param.Type)); ok {
+				serializedParam["type"] = name
+				if raw, err := param.MarshalBinary(); err == nil {
+					serializedParam["value"] = base64.StdEncoding.EncodeToString(raw)
+				}
 			}
 			params = append(params, serializedParam)
 		}

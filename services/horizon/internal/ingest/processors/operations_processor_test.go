@@ -149,6 +149,10 @@ func (s *OperationsProcessorTestSuiteLedger) TestInvokeFunctionDetails() {
 							Type: xdr.ScValTypeScvStatic,
 							Ic:   &contractParamVal6,
 						},
+						{
+							// invalid ScVal
+							Type: 5555,
+						},
 					},
 					Footprint: xdr.LedgerFootprint{
 						ReadOnly: []xdr.LedgerKey{
@@ -178,6 +182,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestInvokeFunctionDetails() {
 	s.assertInvokeHostFunctionParameter(serializedParams, 3, "Bits", wrapper.operation.Body.InvokeHostFunctionOp.Parameters[3])
 	s.assertInvokeHostFunctionParameter(serializedParams, 4, "Obj", wrapper.operation.Body.InvokeHostFunctionOp.Parameters[4])
 	s.assertInvokeHostFunctionParameter(serializedParams, 5, "Ic", wrapper.operation.Body.InvokeHostFunctionOp.Parameters[5])
+	s.assertInvokeHostFunctionParameter(serializedParams, 6, "n/a", wrapper.operation.Body.InvokeHostFunctionOp.Parameters[6])
 }
 
 func (s *OperationsProcessorTestSuiteLedger) assertInvokeHostFunctionParameter(parameters []map[string]string, paramPosition int, expectedType string, expectedVal xdr.ScVal) {
@@ -185,6 +190,8 @@ func (s *OperationsProcessorTestSuiteLedger) assertInvokeHostFunctionParameter(p
 	s.Assert().Equal(serializedParam["type"], expectedType)
 	if expectedSerializedXdr, err := expectedVal.MarshalBinary(); err == nil {
 		s.Assert().Equal(serializedParam["value"], base64.StdEncoding.EncodeToString(expectedSerializedXdr))
+	} else {
+		s.Assert().Equal(serializedParam["value"], "n/a")
 	}
 }
 
