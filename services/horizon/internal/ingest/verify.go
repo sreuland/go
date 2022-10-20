@@ -194,9 +194,8 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 				lPools = append(lPools, key.LiquidityPool.LiquidityPoolId)
 				totalByType["liquidity_pools"]++
 			case xdr.LedgerEntryTypeContractData, xdr.LedgerEntryTypeConfigSetting:
-				// TODO: should we create db persistence(and optionally api endpoint)
-				// for history on protocol 20 contract data ledger entries? If so,
-				// then add to state verifier accumulators.
+				// Won't be persisting protocol 20 ContractData ledger entries to history db, therefore must not allow it
+				// to be counted in history state-verififier accumulators.
 				continue
 			default:
 				return errors.New("GetLedgerKeys return unexpected type")
