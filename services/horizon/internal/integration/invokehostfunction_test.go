@@ -57,10 +57,6 @@ func TestInvokeHostFunctionCreateContractBySourceAccount(t *testing.T) {
 	require.Greater(t, response.MemoryBytes, uint64(0))
 	require.Empty(t, response.Detail)
 
-	paramsBin, err := createContractOp.Parameters.MarshalBinary()
-	require.NoError(t, err)
-	t.Log("XDR create contract args to Submit:", hex.EncodeToString(paramsBin))
-
 	tx, err := itest.SubmitOperations(&sourceAccount, itest.Master(), createContractOp)
 	require.NoError(t, err)
 
@@ -189,11 +185,10 @@ func TestInvokeHostFunctionInvokeContractFn(t *testing.T) {
 }
 
 func assembleCreateContractOp(t *testing.T, sourceAccount string) *txnbuild.InvokeHostFunction {
-	// Assemble the InvokeHostFunction CreateContract operation, this is supposed to follow the
-	// specs in CAP-0047 - https://github.com/stellar/stellar-protocol/blob/master/core/cap-0047.md#creating-a-contract-using-invokehostfunctionop
+	// Assemble the InvokeHostFunction CreateContract operation:
+	// CAP-0047 - https://github.com/stellar/stellar-protocol/blob/master/core/cap-0047.md#creating-a-contract-using-invokehostfunctionop
 
-	// this defines a simple contract with interface of one func
-
+	// this loads a simple contract with interface of one func called 'add':
 	/*
 		    {
 				"type": "function",
@@ -221,8 +216,11 @@ func assembleCreateContractOp(t *testing.T, sourceAccount string) *txnbuild.Invo
 
 	*/
 
+	// load the wasm bin of the contract. it was compiled from the contract's rust source code:
+	// https://github.com/stellar/rs-soroban-sdk/blob/main/tests/add_u64/src/lib.rs
 	contract, err := os.ReadFile(filepath.Join("testdata", "test_add_u64.wasm"))
 	require.NoError(t, err)
+
 	t.Logf("Contract File Contents: %v", hex.EncodeToString(contract))
 	salt := sha256.Sum256([]byte("a1"))
 	t.Logf("Salt hash: %v", hex.EncodeToString(salt[:]))
