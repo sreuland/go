@@ -83,6 +83,9 @@ type captiveCoreTomlValues struct {
 	Validators                           []Validator          `toml:"VALIDATORS,omitempty"`
 	HistoryEntries                       map[string]History   `toml:"-"`
 	QuorumSetEntries                     map[string]QuorumSet `toml:"-"`
+	UseBucketListDB                      bool                 `toml:"EXPERIMENTAL_BUCKETLIST_DB,omitempty"`
+	BucketListDBPageSizeExp              *uint                `toml:"EXPERIMENTAL_BUCKETLIST_DB_INDEX_PAGE_SIZE_EXPONENT,omitempty"`
+	BucketListDBCutoff                   *uint                `toml:"EXPERIMENTAL_BUCKETLIST_DB_INDEX_CUTOFF,omitempty"`
 }
 
 // QuorumSetIsConfigured returns true if there is a quorum set defined in the configuration.
@@ -415,6 +418,15 @@ func (c *CaptiveCoreToml) setDefaults(params CaptiveCoreTomlParams) {
 		c.Database = "sqlite3://stellar.db"
 	}
 
+	if def := c.tree.Has("EXPERIMENTAL_BUCKETLIST_DB"); !def && params.UseDB {
+		c.UseBucketListDB = true
+	}
+
+	if c.UseBucketListDB && !c.tree.Has("EXPERIMENTAL_BUCKETLIST_DB_INDEX_PAGE_SIZE_EXPONENT") {
+		n := uint(12)
+		c.BucketListDBPageSizeExp = &n // Set default page size to 4KB
+	}
+
 	if !c.tree.Has("NETWORK_PASSPHRASE") {
 		c.NetworkPassphrase = params.NetworkPassphrase
 	}
@@ -479,6 +491,12 @@ func (c *CaptiveCoreToml) validate(params CaptiveCoreTomlParams) error {
 			"LOG_FILE_PATH in captive core config file: %s does not match Horizon captive-core-log-path flag: %s",
 			c.LogFilePath,
 			*params.LogPath,
+		)
+	}
+
+	if def := c.tree.Has("EXPERIMENTAL_BUCKETLIST_DB"); def && !params.UseDB {
+		return fmt.Errorf(
+			"BucketListDB enabled in captive core config file, requires Horizon flag --captive-core-use-db",
 		)
 	}
 
