@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -320,6 +321,8 @@ type CaptiveCoreTomlParams struct {
 	Strict bool
 	// If true, specifies that captive core should be invoked with on-disk rather than in-memory option for ledger state
 	UseDB bool
+	// the path to the core binary, used to introspect core at runtie, determine some toml capabilities
+	CoreBinaryPath string
 }
 
 // NewCaptiveCoreTomlFromFile constructs a new CaptiveCoreToml instance by merging configuration
@@ -412,13 +415,27 @@ func (c *CaptiveCoreToml) CatchupToml() (*CaptiveCoreToml, error) {
 	return offline, nil
 }
 
+func (c *CaptiveCoreToml) checkCoreVersion(coreBinaryPath string) bool {
+    out, err := exec.Command(coreBinaryPath, "version").Output()
+    if err != nil {
+        return false
+    }
+	coreVersion := string(out)
+
+	//TODO - change this to use regex
+    if coreVersion == "19.6" {
+		return true
+	}
+	return false
+}
+
 func (c *CaptiveCoreToml) setDefaults(params CaptiveCoreTomlParams) {
 
 	if params.UseDB && !c.tree.Has("DATABASE") {
 		c.Database = "sqlite3://stellar.db"
 	}
 
-	if def := c.tree.Has("EXPERIMENTAL_BUCKETLIST_DB"); !def && params.UseDB {
+	if def := c.tree.Has("EXPERIMENTAL_BUCKETLIST_DB"); !def && params.UseDB && c.checkCoreVersion(params.CoreBinaryPath){
 		c.UseBucketListDB = true
 	}
 
