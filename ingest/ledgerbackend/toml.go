@@ -416,6 +416,10 @@ func (c *CaptiveCoreToml) CatchupToml() (*CaptiveCoreToml, error) {
 }
 
 func (c *CaptiveCoreToml) checkCoreVersion(coreBinaryPath string) bool {
+	if coreBinaryPath == "" {
+		return false
+	}
+	
     out, err := exec.Command(coreBinaryPath, "version").Output()
     if err != nil {
         return false
