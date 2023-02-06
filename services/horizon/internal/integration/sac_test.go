@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"crypto/sha256"
-	"os"
 	"testing"
 
 	"github.com/stellar/go/amount"
@@ -70,7 +69,6 @@ func TestContractMintToAccount(t *testing.T) {
 }
 
 func TestContractMintToContract(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -126,7 +124,6 @@ func TestContractMintToContract(t *testing.T) {
 }
 
 func TestContractTransferBetweenAccounts(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -177,7 +174,6 @@ func TestContractTransferBetweenAccounts(t *testing.T) {
 }
 
 func TestContractTransferBetweenAccountAndContract(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -250,7 +246,6 @@ func TestContractTransferBetweenAccountAndContract(t *testing.T) {
 }
 
 func TestContractTransferBetweenContracts(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -310,7 +305,6 @@ func TestContractTransferBetweenContracts(t *testing.T) {
 }
 
 func TestContractBurnFromAccount(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -355,7 +349,6 @@ func TestContractBurnFromAccount(t *testing.T) {
 }
 
 func TestContractBurnFromContract(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -400,7 +393,6 @@ func TestContractBurnFromContract(t *testing.T) {
 }
 
 func TestContractClawbackFromAccount(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -457,7 +449,6 @@ func TestContractClawbackFromAccount(t *testing.T) {
 }
 
 func TestContractClawbackFromContract(t *testing.T) {
-	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
