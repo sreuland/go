@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"crypto/sha256"
+	"os"
 	"testing"
 
 	"github.com/stellar/go/amount"
@@ -17,8 +18,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMintToAccount(t *testing.T) {
-	t.Skip("will fix test in #4757")
+const sac_contract = "soroban_sac_test.wasm"
+
+// Tests use precompiled wasm bin files that are added to the testdata directory.
+// Refer to ./services/horizon/internal/integration/contracts/README.md on how to recompile
+// contract code if needed to new wasm.
+//
+// `test_add_u64.wasm` is compiled from ./serivces/horizon/internal/integration/contracts/sac_test
+//
+
+func TestContractMintToAccount(t *testing.T) {
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
@@ -60,7 +69,7 @@ func TestMintToAccount(t *testing.T) {
 	assertAssetStats(itest, issuer, code, 2, amount.MustParse("50"))
 }
 
-func TestMintToContract(t *testing.T) {
+func TestContractMintToContract(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -78,7 +87,7 @@ func TestMintToContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(itest, itest.Master(), createSAC(itest, issuer, asset))
 
 	// Create recipient contract
-	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", "test_add_u64.wasm")
+	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", add_u64_contract)
 
 	assertInvokeHostFnSucceeds(
 		itest,
@@ -116,7 +125,7 @@ func TestMintToContract(t *testing.T) {
 	assertAssetStats(itest, issuer, code, 0, amount.MustParse("0"))
 }
 
-func TestTransferBetweenAccounts(t *testing.T) {
+func TestContractTransferBetweenAccounts(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -167,7 +176,7 @@ func TestTransferBetweenAccounts(t *testing.T) {
 	assertAssetStats(itest, issuer, code, 2, amount.MustParse("1000"))
 }
 
-func TestTransferBetweenAccountAndContract(t *testing.T) {
+func TestContractTransferBetweenAccountAndContract(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -202,7 +211,7 @@ func TestTransferBetweenAccountAndContract(t *testing.T) {
 	)
 
 	// Create recipient contract
-	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", "soroban_sac_test.wasm")
+	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", sac_contract)
 
 	// Add funds to recipient contract
 	assertInvokeHostFnSucceeds(
@@ -240,7 +249,7 @@ func TestTransferBetweenAccountAndContract(t *testing.T) {
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(0), (*balanceAmount.Obj).I128.Hi)
 }
 
-func TestTransferBetweenContracts(t *testing.T) {
+func TestContractTransferBetweenContracts(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -258,10 +267,10 @@ func TestTransferBetweenContracts(t *testing.T) {
 	assertInvokeHostFnSucceeds(itest, itest.Master(), createSAC(itest, issuer, asset))
 
 	// Create recipient contract
-	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", "test_add_u64.wasm")
+	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", add_u64_contract)
 
 	// Create emitter contract
-	emitterContractID := mustCreateAndInstallContract(itest, itest.Master(), "a2", "soroban_sac_test.wasm")
+	emitterContractID := mustCreateAndInstallContract(itest, itest.Master(), "a2", sac_contract)
 
 	// Add funds to emitter contract
 	assertInvokeHostFnSucceeds(
@@ -300,7 +309,7 @@ func TestTransferBetweenContracts(t *testing.T) {
 
 }
 
-func TestBurnFromAccount(t *testing.T) {
+func TestContractBurnFromAccount(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -345,7 +354,7 @@ func TestBurnFromAccount(t *testing.T) {
 
 }
 
-func TestBurnFromContract(t *testing.T) {
+func TestContractBurnFromContract(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -363,7 +372,7 @@ func TestBurnFromContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(itest, itest.Master(), createSAC(itest, issuer, asset))
 
 	// Create recipient contract
-	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", "soroban_sac_test.wasm")
+	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a1", sac_contract)
 
 	// Add funds to recipient contract
 	assertInvokeHostFnSucceeds(
@@ -390,7 +399,7 @@ func TestBurnFromContract(t *testing.T) {
 	assertAssetStats(itest, issuer, code, 0, amount.MustParse("0"))
 }
 
-func TestClawbackFromAccount(t *testing.T) {
+func TestContractClawbackFromAccount(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -447,7 +456,7 @@ func TestClawbackFromAccount(t *testing.T) {
 	assertAssetStats(itest, issuer, code, 1, amount.MustParse("0"))
 }
 
-func TestClawbackFromContract(t *testing.T) {
+func TestContractClawbackFromContract(t *testing.T) {
 	t.Skip("will fix test in #4757")
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
@@ -475,7 +484,7 @@ func TestClawbackFromContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(itest, itest.Master(), createSAC(itest, issuer, asset))
 
 	// Create recipient contract
-	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a2", "soroban_sac_test.wasm")
+	recipientContractID := mustCreateAndInstallContract(itest, itest.Master(), "a2", sac_contract)
 
 	// Add funds to recipient contract
 	assertInvokeHostFnSucceeds(
