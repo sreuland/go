@@ -5,6 +5,9 @@
 First install latest rust toolchain:
 https://www.rust-lang.org/tools/install 
 
+and update the ./services/horizon/internal/integration/contracts/Cargo.toml to have latest git refs for
+soroban-sdk and soroban-auth packages.
+
 then compile the contract source code to wasm
 ```
 services/horizon/internal/integration/contracts $ cargo build --target wasm32-unknown-unknown --release

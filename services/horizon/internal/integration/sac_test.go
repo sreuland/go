@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"crypto/sha256"
+	"os"
 	"testing"
 
 	"github.com/stellar/go/amount"
@@ -27,6 +28,12 @@ const sac_contract = "soroban_sac_test.wasm"
 //
 
 func TestContractMintToAccount(t *testing.T) {
+
+    os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
+    os.Setenv("HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL", "20")
+    os.Setenv("HORIZON_INTEGRATION_TESTS_DOCKER_IMG", "sreuland/stellar-core:19.7.1-1193.3a201d2b5.focal-soroban")
+
+
 	if integration.GetCoreMaxSupportedProtocol() < 20 {
 		t.Skip("This test run does not support less than Protocol 20")
 	}
