@@ -48,7 +48,7 @@ func TestContractMintToAccount(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		mint(itest, issuer, asset, "20", accountIDEnumParam(recipient.GetAccountID())),
+		mint(itest, issuer, asset, "20", accountAddressParam(recipient.GetAccountID())),
 	)
 
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("20"))
@@ -61,7 +61,7 @@ func TestContractMintToAccount(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		xfer(itest, issuer, asset, "30", accountIDEnumParam(otherRecipient.GetAccountID())),
+		xfer(itest, issuer, asset, "30", accountAddressParam(otherRecipient.GetAccountID())),
 	)
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("20"))
 	assertContainsBalance(itest, otherRecipientKp, issuer, code, amount.MustParse("30"))
@@ -90,13 +90,13 @@ func TestContractMintToContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		mint(itest, issuer, asset, "20", contractIDEnumParam(recipientContractID)),
+		mint(itest, issuer, asset, "20", contractAddressParam(recipientContractID)),
 	)
 
 	balanceAmount := assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(recipientContractID)),
+		balance(itest, issuer, asset, contractAddressParam(recipientContractID)),
 	)
 	assert.Equal(itest.CurrentTest(), xdr.ScValTypeScvObject, balanceAmount.Type)
 	assert.Equal(itest.CurrentTest(), xdr.ScObjectTypeScoI128, (*balanceAmount.Obj).Type)
@@ -109,13 +109,13 @@ func TestContractMintToContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		xfer(itest, issuer, asset, "30", contractIDEnumParam(recipientContractID)),
+		xfer(itest, issuer, asset, "30", contractAddressParam(recipientContractID)),
 	)
 
 	balanceAmount = assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(recipientContractID)),
+		balance(itest, issuer, asset, contractAddressParam(recipientContractID)),
 	)
 
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(500000000), (*balanceAmount.Obj).I128.Lo)
@@ -165,7 +165,7 @@ func TestContractTransferBetweenAccounts(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		recipientKp,
-		xfer(itest, recipientKp.Address(), asset, "30", accountIDEnumParam(otherRecipient.GetAccountID())),
+		xfer(itest, recipientKp.Address(), asset, "30", accountAddressParam(otherRecipient.GetAccountID())),
 	)
 
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("970"))
@@ -213,7 +213,7 @@ func TestContractTransferBetweenAccountAndContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		mint(itest, issuer, asset, "1000", contractIDEnumParam(recipientContractID)),
+		mint(itest, issuer, asset, "1000", contractAddressParam(recipientContractID)),
 	)
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("1000"))
 	assertAssetStats(itest, issuer, code, 1, amount.MustParse("1000"))
@@ -222,7 +222,7 @@ func TestContractTransferBetweenAccountAndContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		recipientKp,
-		xfer(itest, recipientKp.Address(), asset, "30", contractIDEnumParam(recipientContractID)),
+		xfer(itest, recipientKp.Address(), asset, "30", contractAddressParam(recipientContractID)),
 	)
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("970"))
 	assertAssetStats(itest, issuer, code, 1, amount.MustParse("970"))
@@ -231,7 +231,7 @@ func TestContractTransferBetweenAccountAndContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		recipientKp,
-		xferFromContract(itest, recipientKp.Address(), recipientContractID, asset, "500", accountIDEnumParam(recipient.GetAccountID())),
+		xferFromContract(itest, recipientKp.Address(), recipientContractID, asset, "500", accountAddressParam(recipient.GetAccountID())),
 	)
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("1470"))
 	assertAssetStats(itest, issuer, code, 1, amount.MustParse("1470"))
@@ -239,7 +239,7 @@ func TestContractTransferBetweenAccountAndContract(t *testing.T) {
 	balanceAmount := assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(recipientContractID)),
+		balance(itest, issuer, asset, contractAddressParam(recipientContractID)),
 	)
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(5300000000), (*balanceAmount.Obj).I128.Lo)
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(0), (*balanceAmount.Obj).I128.Hi)
@@ -271,21 +271,21 @@ func TestContractTransferBetweenContracts(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		mint(itest, issuer, asset, "1000", contractIDEnumParam(emitterContractID)),
+		mint(itest, issuer, asset, "1000", contractAddressParam(emitterContractID)),
 	)
 
 	// Transfer funds from emitter to recipient
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		xferFromContract(itest, issuer, emitterContractID, asset, "10", contractIDEnumParam(recipientContractID)),
+		xferFromContract(itest, issuer, emitterContractID, asset, "10", contractAddressParam(recipientContractID)),
 	)
 
 	// Check balances of emitter and recipient
 	emitterBalanceAmount := assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(emitterContractID)),
+		balance(itest, issuer, asset, contractAddressParam(emitterContractID)),
 	)
 
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(9900000000), (*emitterBalanceAmount.Obj).I128.Lo)
@@ -294,7 +294,7 @@ func TestContractTransferBetweenContracts(t *testing.T) {
 	recipientBalanceAmount := assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(recipientContractID)),
+		balance(itest, issuer, asset, contractAddressParam(recipientContractID)),
 	)
 
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(100000000), (*recipientBalanceAmount.Obj).I128.Lo)
@@ -371,7 +371,7 @@ func TestContractBurnFromContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		mint(itest, issuer, asset, "1000", contractIDEnumParam(recipientContractID)),
+		mint(itest, issuer, asset, "1000", contractAddressParam(recipientContractID)),
 	)
 
 	// Burn funds
@@ -384,7 +384,7 @@ func TestContractBurnFromContract(t *testing.T) {
 	balanceAmount := assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(recipientContractID)),
+		balance(itest, issuer, asset, contractAddressParam(recipientContractID)),
 	)
 
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(9900000000), (*balanceAmount.Obj).I128.Lo)
@@ -441,7 +441,7 @@ func TestContractClawbackFromAccount(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		clawback(itest, issuer, asset, "1000", accountIDEnumParam(recipientKp.Address())),
+		clawback(itest, issuer, asset, "1000", accountAddressParam(recipientKp.Address())),
 	)
 
 	assertContainsBalance(itest, recipientKp, issuer, code, amount.MustParse("0"))
@@ -481,20 +481,20 @@ func TestContractClawbackFromContract(t *testing.T) {
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		mint(itest, issuer, asset, "1000", contractIDEnumParam(recipientContractID)),
+		mint(itest, issuer, asset, "1000", contractAddressParam(recipientContractID)),
 	)
 
 	// Clawback funds
 	assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		clawback(itest, issuer, asset, "10", contractIDEnumParam(recipientContractID)),
+		clawback(itest, issuer, asset, "10", contractAddressParam(recipientContractID)),
 	)
 
 	balanceAmount := assertInvokeHostFnSucceeds(
 		itest,
 		itest.Master(),
-		balance(itest, issuer, asset, contractIDEnumParam(recipientContractID)),
+		balance(itest, issuer, asset, contractAddressParam(recipientContractID)),
 	)
 
 	assert.Equal(itest.CurrentTest(), xdr.Uint64(9900000000), (*balanceAmount.Obj).I128.Lo)
@@ -534,7 +534,7 @@ func assertAssetStats(itest *integration.Test, issuer, code string, numAccounts 
 
 func masterAccountIDEnumParam(itest *integration.Test) xdr.ScVal {
 	root := keypair.Root(itest.GetPassPhrase())
-	return accountIDEnumParam(root.Address())
+	return accountAddressParam(root.Address())
 }
 
 func functionNameParam(name string) xdr.ScVal {
@@ -557,19 +557,7 @@ func contractIDParam(contractID xdr.Hash) xdr.ScVal {
 	}
 }
 
-// TODO: this shouldn't be an enumerate
-// It should be of type Address
-//
-// #[derive(Clone)]
-//
-//	pub struct Address {
-//	   host: Host,
-//	   object: Object,
-//	}
-//
-// See https://github.com/stellar/rs-soroban-env/blob/main/soroban-env-host/src/native_contract/base_types.rs#L401-L405
-// However, I am not sure how to create it since it contains the Host :S
-func accountIDEnumParam(accountID string) xdr.ScVal {
+func accountAddressParam(accountID string) xdr.ScVal {
 	accountObj := &xdr.ScObject{
 		Type: xdr.ScObjectTypeScoAddress,
 		Address: &xdr.ScAddress{
@@ -577,49 +565,23 @@ func accountIDEnumParam(accountID string) xdr.ScVal {
 			AccountId: xdr.MustAddressPtr(accountID),
 		},
 	}
-	addressSym := xdr.ScSymbol("Address")
-	addressEnum := &xdr.ScObject{
-		Type: xdr.ScObjectTypeScoVec,
-		Vec: &xdr.ScVec{
-			xdr.ScVal{
-				Type: xdr.ScValTypeScvSymbol,
-				Sym:  &addressSym,
-			},
-			xdr.ScVal{
-				Type: xdr.ScValTypeScvObject,
-				Obj:  &accountObj,
-			},
-		},
-	}
 	return xdr.ScVal{
 		Type: xdr.ScValTypeScvObject,
-		Obj:  &addressEnum,
+		Obj:  &accountObj,
 	}
 }
 
-func contractIDEnumParam(contractID xdr.Hash) xdr.ScVal {
-	contractIdBytes := contractID[:]
-	contractIdParameterObj := &xdr.ScObject{
-		Type: xdr.ScObjectTypeScoBytes,
-		Bin:  &contractIdBytes,
-	}
-	accountSym := xdr.ScSymbol("Contract")
-	accountEnum := &xdr.ScObject{
-		Type: xdr.ScObjectTypeScoVec,
-		Vec: &xdr.ScVec{
-			xdr.ScVal{
-				Type: xdr.ScValTypeScvSymbol,
-				Sym:  &accountSym,
-			},
-			xdr.ScVal{
-				Type: xdr.ScValTypeScvObject,
-				Obj:  &contractIdParameterObj,
-			},
+func contractAddressParam(contractID xdr.Hash) xdr.ScVal {
+	contractObj := &xdr.ScObject{
+		Type: xdr.ScObjectTypeScoAddress,
+		Address: &xdr.ScAddress{
+			Type:       xdr.ScAddressTypeScAddressTypeContract,
+			ContractId: &contractID,
 		},
 	}
 	return xdr.ScVal{
 		Type: xdr.ScValTypeScvObject,
-		Obj:  &accountEnum,
+		Obj:  &contractObj,
 	}
 }
 
