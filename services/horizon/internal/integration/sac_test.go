@@ -532,21 +532,9 @@ func assertAssetStats(itest *integration.Test, issuer, code string, numAccounts 
 	}
 }
 
-func invokerSignatureParam() xdr.ScVal {
-	invokerSym := xdr.ScSymbol("Invoker")
-	obj := &xdr.ScObject{
-		Type: xdr.ScObjectTypeScoVec,
-		Vec: &xdr.ScVec{
-			xdr.ScVal{
-				Type: xdr.ScValTypeScvSymbol,
-				Sym:  &invokerSym,
-			},
-		},
-	}
-	return xdr.ScVal{
-		Type: xdr.ScValTypeScvObject,
-		Obj:  &obj,
-	}
+func masterAccountIDEnumParam(itest *integration.Test) xdr.ScVal {
+	root := keypair.Root(itest.GetPassPhrase())
+	return accountIDEnumParam(root.Address())
 }
 
 func functionNameParam(name string) xdr.ScVal {
@@ -569,6 +557,18 @@ func contractIDParam(contractID xdr.Hash) xdr.ScVal {
 	}
 }
 
+// TODO: this shouldn't be an enumerate
+// It should be of type Address
+//
+// #[derive(Clone)]
+//
+//	pub struct Address {
+//	   host: Host,
+//	   object: Object,
+//	}
+//
+// See https://github.com/stellar/rs-soroban-env/blob/main/soroban-env-host/src/native_contract/base_types.rs#L401-L405
+// However, I am not sure how to create it since it contains the Host :S
 func accountIDEnumParam(accountID string) xdr.ScVal {
 	accountObj := &xdr.ScObject{
 		Type: xdr.ScObjectTypeScoAddress,
@@ -662,8 +662,7 @@ func mint(itest *integration.Test, sourceAccount string, asset xdr.Asset, assetA
 			InvokeArgs: &xdr.ScVec{
 				contractIDParam(stellarAssetContractID(itest.CurrentTest(), itest.GetPassPhrase(), asset)),
 				functionNameParam("mint"),
-				invokerSignatureParam(),
-				i128Param(0, 0),
+				masterAccountIDEnumParam(itest),
 				recipient,
 				i128Param(0, uint64(amount.MustParse(assetAmount))),
 			},
@@ -679,8 +678,7 @@ func clawback(itest *integration.Test, sourceAccount string, asset xdr.Asset, as
 			InvokeArgs: &xdr.ScVec{
 				contractIDParam(stellarAssetContractID(itest.CurrentTest(), itest.GetPassPhrase(), asset)),
 				functionNameParam("clawback"),
-				invokerSignatureParam(),
-				i128Param(0, 0),
+				masterAccountIDEnumParam(itest),
 				recipient,
 				i128Param(0, uint64(amount.MustParse(assetAmount))),
 			},
@@ -710,8 +708,7 @@ func xfer(itest *integration.Test, sourceAccount string, asset xdr.Asset, assetA
 			InvokeArgs: &xdr.ScVec{
 				contractIDParam(stellarAssetContractID(itest.CurrentTest(), itest.GetPassPhrase(), asset)),
 				functionNameParam("xfer"),
-				invokerSignatureParam(),
-				i128Param(0, 0),
+				masterAccountIDEnumParam(itest),
 				recipient,
 				i128Param(0, uint64(amount.MustParse(assetAmount))),
 			},
@@ -761,8 +758,7 @@ func burn(itest *integration.Test, sourceAccount string, asset xdr.Asset, assetA
 			InvokeArgs: &xdr.ScVec{
 				contractIDParam(stellarAssetContractID(itest.CurrentTest(), itest.GetPassPhrase(), asset)),
 				functionNameParam("burn"),
-				invokerSignatureParam(),
-				i128Param(0, 0),
+				masterAccountIDEnumParam(itest),
 				i128Param(0, uint64(amount.MustParse(assetAmount))),
 			},
 		},
