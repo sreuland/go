@@ -352,9 +352,10 @@ type LiquidityPoolWithdraw struct {
 // just contains a base64 encoded string of it's xdr serialization.
 type InvokeHostFunction struct {
 	Base
-	Parameters []HostFunctionParameter `json:"parameters"`
-	Function   string                  `json:"function"`
-	Footprint  string                  `json:"footprint"`
+	Parameters          []HostFunctionParameter      `json:"parameters"`
+	Function            string                       `json:"function"`
+	Footprint           string                       `json:"footprint"`
+	AssetBalanceChanges []AssetContractBalanceChange `json:"asset_balance_changes"`
 }
 
 // InvokeHostFunction parameter model, intentionally simplified, Value
@@ -362,6 +363,17 @@ type InvokeHostFunction struct {
 type HostFunctionParameter struct {
 	Value string `json:"value"`
 	Type  string `json:"type"`
+}
+
+type AssetContractBalanceChange struct {
+	base.Asset
+	From        string `json:"from"`
+	FromMuxed   string `json:"from_muxed,omitempty"`
+	FromMuxedID uint64 `json:"from_muxed_id,omitempty,string"`
+	To          string `json:"to"`
+	ToMuxed     string `json:"to_muxed,omitempty"`
+	ToMuxedID   uint64 `json:"to_muxed_id,omitempty,string"`
+	Amount      string `json:"amount"`
 }
 
 // Operation interface contains methods implemented by the operation types

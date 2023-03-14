@@ -648,6 +648,7 @@ type Operation struct {
 	SourceAccount         string            `db:"source_account"`
 	SourceAccountMuxed    null.String       `db:"source_account_muxed"`
 	TransactionSuccessful bool              `db:"transaction_successful"`
+	AssetBalanceChanged   bool              `db:"asset_balance_changed"`
 }
 
 // ManageOffer is a struct of data from `operations.DetailsString`

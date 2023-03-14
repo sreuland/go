@@ -41,6 +41,7 @@ func (s *OperationsProcessorTestSuiteLedger) SetupTest() {
 	s.processor = NewOperationProcessor(
 		s.mockQ,
 		56,
+		"test network",
 	)
 }
 

@@ -20,6 +20,7 @@ type OperationBatchInsertBuilder interface {
 		details []byte,
 		sourceAccount string,
 		sourceAcccountMuxed null.String,
+		assetBalanceChanged bool,
 	) error
 	Exec(ctx context.Context) error
 }
@@ -49,15 +50,17 @@ func (i *operationBatchInsertBuilder) Add(
 	details []byte,
 	sourceAccount string,
 	sourceAccountMuxed null.String,
+	assetBalanceChanged bool,
 ) error {
 	return i.builder.Row(ctx, map[string]interface{}{
-		"id":                   id,
-		"transaction_id":       transactionID,
-		"application_order":    applicationOrder,
-		"type":                 operationType,
-		"details":              details,
-		"source_account":       sourceAccount,
-		"source_account_muxed": sourceAccountMuxed,
+		"id":                    id,
+		"transaction_id":        transactionID,
+		"application_order":     applicationOrder,
+		"type":                  operationType,
+		"details":               details,
+		"source_account":        sourceAccount,
+		"source_account_muxed":  sourceAccountMuxed,
+		"asset_balance_changed": assetBalanceChanged,
 	})
 
 }

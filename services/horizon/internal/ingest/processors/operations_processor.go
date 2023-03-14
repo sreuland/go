@@ -11,6 +11,7 @@ import (
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/protocols/horizon/base"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
+	"github.com/stellar/go/support/contractevents"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/toid"
 	"github.com/stellar/go/xdr"
@@ -20,15 +21,17 @@ import (
 type OperationProcessor struct {
 	operationsQ history.QOperations
 
-	sequence uint32
-	batch    history.OperationBatchInsertBuilder
+	sequence          uint32
+	batch             history.OperationBatchInsertBuilder
+	networkPassphrase string
 }
 
-func NewOperationProcessor(operationsQ history.QOperations, sequence uint32) *OperationProcessor {
+func NewOperationProcessor(operationsQ history.QOperations, sequence uint32, networkPassphrase string) *OperationProcessor {
 	return &OperationProcessor{
-		operationsQ: operationsQ,
-		sequence:    sequence,
-		batch:       operationsQ.NewOperationBatchInsertBuilder(maxBatchSize),
+		operationsQ:       operationsQ,
+		sequence:          sequence,
+		batch:             operationsQ.NewOperationBatchInsertBuilder(maxBatchSize),
+		networkPassphrase: networkPassphrase,
 	}
 }
 
@@ -36,10 +39,11 @@ func NewOperationProcessor(operationsQ history.QOperations, sequence uint32) *Op
 func (p *OperationProcessor) ProcessTransaction(ctx context.Context, transaction ingest.LedgerTransaction) error {
 	for i, op := range transaction.Envelope.Operations() {
 		operation := transactionOperationWrapper{
-			index:          uint32(i),
-			transaction:    transaction,
-			operation:      op,
-			ledgerSequence: p.sequence,
+			index:             uint32(i),
+			transaction:       transaction,
+			operation:         op,
+			ledgerSequence:    p.sequence,
+			networkPassphrase: p.networkPassphrase,
 		}
 		details, err := operation.Details()
 		if err != nil {
@@ -65,6 +69,7 @@ func (p *OperationProcessor) ProcessTransaction(ctx context.Context, transaction
 			detailsJSON,
 			acID.Address(),
 			sourceAccountMuxed,
+			operation.AssetBalanceChanged(),
 		); err != nil {
 			return errors.Wrap(err, "Error batch inserting operation rows")
 		}
@@ -79,10 +84,11 @@ func (p *OperationProcessor) Commit(ctx context.Context) error {
 
 // transactionOperationWrapper represents the data for a single operation within a transaction
 type transactionOperationWrapper struct {
-	index          uint32
-	transaction    ingest.LedgerTransaction
-	operation      xdr.Operation
-	ledgerSequence uint32
+	index             uint32
+	transaction       ingest.LedgerTransaction
+	operation         xdr.Operation
+	ledgerSequence    uint32
+	networkPassphrase string
 }
 
 // ID returns the ID for the operation.
@@ -246,6 +252,44 @@ func (operation *transactionOperationWrapper) OperationResult() *xdr.OperationRe
 	results, _ := operation.transaction.Result.OperationResults()
 	tr := results[operation.index].MustTr()
 	return &tr
+}
+
+func (operation *transactionOperationWrapper) AssetBalanceChanged() bool {
+	switch operation.OperationType() {
+	case xdr.OperationTypeCreateAccount:
+		return true
+	case xdr.OperationTypePayment:
+		return true
+	case xdr.OperationTypePathPaymentStrictReceive:
+		return true
+	case xdr.OperationTypePathPaymentStrictSend:
+		return true
+	case xdr.OperationTypeAccountMerge:
+		return true
+	case xdr.OperationTypeInvokeHostFunction:
+		txMeta, ok := operation.transaction.UnsafeMeta.GetV3()
+		if !ok {
+			return false
+		}
+		for _, opEvents := range txMeta.Events {
+			for _, contractEvent := range opEvents.Events {
+				if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.networkPassphrase); err == nil {
+					switch sacEvent.GetType() {
+					case contractevents.EventTypeTransfer:
+						return true
+					case contractevents.EventTypeMint:
+						return true
+					case contractevents.EventTypeClawback:
+						return true
+					case contractevents.EventTypeBurn:
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func (operation *transactionOperationWrapper) findInitatingBeginSponsoringOp() *transactionOperationWrapper {
@@ -605,8 +649,14 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 				}
 				params = append(params, serializedParam)
 			}
-
 			details["parameters"] = params
+
+			if balanceChanges, err := operation.parseAssetBalanceChangesFromContractEvents(); err != nil {
+				return nil, err
+			} else {
+				details["asset_balance_changes"] = balanceChanges
+			}
+
 		case xdr.HostFunctionTypeHostFunctionTypeCreateContract:
 			args := op.Function.MustCreateContractArgs()
 			details["type"] = args.ContractId.Type.String()
@@ -653,6 +703,64 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 	}
 
 	return details, nil
+}
+
+// Searches an operation for SAC events that are of a type which represent asset balances changed between contracts and/or classic.
+// SAC events have a one-to-one association to SAC contract fn invocations, i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
+// SAC events that involve asset balance changes follow some standard data formats:
+//     amount expressed as uint64 only, the event type in this case provides the context of whether an amount was credit/debit to a balance.
+//     the 'from' and 'to' attributes represent an account or a contract
+func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContractEvents() ([]map[string]interface{}, error) {
+	balanceChanges := []map[string]interface{}{}
+
+	txMeta, ok := operation.transaction.UnsafeMeta.GetV3()
+	if !ok {
+		// there's no newer v3 meta which is when contract events start being present, otherwise none present.
+		return balanceChanges, nil
+	}
+
+	for _, opEvents := range txMeta.Events {
+		for _, contractEvent := range opEvents.Events {
+			// parse the xdr contract event to contractevents.StellarAssetContractEvent model
+			// has some convenience like to/from attributes are expressed in strkey format for contracts(C...) and accounts(G...)
+			if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.networkPassphrase); err == nil {
+				switch sacEvent.GetType() {
+				case contractevents.EventTypeTransfer:
+					transferEvt := sacEvent.(contractevents.TransferEvent)
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(transferEvt.From, transferEvt.To, transferEvt.Amount.Lo, transferEvt.Asset))
+				case contractevents.EventTypeMint:
+					mintEvt := sacEvent.(contractevents.MintEvent)
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(mintEvt.Admin, mintEvt.To, mintEvt.Amount.Lo, mintEvt.Asset))
+				case contractevents.EventTypeClawback:
+					clawbackEvt := sacEvent.(contractevents.ClawbackEvent)
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(clawbackEvt.From, clawbackEvt.Admin, clawbackEvt.Amount.Lo, clawbackEvt.Asset))
+				case contractevents.EventTypeBurn:
+					burnEvt := sacEvent.(contractevents.BurnEvent)
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(burnEvt.From, "", burnEvt.Amount.Lo, burnEvt.Asset))
+				}
+			}
+		}
+	}
+
+	return balanceChanges, nil
+}
+
+// fromAccount - strkey format of contract or address
+// toAccount - strkey format of contract or address, or nillable
+// amountChanged - absolute value that asset balance changed
+// asset - the fully qualified issuer:code for asset that had balance change
+//
+// return - a balance changed record expressed as map of key/value's
+func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountChanged xdr.Uint64, asset xdr.Asset) map[string]interface{} {
+	balanceChange := map[string]interface{}{}
+
+	balanceChange["from"] = fromAccount
+	if toAccount != "" {
+		balanceChange["to"] = toAccount
+	}
+	balanceChange["amount"] = string(amountChanged)
+	addAssetDetails(balanceChange, asset, "")
+	return balanceChange
 }
 
 func addLiquidityPoolAssetDetails(result map[string]interface{}, lpp xdr.LiquidityPoolParameters) error {

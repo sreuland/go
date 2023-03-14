@@ -103,6 +103,7 @@ func TestOperationByLiquidityPool(t *testing.T) {
 		[]byte("{}"),
 		"GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",
 		null.String{},
+		false,
 	)
 	tt.Assert.NoError(err)
 	err = operationBuilder.Exec(tt.Ctx)
@@ -117,6 +118,7 @@ func TestOperationByLiquidityPool(t *testing.T) {
 		[]byte("{}"),
 		"GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",
 		null.String{},
+		false,
 	)
 	tt.Assert.NoError(err)
 	err = operationBuilder.Exec(tt.Ctx)
