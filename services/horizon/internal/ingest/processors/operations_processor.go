@@ -12,6 +12,7 @@ import (
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/protocols/horizon/base"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
+	"github.com/stellar/go/strkey"
 	"github.com/stellar/go/support/contractevents"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/toid"
@@ -739,22 +740,22 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 			switch sacEvent.GetType() {
 			case contractevents.EventTypeTransfer:
 				transferEvt := sacEvent.(contractevents.TransferEvent)
-				if !contractevents.IsContractAddress(transferEvt.From) || !contractevents.IsContractAddress(transferEvt.To) {
+				if strkey.IsValidEd25519PublicKey(transferEvt.From) || strkey.IsValidEd25519PublicKey(transferEvt.To) {
 					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(transferEvt.From, transferEvt.To, transferEvt.Amount, transferEvt.Asset, "transfer"))
 				}
 			case contractevents.EventTypeMint:
 				mintEvt := sacEvent.(contractevents.MintEvent)
-				if !contractevents.IsContractAddress(mintEvt.Admin) || !contractevents.IsContractAddress(mintEvt.To) {
+				if strkey.IsValidEd25519PublicKey(mintEvt.Admin) || strkey.IsValidEd25519PublicKey(mintEvt.To) {
 					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(mintEvt.Admin, mintEvt.To, mintEvt.Amount, mintEvt.Asset, "mint"))
 				}
 			case contractevents.EventTypeClawback:
 				clawbackEvt := sacEvent.(contractevents.ClawbackEvent)
-				if !contractevents.IsContractAddress(clawbackEvt.From) || !contractevents.IsContractAddress(clawbackEvt.Admin) {
+				if strkey.IsValidEd25519PublicKey(clawbackEvt.From) || strkey.IsValidEd25519PublicKey(clawbackEvt.Admin) {
 					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(clawbackEvt.From, clawbackEvt.Admin, clawbackEvt.Amount, clawbackEvt.Asset, "clawback"))
 				}
 			case contractevents.EventTypeBurn:
 				burnEvt := sacEvent.(contractevents.BurnEvent)
-				if !contractevents.IsContractAddress(burnEvt.From) {
+				if strkey.IsValidEd25519PublicKey(burnEvt.From) {
 					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(burnEvt.From, "", burnEvt.Amount, burnEvt.Asset, "burn"))
 				}
 			}
@@ -774,7 +775,7 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountChanged xdr.Int128Parts, asset xdr.Asset, changeType string) map[string]interface{} {
 	balanceChange := map[string]interface{}{}
 
-	if contractevents.IsContractAddress(fromAccount) {
+	if strkey.IsValidEd25519PublicKey(fromAccount) {
 		// TODO, place the 'C...' contract address here, if/when horizon has facility for
 		// contract addresses
 		balanceChange["from"] = "contract"
@@ -783,7 +784,7 @@ func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountCha
 	}
 
 	if toAccount != "" {
-		if contractevents.IsContractAddress(toAccount) {
+		if strkey.IsValidEd25519PublicKey(toAccount) {
 			// TODO, place the 'C...' contract address here, if/when horizon has facility for
 			// contract addresses
 			balanceChange["to"] = "contract"
