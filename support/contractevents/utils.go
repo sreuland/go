@@ -38,6 +38,10 @@ func MustScAddressToString(address *xdr.ScAddress) string {
 	return result
 }
 
+func IsContractAddress(account string) bool {
+	return account[0] == 'C'
+}
+
 func parseAddress(val *xdr.ScVal) *xdr.ScAddress {
 	if val == nil {
 		return nil

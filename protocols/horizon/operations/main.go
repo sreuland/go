@@ -352,11 +352,13 @@ type LiquidityPoolWithdraw struct {
 // Parameters - array of tuples of each function input parameter value and it's data type
 // Function - name of contract function
 // Footprint - base64 encoded string of it's xdr serialization.
+// AssetBalanceChanges - array of asset balance changed records
 type InvokeHostFunction struct {
 	Base
-	Parameters []HostFunctionParameter `json:"parameters"`
-	Function   string                  `json:"function"`
-	Footprint  string                  `json:"footprint"`
+	Parameters          []HostFunctionParameter      `json:"parameters"`
+	Function            string                       `json:"function"`
+	Footprint           string                       `json:"footprint"`
+	AssetBalanceChanges []AssetContractBalanceChange `json:"asset_balance_changes"`
 }
 
 // InvokeHostFunction parameter model, intentionally simplified, Value
@@ -364,6 +366,22 @@ type InvokeHostFunction struct {
 type HostFunctionParameter struct {
 	Value string `json:"value"`
 	Type  string `json:"type"`
+}
+
+// Type - refers to the source SAC Event
+// 		it can only be one of 'transfer', 'mint', 'clawback' or 'burn'
+// From - this is classic account that asset was decremented
+// To - this is the classic account that asset was incremented, or if not applicable
+//		for asset contract event, it can be absent such as 'burn'
+// Amount - expressed as a signed decimal to 7 digits precision.
+// Asset - the classic asset expressed as issuer and code.
+// The event is captured at ingestion time from the contract events present in tx meta.
+type AssetContractBalanceChange struct {
+	base.Asset
+	Type   string `json:"type"`
+	From   string `json:"from"`
+	To     string `json:"to,omitempty"`
+	Amount string `json:"amount"`
 }
 
 // Operation interface contains methods implemented by the operation types

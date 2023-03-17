@@ -18,7 +18,7 @@ import (
 	"github.com/stellar/go/xdr"
 )
 
-func TestContractEventsInPaymentOperations(t *testing.T) {
+func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 	tt := test.Start(t)
 	defer tt.Finish()
 	test.ResetHorizonDB(t, tt.HorizonDB)
@@ -63,7 +63,44 @@ func TestContractEventsInPaymentOperations(t *testing.T) {
 		[]byte(`{
 			"parameters": [],
 	        "function": "fn",
-	        "footprint": ""
+	        "footprint": "",
+			"asset_balance_changes": [
+                {
+					"asset_type": "credit_alphanum4",
+					"asset_code": "abc",
+					"asset_issuer": "123",
+					"from": "contract",
+					"to": "G_FOR_CLASSIC_ACCOUNT_ADDRESS1",
+					"amount": "3",
+					"type": "transfer"
+				},
+				{
+					"asset_type": "credit_alphanum4",
+					"asset_code": "abc",
+					"asset_issuer": "123",
+					"from": "G_FOR_CLASSIC_ACCOUNT_ADDRESS2",
+					"to": "G_FOR_CLASSIC_ACCOUNT_ADDRESS3",
+					"amount": "5",
+					"type": "clawback"
+				},
+				{
+					"asset_type": "credit_alphanum4",
+					"asset_code": "abc",
+					"asset_issuer": "123",
+					"from": "G_FOR_CLASSIC_ACCOUNT_ADDRESS2",
+					"amount": "6",
+					"type": "burn"
+				},
+				{
+					"asset_type": "credit_alphanum4",
+					"asset_code": "abc",
+					"asset_issuer": "123",
+					"from": "G_FOR_CLASSIC_ACCOUNT_ADDRESS2",
+					"to": "contract",
+					"amount": "10",
+					"type": "mint"
+				}
+			]
 		}`),
 		"GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",
 		null.String{},
@@ -81,6 +118,35 @@ func TestContractEventsInPaymentOperations(t *testing.T) {
 
 	op := records[0].(operations.InvokeHostFunction)
 	tt.Assert.Equal(op.Function, "fn")
+	tt.Assert.Equal(len(op.AssetBalanceChanges), 4)
+	tt.Assert.Equal(op.AssetBalanceChanges[0].From, "contract")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].To, "G_FOR_CLASSIC_ACCOUNT_ADDRESS1")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].Amount, "3")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].Type, "transfer")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].Asset.Type, "credit_alphanum4")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].Asset.Code, "abc")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].Asset.Issuer, "123")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].From, "G_FOR_CLASSIC_ACCOUNT_ADDRESS2")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].To, "G_FOR_CLASSIC_ACCOUNT_ADDRESS3")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].Amount, "5")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].Type, "clawback")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].Asset.Type, "credit_alphanum4")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].Asset.Code, "abc")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].Asset.Issuer, "123")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].From, "G_FOR_CLASSIC_ACCOUNT_ADDRESS2")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].To, "")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].Amount, "6")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].Type, "burn")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].Asset.Type, "credit_alphanum4")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].Asset.Code, "abc")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].Asset.Issuer, "123")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].From, "G_FOR_CLASSIC_ACCOUNT_ADDRESS2")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].To, "contract")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].Amount, "10")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].Type, "mint")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].Asset.Type, "credit_alphanum4")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].Asset.Code, "abc")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].Asset.Issuer, "123")
 }
 
 func TestGetOperationsWithoutFilter(t *testing.T) {

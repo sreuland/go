@@ -707,7 +707,7 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 }
 
 // Searches an operation for SAC events that are of a type which represent
-//    Asset balances changed between contracts and/or classic.
+//    Asset balances changed with at least one participant of the change referencing a classic account.
 //
 // SAC events have a one-to-one association to SAC contract fn invocations,
 //    i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
@@ -716,7 +716,6 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 //     The 'amount' expressed as non-negative, the event type can provide the context of
 //     whether an amount was considered negative i.e. credit or debit to a balance.
 //
-//     The 'from' and 'to' attributes represent an account or a contract
 func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContractEvents() ([]map[string]interface{}, error) {
 	balanceChanges := []map[string]interface{}{}
 
@@ -728,22 +727,32 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 	}
 
 	for _, contractEvent := range events {
-		// parse the xdr contract event to contractevents.StellarAssetContractEvent model
-		// has some convenience like to/from attributes are expressed in strkey format for contracts(C...) and accounts(G...)
+		// Parse the xdr contract event to contractevents.StellarAssetContractEvent model
+		// has some convenience like to/from attributes are expressed in strkey format for classic accounts(G...)
+		// For now, if the event refers to contract addresses only, then drop the event, don't
+		// include in the operation details, this may change if contract addresses become a recognized entity in horizon history model
 		if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.networkPassphrase); err == nil {
 			switch sacEvent.GetType() {
 			case contractevents.EventTypeTransfer:
 				transferEvt := sacEvent.(contractevents.TransferEvent)
-				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(transferEvt.From, transferEvt.To, transferEvt.Amount, transferEvt.Asset))
+				if !contractevents.IsContractAddress(transferEvt.From) || !contractevents.IsContractAddress(transferEvt.To) {
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(transferEvt.From, transferEvt.To, transferEvt.Amount, transferEvt.Asset, "transfer"))
+				}
 			case contractevents.EventTypeMint:
 				mintEvt := sacEvent.(contractevents.MintEvent)
-				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(mintEvt.Admin, mintEvt.To, mintEvt.Amount, mintEvt.Asset))
+				if !contractevents.IsContractAddress(mintEvt.Admin) || !contractevents.IsContractAddress(mintEvt.To) {
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(mintEvt.Admin, mintEvt.To, mintEvt.Amount, mintEvt.Asset, "mint"))
+				}
 			case contractevents.EventTypeClawback:
 				clawbackEvt := sacEvent.(contractevents.ClawbackEvent)
-				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(clawbackEvt.From, clawbackEvt.Admin, clawbackEvt.Amount, clawbackEvt.Asset))
+				if !contractevents.IsContractAddress(clawbackEvt.From) || !contractevents.IsContractAddress(clawbackEvt.Admin) {
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(clawbackEvt.From, clawbackEvt.Admin, clawbackEvt.Amount, clawbackEvt.Asset, "clawback"))
+				}
 			case contractevents.EventTypeBurn:
 				burnEvt := sacEvent.(contractevents.BurnEvent)
-				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(burnEvt.From, "", burnEvt.Amount, burnEvt.Asset))
+				if !contractevents.IsContractAddress(burnEvt.From) {
+					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(burnEvt.From, "", burnEvt.Amount, burnEvt.Asset, "burn"))
+				}
 			}
 		}
 	}
@@ -755,15 +764,31 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 // toAccount - strkey format of contract or address, or nillable
 // amountChanged - absolute value that asset balance changed
 // asset - the fully qualified issuer:code for asset that had balance change
+// changeType - the type of source sac event that triggered this change
 //
 // return - a balance changed record expressed as map of key/value's
-func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountChanged xdr.Int128Parts, asset xdr.Asset) map[string]interface{} {
+func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountChanged xdr.Int128Parts, asset xdr.Asset, changeType string) map[string]interface{} {
 	balanceChange := map[string]interface{}{}
 
-	balanceChange["from"] = fromAccount
-	if toAccount != "" {
-		balanceChange["to"] = toAccount
+	if contractevents.IsContractAddress(fromAccount) {
+		// TODO, place the 'C...' contract address here, if/when horizon has facility for
+		// contract addresses
+		balanceChange["from"] = "contract"
+	} else {
+		balanceChange["from"] = fromAccount
 	}
+
+	if toAccount != "" {
+		if contractevents.IsContractAddress(toAccount) {
+			// TODO, place the 'C...' contract address here, if/when horizon has facility for
+			// contract addresses
+			balanceChange["to"] = "contract"
+		} else {
+			balanceChange["to"] = toAccount
+		}
+	}
+
+	balanceChange["type"] = changeType
 	balanceChange["amount"] = stringifyAmount(amountChanged)
 	addAssetDetails(balanceChange, asset, "")
 	return balanceChange
