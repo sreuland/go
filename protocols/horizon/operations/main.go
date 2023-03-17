@@ -375,10 +375,14 @@ type HostFunctionParameter struct {
 }
 
 // Type   - refers to the source SAC Event
-// 		    it can only be one of 'transfer', 'mint', 'clawback' or 'burn'
+//
+//	it can only be one of 'transfer', 'mint', 'clawback' or 'burn'
+//
 // From   - this is classic account that asset balance was changed.
 // To     - this is the classic account that asset balance was changed, or if not applicable
-//		    for asset contract event type, it can be absent such as 'burn'
+//
+//	for asset contract event type, it can be absent such as 'burn'
+//
 // Amount - expressed as a signed decimal to 7 digits precision.
 // Asset  - the classic asset expressed as issuer and code.
 type AssetContractBalanceChange struct {

@@ -714,13 +714,14 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 // then it will be skipped and not ingested as a balance change into the operation details.
 //
 // SAC events have a one-to-one association to SAC contract fn invocations,
-//    i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
+//
+//	i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
 //
 // SAC events that involve asset balance changes follow some standard data formats:
-//     The 'amount' in the event is expressed as Int128Parts, which carries a sign, however it's expected
-//     that value will not be signed as it represents a absolute delta, the event type can provide the
-//     context of whether an amount was considered incremental or decremental, i.e. credit or debit to a balance.
 //
+//	The 'amount' in the event is expressed as Int128Parts, which carries a sign, however it's expected
+//	that value will not be signed as it represents a absolute delta, the event type can provide the
+//	context of whether an amount was considered incremental or decremental, i.e. credit or debit to a balance.
 func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContractEvents() ([]map[string]interface{}, error) {
 	balanceChanges := []map[string]interface{}{}
 
