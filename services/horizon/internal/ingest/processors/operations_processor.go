@@ -255,6 +255,7 @@ func (operation *transactionOperationWrapper) OperationResult() *xdr.OperationRe
 	return &tr
 }
 
+// Determines if an operation is qualified to represent a payment in horizon terms.
 func (operation *transactionOperationWrapper) IsPayment() bool {
 	switch operation.OperationType() {
 	case xdr.OperationTypeCreateAccount:
@@ -707,15 +708,17 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 }
 
 // Searches an operation for SAC events that are of a type which represent
-//    Asset balances changed with at least one participant of the change referencing a classic account.
+// asset balances changed with at least one participant of the change referencing a classic account.
+// If the SAC event is strictly inter-contract, only references contract addresses and no classic addresses,
+// then it will be skipped and not ingested as a balance change into the operation details.
 //
 // SAC events have a one-to-one association to SAC contract fn invocations,
 //    i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
 //
 // SAC events that involve asset balance changes follow some standard data formats:
-//     The 'amount' in the event is expressed as Int128Parts, however it's expected that it's value will not be signed.
-//     It represents a absolute delta, the event type can provide the context of whether an amount
-//     was considered incremental or decreental, i.e. credit or debit to a balance.
+//     The 'amount' in the event is expressed as Int128Parts, which carries a sign, however it's expected
+//     that value will not be signed as it represents a absolute delta, the event type can provide the
+//     context of whether an amount was considered incremental or decremental, i.e. credit or debit to a balance.
 //
 func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContractEvents() ([]map[string]interface{}, error) {
 	balanceChanges := []map[string]interface{}{}
@@ -761,13 +764,13 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 	return balanceChanges, nil
 }
 
-// fromAccount - strkey format of contract or address
-// toAccount - strkey format of contract or address, or nillable
+// fromAccount   - strkey format of contract or address
+// toAccount     - strkey format of contract or address, or nillable
 // amountChanged - absolute value that asset balance changed
-// asset - the fully qualified issuer:code for asset that had balance change
-// changeType - the type of source sac event that triggered this change
+// asset         - the fully qualified issuer:code for asset that had balance change
+// changeType    - the type of source sac event that triggered this change
 //
-// return - a balance changed record expressed as map of key/value's
+// return        - a balance changed record expressed as map of key/value's
 func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountChanged xdr.Int128Parts, asset xdr.Asset, changeType string) map[string]interface{} {
 	balanceChange := map[string]interface{}{}
 
