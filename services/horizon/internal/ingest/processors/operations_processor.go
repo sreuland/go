@@ -777,20 +777,20 @@ func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountCha
 	balanceChange := map[string]interface{}{}
 
 	if strkey.IsValidEd25519PublicKey(fromAccount) {
+		balanceChange["from"] = fromAccount
+	} else {
 		// TODO, place the 'C...' contract address here, if/when horizon has facility for
 		// contract addresses
 		balanceChange["from"] = "contract"
-	} else {
-		balanceChange["from"] = fromAccount
 	}
 
 	if toAccount != "" {
 		if strkey.IsValidEd25519PublicKey(toAccount) {
+			balanceChange["to"] = toAccount
+		} else {
 			// TODO, place the 'C...' contract address here, if/when horizon has facility for
 			// contract addresses
 			balanceChange["to"] = "contract"
-		} else {
-			balanceChange["to"] = toAccount
 		}
 	}
 
