@@ -52,10 +52,6 @@ func (i *operationBatchInsertBuilder) Add(
 	sourceAccountMuxed null.String,
 	isPayment bool,
 ) error {
-	dbIsPayment := 0
-	if isPayment {
-		dbIsPayment = 1
-	}
 	return i.builder.Row(ctx, map[string]interface{}{
 		"id":                   id,
 		"transaction_id":       transactionID,
@@ -64,7 +60,7 @@ func (i *operationBatchInsertBuilder) Add(
 		"details":              details,
 		"source_account":       sourceAccount,
 		"source_account_muxed": sourceAccountMuxed,
-		"is_payment":           dbIsPayment,
+		"is_payment":           isPayment,
 	})
 
 }

@@ -247,7 +247,7 @@ func (q *OperationsQ) OnlyPayments() *OperationsQ {
 			xdr.OperationTypePathPaymentStrictSend,
 			xdr.OperationTypeAccountMerge,
 		}},
-		sq.Eq{"hop.is_payment": 1}})
+		sq.Eq{"hop.is_payment": true}})
 
 	return q
 }
