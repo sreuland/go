@@ -84,6 +84,7 @@ func (s *OperationsProcessorTestSuiteLedger) mockBatchInsertAdds(txs []ingest.Le
 				detailsJSON,
 				acID.Address(),
 				muxedAccount,
+				mock.Anything,
 			).Return(nil).Once()
 		}
 	}
@@ -356,6 +357,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestAddOperationFails() {
 	s.mockBatchInsertBuilder.
 		On(
 			"Add", s.ctx,
+			mock.Anything,
 			mock.Anything,
 			mock.Anything,
 			mock.Anything,

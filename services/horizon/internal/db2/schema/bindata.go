@@ -60,6 +60,7 @@
 // migrations/61_trust_lines_by_account_type_code_issuer.sql (383B)
 // migrations/62_claimable_balance_claimants.sql (1.428kB)
 // migrations/63_add_contract_id_to_asset_stats.sql (153B)
+// migrations/64_add_payment_flag_history_ops.sql (311B)
 // migrations/6_create_assets_table.sql (366B)
 // migrations/7_modify_trades_table.sql (2.303kB)
 // migrations/8_add_aggregators.sql (907B)
@@ -1333,6 +1334,26 @@ func migrations63_add_contract_id_to_asset_statsSql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations64_add_payment_flag_history_opsSql = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x94\x8f\xc1\x8a\xc2\x30\x14\x45\xf7\xef\x2b\x1e\x5d\xcd\x30\x14\x66\x9f\x55\xa6\xc9\x48\x21\xa6\x52\x13\x70\x17\x22\x06\x0d\xb4\x49\x49\x02\xda\xbf\x17\xdc\xb4\xa0\x20\xee\x2f\xe7\xdc\x53\xd7\xf8\x33\xfa\x73\xb2\xc5\xa1\x9e\x00\xa8\x50\xbc\x47\x45\xff\x04\xc7\x8b\xcf\x25\xa6\xd9\xc4\xc9\x25\x5b\x7c\x0c\x19\x29\x63\xe8\xb3\x99\xec\x3c\xba\x50\x30\x8f\x76\x18\x7c\x28\xc8\xf8\x3f\xd5\x42\xe1\x2f\x81\xa6\xe7\x54\x71\x6c\x25\xe3\x07\xac\x7c\x38\xb9\x9b\x79\x26\x99\x18\xcc\x02\xaa\xb0\x93\xaf\x74\x7a\xdf\xca\x0d\x1e\x4b\x72\x0e\xbf\x96\xf9\x37\x01\x58\x1f\x67\xf1\x1a\x00\x58\xdf\xed\x3e\xd4\x92\x77\xbd\x0f\x66\xd3\x09\xbd\x95\xab\x6e\x02\xf7\x00\x00\x00\xff\xff\x18\xdd\x91\x13\x37\x01\x00\x00")
+
+func migrations64_add_payment_flag_history_opsSqlBytes() ([]byte, error) {
+	return bindataRead(
+		_migrations64_add_payment_flag_history_opsSql,
+		"migrations/64_add_payment_flag_history_ops.sql",
+	)
+}
+
+func migrations64_add_payment_flag_history_opsSql() (*asset, error) {
+	bytes, err := migrations64_add_payment_flag_history_opsSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/64_add_payment_flag_history_ops.sql", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0x2, 0x5b, 0x50, 0xfd, 0x92, 0x46, 0x1, 0x5c, 0xed, 0x77, 0xda, 0xa1, 0x39, 0x7b, 0xe6, 0x2d, 0x55, 0xd8, 0xbe, 0x64, 0xc, 0x40, 0x92, 0x20, 0x31, 0x33, 0x21, 0xe5, 0x52, 0x48, 0xc6, 0xb2}}
+	return a, nil
+}
+
 var _migrations6_create_assets_tableSql = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x6c\x90\x3d\x4f\xc3\x30\x18\x84\x77\xff\x8a\x1b\x1d\x91\x0e\x20\xe8\x92\xc9\x34\x16\x58\x18\xa7\xb8\x31\xa2\x53\xe5\x26\x16\x78\x80\x54\xb6\x11\xca\xbf\x47\xaa\x28\xf9\x50\xe6\x7b\xf4\xbc\xef\xdd\x6a\x85\xab\x4f\xff\x1e\x6c\x72\x30\x27\xb2\xd1\x9c\xd5\x1c\x35\xbb\x97\x1c\x1f\x3e\xa6\x2e\xf4\x07\x1b\xa3\x4b\x11\x94\x00\x80\x6f\xb1\xe3\x5a\x30\x89\xad\x16\xcf\x4c\xef\xf1\xc4\xf7\xc8\xcf\xd9\x19\x3c\xa4\xfe\xe4\xf0\xca\xf4\xe6\x91\x69\xba\xbe\xcd\xa0\xaa\x1a\xca\x48\x39\x86\x9a\xae\x1d\xa0\xeb\x9b\x65\xc8\xc7\xf8\xed\xc2\x3f\x76\xb7\x9e\x63\x46\x89\x17\xc3\xe9\xa0\xcc\x47\x3f\xe4\x13\x4b\x46\xb2\x82\x5c\xfa\x09\x55\xf2\xb7\xbf\xf8\xd8\x5f\xee\x54\x6a\x5e\xd9\xec\x84\x7a\xc0\x31\x05\xe7\x40\x27\xb6\x82\x90\xf1\x74\x65\xf7\xf3\x45\x4a\x5d\x6d\x97\xa7\x6b\x6c\x6c\x6c\xeb\x8a\xdf\x00\x00\x00\xff\xff\xfb\x53\x3e\x81\x6e\x01\x00\x00")
 
 func migrations6_create_assets_tableSqlBytes() ([]byte, error) {
@@ -1584,6 +1605,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/61_trust_lines_by_account_type_code_issuer.sql":          migrations61_trust_lines_by_account_type_code_issuerSql,
 	"migrations/62_claimable_balance_claimants.sql":                      migrations62_claimable_balance_claimantsSql,
 	"migrations/63_add_contract_id_to_asset_stats.sql":                   migrations63_add_contract_id_to_asset_statsSql,
+	"migrations/64_add_payment_flag_history_ops.sql":                     migrations64_add_payment_flag_history_opsSql,
 	"migrations/6_create_assets_table.sql":                               migrations6_create_assets_tableSql,
 	"migrations/7_modify_trades_table.sql":                               migrations7_modify_trades_tableSql,
 	"migrations/8_add_aggregators.sql":                                   migrations8_add_aggregatorsSql,
@@ -1595,13 +1617,11 @@ var _bindata = map[string]func() (*asset, error){
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
 // following hierarchy:
-//
-//	data/
-//	  foo.txt
-//	  img/
-//	    a.png
-//	    b.png
-//
+//     data/
+//       foo.txt
+//       img/
+//         a.png
+//         b.png
 // then AssetDir("data") would return []string{"foo.txt", "img"},
 // AssetDir("data/img") would return []string{"a.png", "b.png"},
 // AssetDir("foo.txt") and AssetDir("notexist") would return an error, and
@@ -1695,6 +1715,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"61_trust_lines_by_account_type_code_issuer.sql":          &bintree{migrations61_trust_lines_by_account_type_code_issuerSql, map[string]*bintree{}},
 		"62_claimable_balance_claimants.sql":                      &bintree{migrations62_claimable_balance_claimantsSql, map[string]*bintree{}},
 		"63_add_contract_id_to_asset_stats.sql":                   &bintree{migrations63_add_contract_id_to_asset_statsSql, map[string]*bintree{}},
+		"64_add_payment_flag_history_ops.sql":                     &bintree{migrations64_add_payment_flag_history_opsSql, map[string]*bintree{}},
 		"6_create_assets_table.sql":                               &bintree{migrations6_create_assets_tableSql, map[string]*bintree{}},
 		"7_modify_trades_table.sql":                               &bintree{migrations7_modify_trades_tableSql, map[string]*bintree{}},
 		"8_add_aggregators.sql":                                   &bintree{migrations8_add_aggregatorsSql, map[string]*bintree{}},

@@ -7,13 +7,81 @@ import (
 	"testing"
 	"time"
 
+	"github.com/guregu/null"
 	"github.com/stellar/go/protocols/horizon/operations"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/ledger"
 	"github.com/stellar/go/services/horizon/internal/render/problem"
 	"github.com/stellar/go/services/horizon/internal/test"
 	supportProblem "github.com/stellar/go/support/render/problem"
+	"github.com/stellar/go/toid"
+	"github.com/stellar/go/xdr"
 )
+
+func TestContractEventsInPaymentOperations(t *testing.T) {
+	tt := test.Start(t)
+	defer tt.Finish()
+	test.ResetHorizonDB(t, tt.HorizonDB)
+
+	q := &history.Q{tt.HorizonSession()}
+	handler := GetOperationsHandler{OnlyPayments: true}
+
+	txIndex := int32(1)
+	sequence := int32(56)
+	txID := toid.New(sequence, txIndex, 0).ToInt64()
+	opID1 := toid.New(sequence, txIndex, 1).ToInt64()
+
+	ledgerCloseTime := time.Now().Unix()
+	_, err := q.InsertLedger(tt.Ctx, xdr.LedgerHeaderHistoryEntry{
+		Header: xdr.LedgerHeader{
+			LedgerSeq: xdr.Uint32(sequence),
+			ScpValue: xdr.StellarValue{
+				CloseTime: xdr.TimePoint(ledgerCloseTime),
+			},
+		},
+	}, 1, 0, 1, 0, 0)
+	tt.Assert.NoError(err)
+
+	transactionBuilder := q.NewTransactionBatchInsertBuilder(1)
+	firstTransaction := buildLedgerTransaction(tt.T, testTransaction{
+		index:         uint32(txIndex),
+		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+		resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
+		feeChangesXDR: "AAAAAA==",
+		metaXDR:       "AAAAAQAAAAAAAAAA",
+		hash:          "19aaa18db88605aedec04659fb45e06f240b022eb2d429e05133e4d53cd945ba",
+	})
+	err = transactionBuilder.Add(tt.Ctx, firstTransaction, uint32(sequence))
+	tt.Assert.NoError(err)
+
+	operationBuilder := q.NewOperationBatchInsertBuilder(1)
+	err = operationBuilder.Add(tt.Ctx,
+		opID1,
+		txID,
+		1,
+		xdr.OperationTypeInvokeHostFunction,
+		[]byte(`{
+			"parameters": [],
+	        "function": "fn",
+	        "footprint": ""
+		}`),
+		"GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",
+		null.String{},
+		true)
+	tt.Assert.NoError(err)
+
+	records, err := handler.GetResourcePage(
+		httptest.NewRecorder(),
+		makeRequest(
+			t, map[string]string{}, map[string]string{}, q,
+		),
+	)
+	tt.Assert.NoError(err)
+	tt.Assert.Len(records, 1)
+
+	op := records[0].(operations.InvokeHostFunction)
+	tt.Assert.Equal(op.Function, "fn")
+}
 
 func TestGetOperationsWithoutFilter(t *testing.T) {
 	tt := test.Start(t)

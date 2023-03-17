@@ -358,6 +358,7 @@ CREATE TABLE history_operations (
     type integer NOT NULL,
     details jsonb,
     source_account character varying(64) DEFAULT ''::character varying NOT NULL
+    is_payment smallint default 0
 );
 
 
