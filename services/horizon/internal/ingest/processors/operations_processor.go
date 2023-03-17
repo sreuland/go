@@ -713,8 +713,9 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 //    i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
 //
 // SAC events that involve asset balance changes follow some standard data formats:
-//     The 'amount' expressed as non-negative, the event type can provide the context of
-//     whether an amount was considered negative i.e. credit or debit to a balance.
+//     The 'amount' in the event is expressed as Int128Parts, however it's expected that it's value will not be signed.
+//     It represents a absolute delta, the event type can provide the context of whether an amount 
+//     was considered incremental or decreental, i.e. credit or debit to a balance.
 //
 func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContractEvents() ([]map[string]interface{}, error) {
 	balanceChanges := []map[string]interface{}{}
