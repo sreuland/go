@@ -23,17 +23,17 @@ import (
 type OperationProcessor struct {
 	operationsQ history.QOperations
 
-	sequence          uint32
-	batch             history.OperationBatchInsertBuilder
-	networkPassphrase string
+	sequence uint32
+	batch    history.OperationBatchInsertBuilder
+	network  string
 }
 
-func NewOperationProcessor(operationsQ history.QOperations, sequence uint32, networkPassphrase string) *OperationProcessor {
+func NewOperationProcessor(operationsQ history.QOperations, sequence uint32, network string) *OperationProcessor {
 	return &OperationProcessor{
-		operationsQ:       operationsQ,
-		sequence:          sequence,
-		batch:             operationsQ.NewOperationBatchInsertBuilder(maxBatchSize),
-		networkPassphrase: networkPassphrase,
+		operationsQ: operationsQ,
+		sequence:    sequence,
+		batch:       operationsQ.NewOperationBatchInsertBuilder(maxBatchSize),
+		network:     network,
 	}
 }
 
@@ -41,11 +41,11 @@ func NewOperationProcessor(operationsQ history.QOperations, sequence uint32, net
 func (p *OperationProcessor) ProcessTransaction(ctx context.Context, transaction ingest.LedgerTransaction) error {
 	for i, op := range transaction.Envelope.Operations() {
 		operation := transactionOperationWrapper{
-			index:             uint32(i),
-			transaction:       transaction,
-			operation:         op,
-			ledgerSequence:    p.sequence,
-			networkPassphrase: p.networkPassphrase,
+			index:          uint32(i),
+			transaction:    transaction,
+			operation:      op,
+			ledgerSequence: p.sequence,
+			network:        p.network,
 		}
 		details, err := operation.Details()
 		if err != nil {
@@ -86,11 +86,11 @@ func (p *OperationProcessor) Commit(ctx context.Context) error {
 
 // transactionOperationWrapper represents the data for a single operation within a transaction
 type transactionOperationWrapper struct {
-	index             uint32
-	transaction       ingest.LedgerTransaction
-	operation         xdr.Operation
-	ledgerSequence    uint32
-	networkPassphrase string
+	index          uint32
+	transaction    ingest.LedgerTransaction
+	operation      xdr.Operation
+	ledgerSequence uint32
+	network        string
 }
 
 // ID returns the ID for the operation.
@@ -277,7 +277,7 @@ func (operation *transactionOperationWrapper) IsPayment() bool {
 		// scan all the contract events for at least one SAC event, qualified to be a payment
 		// in horizon
 		for _, contractEvent := range events {
-			if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.networkPassphrase); err == nil {
+			if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.network); err == nil {
 				switch sacEvent.GetType() {
 				case contractevents.EventTypeTransfer:
 					return true
@@ -737,7 +737,7 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 		// has some convenience like to/from attributes are expressed in strkey format for classic accounts(G...)
 		// For now, if the event refers to contract addresses only, then drop the event, don't
 		// include in the operation details, this may change if contract addresses become a recognized entity in horizon history model
-		if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.networkPassphrase); err == nil {
+		if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.network); err == nil {
 			switch sacEvent.GetType() {
 			case contractevents.EventTypeTransfer:
 				transferEvt := sacEvent.(contractevents.TransferEvent)

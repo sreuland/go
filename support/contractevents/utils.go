@@ -1,42 +1,11 @@
 package contractevents
 
 import (
-	"fmt"
-
-	"github.com/stellar/go/strkey"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/xdr"
 )
 
 var ErrNotBalanceChangeEvent = errors.New("event doesn't represent a balance change")
-
-// MustScAddressToString converts the low-level `xdr.ScAddress` union into the
-// appropriate strkey (contract C... or account ID G...).
-func MustScAddressToString(address *xdr.ScAddress) string {
-	if address == nil {
-		return ""
-	}
-
-	var result string
-	var err error
-
-	switch address.Type {
-	case xdr.ScAddressTypeScAddressTypeAccount:
-		pubkey := address.MustAccountId().Ed25519
-		result, err = strkey.Encode(strkey.VersionByteAccountID, pubkey[:])
-	case xdr.ScAddressTypeScAddressTypeContract:
-		contractId := *address.ContractId
-		result, err = strkey.Encode(strkey.VersionByteContract, contractId[:])
-	default:
-		panic(fmt.Errorf("unfamiliar address type: %v", address.Type))
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	return result
-}
 
 func parseAddress(val *xdr.ScVal) *xdr.ScAddress {
 	if val == nil {
@@ -78,7 +47,15 @@ func parseBalanceChangeEvent(topics xdr.ScVec, value xdr.ScVal) (string, string,
 		return first, second, amount, ErrNotBalanceChangeEvent
 	}
 
-	first, second = MustScAddressToString(firstSc), MustScAddressToString(secondSc)
+	first, err := firstSc.String()
+	if err != nil {
+		return first, second, amount, errors.Wrap(err, ErrNotBalanceChangeEvent.Error())
+	}
+
+	second, err = secondSc.String()
+	if err != nil {
+		return first, second, amount, errors.Wrap(err, ErrNotBalanceChangeEvent.Error())
+	}
 
 	amountPtr := parseAmount(&value)
 	if amountPtr == nil {
