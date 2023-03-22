@@ -5,14 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math/big"
 
 	"github.com/guregu/null"
 	"github.com/stellar/go/amount"
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/protocols/horizon/base"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
-	"github.com/stellar/go/strkey"
 	"github.com/stellar/go/support/contractevents"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/toid"
@@ -709,19 +707,15 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 }
 
 // Searches an operation for SAC events that are of a type which represent
-// asset balances changed with at least one participant of the change referencing a classic account.
-// If the SAC event is strictly inter-contract, only references contract addresses and no classic addresses,
-// then it will be skipped and not ingested as a balance change into the operation details.
+// asset balances having changed.
 //
-// SAC events have a one-to-one association to SAC contract fn invocations,
+// SAC events have a one-to-one association to SAC contract fn invocations.
+// i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
 //
-//	i.e. invoke the 'mint' function, will trigger one Mint Event to be emitted capturing the fn args.
-//
-// SAC events that involve asset balance changes follow some standard data formats:
-//
-//	The 'amount' in the event is expressed as Int128Parts, which carries a sign, however it's expected
-//	that value will not be signed as it represents a absolute delta, the event type can provide the
-//	context of whether an amount was considered incremental or decremental, i.e. credit or debit to a balance.
+// SAC events that involve asset balance changes follow some standard data formats.
+// The 'amount' in the event is expressed as Int128Parts, which carries a sign, however it's expected
+// that value will not be signed as it represents a absolute delta, the event type can provide the
+// context of whether an amount was considered incremental or decremental, i.e. credit or debit to a balance.
 func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContractEvents() ([]map[string]interface{}, error) {
 	balanceChanges := []map[string]interface{}{}
 
@@ -734,31 +728,22 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 
 	for _, contractEvent := range events {
 		// Parse the xdr contract event to contractevents.StellarAssetContractEvent model
-		// has some convenience like to/from attributes are expressed in strkey format for classic accounts(G...)
-		// For now, if the event refers to contract addresses only, then drop the event, don't
-		// include in the operation details, this may change if contract addresses become a recognized entity in horizon history model
+
+		// has some convenience like to/from attributes are expressed in strkey format for accounts(G...) and contracts(C...)
 		if sacEvent, err := contractevents.NewStellarAssetContractEvent(&contractEvent, operation.network); err == nil {
 			switch sacEvent.GetType() {
 			case contractevents.EventTypeTransfer:
-				transferEvt := sacEvent.(contractevents.TransferEvent)
-				if strkey.IsValidEd25519PublicKey(transferEvt.From) || strkey.IsValidEd25519PublicKey(transferEvt.To) {
-					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(transferEvt.From, transferEvt.To, transferEvt.Amount, transferEvt.Asset, "transfer"))
-				}
+				transferEvt := sacEvent.(*contractevents.TransferEvent)
+				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(transferEvt.From, transferEvt.To, transferEvt.Amount, transferEvt.Asset, "transfer"))
 			case contractevents.EventTypeMint:
-				mintEvt := sacEvent.(contractevents.MintEvent)
-				if strkey.IsValidEd25519PublicKey(mintEvt.Admin) || strkey.IsValidEd25519PublicKey(mintEvt.To) {
-					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(mintEvt.Admin, mintEvt.To, mintEvt.Amount, mintEvt.Asset, "mint"))
-				}
+				mintEvt := sacEvent.(*contractevents.MintEvent)
+				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(mintEvt.Admin, mintEvt.To, mintEvt.Amount, mintEvt.Asset, "mint"))
 			case contractevents.EventTypeClawback:
-				clawbackEvt := sacEvent.(contractevents.ClawbackEvent)
-				if strkey.IsValidEd25519PublicKey(clawbackEvt.From) || strkey.IsValidEd25519PublicKey(clawbackEvt.Admin) {
-					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(clawbackEvt.From, clawbackEvt.Admin, clawbackEvt.Amount, clawbackEvt.Asset, "clawback"))
-				}
+				clawbackEvt := sacEvent.(*contractevents.ClawbackEvent)
+				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(clawbackEvt.From, clawbackEvt.Admin, clawbackEvt.Amount, clawbackEvt.Asset, "clawback"))
 			case contractevents.EventTypeBurn:
-				burnEvt := sacEvent.(contractevents.BurnEvent)
-				if strkey.IsValidEd25519PublicKey(burnEvt.From) {
-					balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(burnEvt.From, "", burnEvt.Amount, burnEvt.Asset, "burn"))
-				}
+				burnEvt := sacEvent.(*contractevents.BurnEvent)
+				balanceChanges = append(balanceChanges, createSACBalanceChangeEntry(burnEvt.From, "", burnEvt.Amount, burnEvt.Asset, "burn"))
 			}
 		}
 	}
@@ -776,36 +761,15 @@ func (operation *transactionOperationWrapper) parseAssetBalanceChangesFromContra
 func createSACBalanceChangeEntry(fromAccount string, toAccount string, amountChanged xdr.Int128Parts, asset xdr.Asset, changeType string) map[string]interface{} {
 	balanceChange := map[string]interface{}{}
 
-	if strkey.IsValidEd25519PublicKey(fromAccount) {
-		balanceChange["from"] = fromAccount
-	} else {
-		// TODO, place the 'C...' contract address here, if/when horizon has facility for
-		// contract addresses
-		balanceChange["from"] = "contract"
-	}
-
+	balanceChange["from"] = fromAccount
 	if toAccount != "" {
-		if strkey.IsValidEd25519PublicKey(toAccount) {
-			balanceChange["to"] = toAccount
-		} else {
-			// TODO, place the 'C...' contract address here, if/when horizon has facility for
-			// contract addresses
-			balanceChange["to"] = "contract"
-		}
+		balanceChange["to"] = toAccount
 	}
 
 	balanceChange["type"] = changeType
-	balanceChange["amount"] = stringifyAmount(amountChanged)
+	balanceChange["amount"] = amount.String128(amountChanged)
 	addAssetDetails(balanceChange, asset, "")
 	return balanceChange
-}
-
-func stringifyAmount(value xdr.Int128Parts) string {
-	// TODO, refactor to use new amount.String128()
-	amt := new(big.Int).Lsh(new(big.Int).SetUint64(uint64(value.Hi)), 64)
-	amt.Add(amt, new(big.Int).SetUint64(uint64(value.Lo)))
-
-	return amt.String()
 }
 
 func addLiquidityPoolAssetDetails(result map[string]interface{}, lpp xdr.LiquidityPoolParameters) error {

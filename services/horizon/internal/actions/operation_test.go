@@ -72,8 +72,8 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 					"asset_type": "credit_alphanum4",
 					"asset_code": "abc",
 					"asset_issuer": "123",
-					"from": "contract",
-					"to": "G_FOR_CLASSIC_ACCOUNT_ADDRESS1",
+					"from": "C_CONTRACT_ADDRESS1",
+					"to": "G_CLASSIC_ADDRESS1",
 					"amount": "3",
 					"type": "transfer"
 				},
@@ -81,8 +81,8 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 					"asset_type": "credit_alphanum4",
 					"asset_code": "abc",
 					"asset_issuer": "123",
-					"from": "G_FOR_CLASSIC_ACCOUNT_ADDRESS2",
-					"to": "G_FOR_CLASSIC_ACCOUNT_ADDRESS3",
+					"from": "G_CLASSIC_ADDRESS2",
+					"to": "G_CLASSIC_ADDRESS3",
 					"amount": "5",
 					"type": "clawback"
 				},
@@ -90,7 +90,7 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 					"asset_type": "credit_alphanum4",
 					"asset_code": "abc",
 					"asset_issuer": "123",
-					"from": "G_FOR_CLASSIC_ACCOUNT_ADDRESS2",
+					"from": "G_CLASSIC_ADDRESS2",
 					"amount": "6",
 					"type": "burn"
 				},
@@ -98,8 +98,8 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 					"asset_type": "credit_alphanum4",
 					"asset_code": "abc",
 					"asset_issuer": "123",
-					"from": "G_FOR_CLASSIC_ACCOUNT_ADDRESS2",
-					"to": "contract",
+					"from": "G_CLASSIC_ADDRESS2",
+					"to": "C_CONTRACT_ADDRESS3",
 					"amount": "10",
 					"type": "mint"
 				}
@@ -122,29 +122,29 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 	op := records[0].(operations.InvokeHostFunction)
 	tt.Assert.Equal(op.Function, "fn")
 	tt.Assert.Equal(len(op.AssetBalanceChanges), 4)
-	tt.Assert.Equal(op.AssetBalanceChanges[0].From, "contract")
-	tt.Assert.Equal(op.AssetBalanceChanges[0].To, "G_FOR_CLASSIC_ACCOUNT_ADDRESS1")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].From, "C_CONTRACT_ADDRESS1")
+	tt.Assert.Equal(op.AssetBalanceChanges[0].To, "G_CLASSIC_ADDRESS1")
 	tt.Assert.Equal(op.AssetBalanceChanges[0].Amount, "3")
 	tt.Assert.Equal(op.AssetBalanceChanges[0].Type, "transfer")
 	tt.Assert.Equal(op.AssetBalanceChanges[0].Asset.Type, "credit_alphanum4")
 	tt.Assert.Equal(op.AssetBalanceChanges[0].Asset.Code, "abc")
 	tt.Assert.Equal(op.AssetBalanceChanges[0].Asset.Issuer, "123")
-	tt.Assert.Equal(op.AssetBalanceChanges[1].From, "G_FOR_CLASSIC_ACCOUNT_ADDRESS2")
-	tt.Assert.Equal(op.AssetBalanceChanges[1].To, "G_FOR_CLASSIC_ACCOUNT_ADDRESS3")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].From, "G_CLASSIC_ADDRESS2")
+	tt.Assert.Equal(op.AssetBalanceChanges[1].To, "G_CLASSIC_ADDRESS3")
 	tt.Assert.Equal(op.AssetBalanceChanges[1].Amount, "5")
 	tt.Assert.Equal(op.AssetBalanceChanges[1].Type, "clawback")
 	tt.Assert.Equal(op.AssetBalanceChanges[1].Asset.Type, "credit_alphanum4")
 	tt.Assert.Equal(op.AssetBalanceChanges[1].Asset.Code, "abc")
 	tt.Assert.Equal(op.AssetBalanceChanges[1].Asset.Issuer, "123")
-	tt.Assert.Equal(op.AssetBalanceChanges[2].From, "G_FOR_CLASSIC_ACCOUNT_ADDRESS2")
+	tt.Assert.Equal(op.AssetBalanceChanges[2].From, "G_CLASSIC_ADDRESS2")
 	tt.Assert.Equal(op.AssetBalanceChanges[2].To, "")
 	tt.Assert.Equal(op.AssetBalanceChanges[2].Amount, "6")
 	tt.Assert.Equal(op.AssetBalanceChanges[2].Type, "burn")
 	tt.Assert.Equal(op.AssetBalanceChanges[2].Asset.Type, "credit_alphanum4")
 	tt.Assert.Equal(op.AssetBalanceChanges[2].Asset.Code, "abc")
 	tt.Assert.Equal(op.AssetBalanceChanges[2].Asset.Issuer, "123")
-	tt.Assert.Equal(op.AssetBalanceChanges[3].From, "G_FOR_CLASSIC_ACCOUNT_ADDRESS2")
-	tt.Assert.Equal(op.AssetBalanceChanges[3].To, "contract")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].From, "G_CLASSIC_ADDRESS2")
+	tt.Assert.Equal(op.AssetBalanceChanges[3].To, "C_CONTRACT_ADDRESS3")
 	tt.Assert.Equal(op.AssetBalanceChanges[3].Amount, "10")
 	tt.Assert.Equal(op.AssetBalanceChanges[3].Type, "mint")
 	tt.Assert.Equal(op.AssetBalanceChanges[3].Asset.Type, "credit_alphanum4")
