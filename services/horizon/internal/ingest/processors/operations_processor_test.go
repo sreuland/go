@@ -213,7 +213,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestInvokeFunctionDetails() {
 		mintContractEvent := contractevents.GenerateEvent(contractevents.EventTypeMint, "", zeroContractStrKey, randomAccount, randomAsset, big.NewInt(10000000), passphrase)
 		clawbackContractEvent := contractevents.GenerateEvent(contractevents.EventTypeClawback, zeroContractStrKey, "", randomAccount, randomAsset, big.NewInt(10000000), passphrase)
 
-		tx := ingest.LedgerTransaction{
+		tx = ingest.LedgerTransaction{
 			UnsafeMeta: xdr.TransactionMeta{
 				V: 3,
 				V3: &xdr.TransactionMetaV3{
