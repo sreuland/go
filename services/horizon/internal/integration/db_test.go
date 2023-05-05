@@ -423,8 +423,8 @@ func initializeDBIntegrationTest(t *testing.T) (*integration.Test, int32) {
 		submitLiquidityPoolOps,
 	}
 
-	// TODO - re-enable invoke host function 'submitInvokeHostFunction' test 
-	// once fees/footprint from preflight are working in test 
+	// TODO - re-enable invoke host function 'submitInvokeHostFunction' test
+	// once fees/footprint from preflight are working in test
 	if false && integration.GetCoreMaxSupportedProtocol() > 19 {
 		submitters = append(submitters, submitInvokeHostFunction)
 	} else {
