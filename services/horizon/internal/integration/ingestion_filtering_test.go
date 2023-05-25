@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -14,6 +15,16 @@ import (
 )
 
 func TestFilteringAccountWhiteList(t *testing.T) {
+
+  os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
+  os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE", "true")
+  os.Setenv("HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL", "19")
+  os.Setenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN", "/usr/local/bin/stellar-core")
+  os.Setenv("HORIZON_INTEGRATION_TESTS_DOCKER_IMG", "stellar/stellar-core:19.5.0-1108.ca2fb0605.focal")
+  os.Setenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_USE_DB", "true")
+  integration.RunWithCaptiveCore = true
+  integration.RunWithCaptiveCoreUseDB = true
+
 	tt := assert.New(t)
 	const adminPort uint16 = 6000
 	itest := integration.NewTest(t, integration.Config{
