@@ -13,35 +13,35 @@ var (
 	// these are storage DataKey enum
 	// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/storage_types.rs#L23
 	balanceMetadataSym = xdr.ScSymbol("Balance")
-	assetMetadataSym   = xdr.ScSymbol("AssetInfo")
-	assetMetadataVec   = &xdr.ScVec{
+	assetInfoSym       = xdr.ScSymbol("AssetInfo")
+	assetInfoVec       = &xdr.ScVec{
 		xdr.ScVal{
 			Type: xdr.ScValTypeScvSymbol,
-			Sym:  &assetMetadataSym,
+			Sym:  &assetInfoSym,
 		},
 	}
-	assetMetadataKey = xdr.ScVal{
+	assetInfoKey = xdr.ScVal{
 		Type: xdr.ScValTypeScvVec,
-		Vec:  &assetMetadataVec,
+		Vec:  &assetInfoVec,
 	}
 )
 
 // AssetFromContractData takes a ledger entry and verifies if the ledger entry
-// corresponds to the asset metadata written to contract storage by the Stellar
+// corresponds to the asset info entry written to contract storage by the Stellar
 // Asset Contract upon initialization.
 //
-// Note that AssetFromContractData will ignore forged asset metadata entries by
-// deriving the Stellar Asset Contract ID from the asset metadata and comparing
+// Note that AssetFromContractData will ignore forged asset info entries by
+// deriving the Stellar Asset Contract ID from the asset info entry and comparing
 // it to the contract ID found in the ledger entry.
 //
-// If the given ledger entry is a verified asset metadata entry,
+// If the given ledger entry is a verified asset info entry,
 // AssetFromContractData will return the corresponding Stellar asset. Otherwise,
 // it returns nil.
 //
 // References:
-// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/contract.rs#L115
-// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/asset_info.rs#L6//
 // https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/public_types.rs#L21
+// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/asset_info.rs#L6
+// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/contract.rs#L115
 //
 // The `ContractData` entry takes the following form:
 //
@@ -67,7 +67,7 @@ func AssetFromContractData(ledgerEntry xdr.LedgerEntry, passphrase string) *xdr.
 		return nil
 	}
 
-	if !contractData.Key.Equals(assetMetadataKey) {
+	if !contractData.Key.Equals(assetInfoKey) {
 		return nil
 	}
 
@@ -278,7 +278,7 @@ func metadataObjFromAsset(isNative bool, code, issuer string) (*xdr.ScVec, error
 }
 
 // AssetToContractData is the inverse of AssetFromContractData. It creates a
-// ledger entry containing the asset metadata written to contract storage by the
+// ledger entry containing the asset info entry written to contract storage by the
 // Stellar Asset Contract.
 func AssetToContractData(isNative bool, code, issuer string, contractID [32]byte) (xdr.LedgerEntryData, error) {
 	vec, err := metadataObjFromAsset(isNative, code, issuer)
@@ -289,7 +289,7 @@ func AssetToContractData(isNative bool, code, issuer string, contractID [32]byte
 		Type: xdr.LedgerEntryTypeContractData,
 		ContractData: &xdr.ContractDataEntry{
 			ContractId: contractID,
-			Key:        assetMetadataKey,
+			Key:        assetInfoKey,
 			Val: xdr.ScVal{
 				Type: xdr.ScValTypeScvVec,
 				Vec:  &vec,
