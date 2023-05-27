@@ -8,9 +8,12 @@ import (
 )
 
 var (
+	// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/public_types.rs#L22
 	nativeAssetSym     = xdr.ScSymbol("Native")
+	// these are storage DataKey enum
+	// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/storage_types.rs#L23
 	balanceMetadataSym = xdr.ScSymbol("Balance")
-	assetMetadataSym   = xdr.ScSymbol("Metadata")
+	assetMetadataSym   = xdr.ScSymbol("AssetInfo")
 	assetMetadataVec   = &xdr.ScVec{
 		xdr.ScVal{
 			Type: xdr.ScValTypeScvSymbol,
@@ -36,22 +39,21 @@ var (
 // it returns nil.
 //
 // References:
-//
-//	https://github.com/stellar/rs-soroban-env/blob/da325551829d31dcbfa71427d51c18e71a121c5f/soroban-env-host/src/native_contract/token/public_types.rs#L21
-//	https://github.com/stellar/rs-soroban-env/blob/da325551829d31dcbfa71427d51c18e71a121c5f/soroban-env-host/src/native_contract/token/metadata.rs#L8
-//	https://github.com/stellar/rs-soroban-env/blob/da325551829d31dcbfa71427d51c18e71a121c5f/soroban-env-host/src/native_contract/token/contract.rs#L108
+// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/contract.rs#L115
+// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/asset_info.rs#L6//	
+// https://github.com/stellar/rs-soroban-env/blob/v0.0.16/soroban-env-host/src/native_contract/token/public_types.rs#L21
 //
 // The `ContractData` entry takes the following form:
 //
-//   - Key: a vector with one element, which is the symbol "Metadata"
+//   - Key: a vector with one element, which is the symbol "AssetInfo"
 //
-//     ScVal{ Vec: ScVec({ ScVal{ Sym: ScSymbol("metadata") }})}
+//     ScVal{ Vec: ScVec({ ScVal{ Sym: ScSymbol("AssetInfo") }})}
 //
 //   - Value: a map with two key-value pairs: code and issuer
 //
 //     ScVal{ Map: ScMap(
 //     { ScVal{ Sym: ScSymbol("asset_code") } -> ScVal{ Bytes: ScBytes(...) } },
-//     { ScVal{ Sym: ScSymbol("asset_code") } -> ScVal{ Bytes: ScBytes(...) } }
+//     { ScVal{ Sym: ScSymbol("issuer") } -> ScVal{ Bytes: ScBytes(...) } }
 //     )}
 func AssetFromContractData(ledgerEntry xdr.LedgerEntry, passphrase string) *xdr.Asset {
 	contractData, ok := ledgerEntry.Data.GetContractData()
