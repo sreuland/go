@@ -26,7 +26,7 @@ const sac_contract = "soroban_sac_test.wasm"
 // Refer to ./services/horizon/internal/integration/contracts/README.md on how to recompile
 // contract code if needed to new wasm.
 
-//TODO - need to figure out simulation tx data for contract invocations to re-enable tests
+// TODO - need to figure out simulation tx data for contract invocations to re-enable tests
 func TestContractMintToAccount(t *testing.T) {
 	t.Skip("sac contract tests disabled until footprint/fees are set correctly")
 
