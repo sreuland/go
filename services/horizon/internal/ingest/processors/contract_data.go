@@ -23,6 +23,7 @@ var (
 	alphaNum12Sym      = xdr.ScSymbol("AlphaNum12")
 	decimalSym         = xdr.ScSymbol("decimal")
 	assetInfoSym       = xdr.ScSymbol("AssetInfo")
+	decimalVal         = xdr.Uint32(7)
 	assetInfoVec       = &xdr.ScVec{
 		xdr.ScVal{
 			Type: xdr.ScValTypeScvSymbol,
@@ -89,7 +90,16 @@ func AssetFromContractData(ledgerEntry xdr.LedgerEntry, passphrase string) *xdr.
 	var assetInfo *xdr.ScVal
 	for _, mapEntry := range *contractInstanceData.Storage {
 		if mapEntry.Key.Equals(assetInfoKey) {
-			assetInfo = &mapEntry.Val
+			// clone the map entry to avoid reference to loop iterator
+			mapValXdr, err := mapEntry.Val.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			assetInfo = &xdr.ScVal{}
+			err = assetInfo.UnmarshalBinary(mapValXdr)
+			if err != nil {
+				return nil
+			}
 			break
 		}
 	}
@@ -270,9 +280,7 @@ func metadataObjFromAsset(isNative bool, code, issuer string) (*xdr.ScMap, error
 		}, nil
 	}
 
-	decimalVal := xdr.Uint32(7)
 	nameVal := xdr.ScString(code + ":" + issuer)
-
 	symbolVal := xdr.ScString(code)
 	metaDataMap := &xdr.ScMap{
 		xdr.ScMapEntry{
