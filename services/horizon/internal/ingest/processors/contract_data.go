@@ -72,12 +72,14 @@ func AssetFromContractData(ledgerEntry xdr.LedgerEntry, passphrase string) *xdr.
 		return nil
 	}
 	if contractData.Key.Type != xdr.ScValTypeScvLedgerKeyContractInstance ||
-		contractData.Body.BodyType != xdr.ContractEntryBodyTypeDataEntry ||
-		contractData.Body.Data.Val.Instance.Storage == nil {
+		contractData.Body.BodyType != xdr.ContractEntryBodyTypeDataEntry {
+		return nil
+	}
+	contractInstanceData, ok := contractData.Body.Data.Val.GetInstance()
+	if !ok || contractInstanceData.Storage == nil {
 		return nil
 	}
 
-	// fmt.Printf("ContractData Asset Info:\n\n%# +v\n\n", pretty.Formatter(contractData))
 	// we don't support asset stats for lumens
 	nativeAssetContractID, err := xdr.MustNewNativeAsset().ContractID(passphrase)
 	if err != nil || (contractData.Contract.ContractId != nil && (*contractData.Contract.ContractId) == nativeAssetContractID) {
@@ -85,7 +87,7 @@ func AssetFromContractData(ledgerEntry xdr.LedgerEntry, passphrase string) *xdr.
 	}
 
 	var assetInfo *xdr.ScVal
-	for _, mapEntry := range *contractData.Body.Data.Val.Instance.Storage {
+	for _, mapEntry := range *contractInstanceData.Storage {
 		if mapEntry.Key.Equals(assetInfoKey) {
 			assetInfo = &mapEntry.Val
 			break
@@ -426,6 +428,9 @@ func AssetToContractData(isNative bool, code, issuer string, contractID [32]byte
 					Val: xdr.ScVal{
 						Type: xdr.ScValTypeScvContractInstance,
 						Instance: &xdr.ScContractInstance{
+							Executable: xdr.ContractExecutable{
+								Type: xdr.ContractExecutableTypeContractExecutableToken,
+							},
 							Storage: storageMap,
 						},
 					},
