@@ -65,7 +65,7 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 		1,
 		xdr.OperationTypeInvokeHostFunction,
 		[]byte(`{
-			"type": "invoke_contract",
+			"function": "HostFunctionTypeHostFunctionTypeInvokeContract",
 			"parameters": [
 				{
 					"value": "AAAADwAAAAdmbl9uYW1lAA==",
@@ -129,7 +129,7 @@ func TestInvokeHostFnDetailsInPaymentOperations(t *testing.T) {
 	tt.Assert.Len(records, 1)
 
 	op := records[0].(operations.InvokeHostFunction)
-	tt.Assert.Equal(op.Type, "invoke_contract")
+	tt.Assert.Equal(op.Function, "HostFunctionTypeHostFunctionTypeInvokeContract")
 	tt.Assert.Equal(len(op.Parameters), 2)
 	tt.Assert.Equal(op.Parameters[0].Value, "AAAADwAAAAdmbl9uYW1lAA==")
 	tt.Assert.Equal(op.Parameters[0].Type, "Sym")

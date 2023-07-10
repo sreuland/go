@@ -33,7 +33,7 @@ func TestContractMintToAccount(t *testing.T) {
 
 	itest := integration.NewTest(t, integration.Config{
 		ProtocolVersion:    20,
-		HorizonEnvironment: map[string]string{"INGEST_DISABLE_STATE_VERIFICATION": "true"},
+		HorizonEnvironment: map[string]string{"INGEST_DISABLE_STATE_VERIFICATION": "true", "CONNECTION_TIMEOUT": "360000"},
 	})
 
 	issuer := itest.Master().Address()
@@ -823,6 +823,7 @@ func assertEventPayments(itest *integration.Test, txHash string, asset xdr.Asset
 	assert.Equal(itest.CurrentTest(), ops.Embedded.Records[0].GetType(), operations.TypeNames[xdr.OperationTypeInvokeHostFunction])
 
 	invokeHostFn := ops.Embedded.Records[0].(operations.InvokeHostFunction)
+	assert.Equal(itest.CurrentTest(), invokeHostFn.Function, "HostFunctionTypeHostFunctionTypeInvokeContract")
 	assert.Equal(itest.CurrentTest(), 1, len(invokeHostFn.AssetBalanceChanges))
 	assetBalanceChange := invokeHostFn.AssetBalanceChanges[0]
 	assert.Equal(itest.CurrentTest(), assetBalanceChange.Amount, amount)
@@ -1052,7 +1053,7 @@ func assertInvokeHostFnSucceeds(itest *integration.Test, signer *keypair.Full, o
 	acc := itest.MustGetAccount(signer)
 
 	preFlightOp, minFee := itest.PreflightHostFunctions(&acc, *op)
-	tx, err := itest.SubmitOperationsWithFee(&acc, signer, minFee, &preFlightOp)
+	tx, err := itest.SubmitOperationsWithFee(&acc, signer, minFee+1000, &preFlightOp)
 	require.NoError(itest.CurrentTest(), err)
 
 	clientTx, err := itest.Client().TransactionDetail(tx.Hash)

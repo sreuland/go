@@ -640,7 +640,6 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 		switch op.HostFunction.Type {
 		case xdr.HostFunctionTypeHostFunctionTypeInvokeContract:
 			args := op.HostFunction.MustInvokeContract()
-			details["type"] = "invoke_contract"
 			params := make([]map[string]string, 0, len(args))
 
 			for _, param := range args {
@@ -666,7 +665,6 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 
 		case xdr.HostFunctionTypeHostFunctionTypeCreateContract:
 			args := op.HostFunction.MustCreateContract()
-			details["type"] = "create_contract"
 			switch args.ContractIdPreimage.Type {
 			case xdr.ContractIdPreimageTypeContractIdPreimageFromAddress:
 				fromAddress := args.ContractIdPreimage.MustFromAddress()
@@ -684,7 +682,6 @@ func (operation *transactionOperationWrapper) Details() (map[string]interface{},
 				panic(fmt.Errorf("unknown contract id type: %s", args.ContractIdPreimage.Type))
 			}
 		case xdr.HostFunctionTypeHostFunctionTypeUploadContractWasm:
-			details["type"] = "upload_wasm"
 		default:
 			panic(fmt.Errorf("unknown host function type: %s", op.HostFunction.Type))
 		}

@@ -69,7 +69,7 @@ func TestContractInvokeHostFunctionInstallContract(t *testing.T) {
 
 	invokeHostFunctionOpJson, ok := clientInvokeOp.Embedded.Records[0].(operations.InvokeHostFunction)
 	assert.True(t, ok)
-	assert.Equal(t, invokeHostFunctionOpJson.Type, "upload_wasm")
+	assert.Equal(t, invokeHostFunctionOpJson.Function, "HostFunctionTypeHostFunctionTypeUploadContractWasm")
 
 }
 
@@ -122,7 +122,6 @@ func TestContractInvokeHostFunctionCreateContractByAddress(t *testing.T) {
 	invokeHostFunctionOpJson, ok := clientInvokeOp.Embedded.Records[0].(operations.InvokeHostFunction)
 	assert.True(t, ok)
 	assert.Equal(t, invokeHostFunctionOpJson.Function, "HostFunctionTypeHostFunctionTypeCreateContract")
-	assert.Equal(t, invokeHostFunctionOpJson.Type, "create_contract")
 	assert.Equal(t, invokeHostFunctionOpJson.Address, sourceAccount.AccountID)
 	assert.Equal(t, invokeHostFunctionOpJson.Salt, "110986164698320180327942133831752629430491002266485370052238869825166557303060")
 }
@@ -230,7 +229,6 @@ func TestContractInvokeHostFunctionInvokeStatelessContractFn(t *testing.T) {
 	assert.True(t, ok)
 	assert.Len(t, invokeHostFunctionOpJson.Parameters, 4)
 	assert.Equal(t, invokeHostFunctionOpJson.Function, "HostFunctionTypeHostFunctionTypeInvokeContract")
-	assert.Equal(t, invokeHostFunctionOpJson.Type, "invoke_contract")
 	addressParam, err := xdr.MarshalBase64(contractIdParameter)
 	require.NoError(t, err)
 	assert.Equal(t, invokeHostFunctionOpJson.Parameters[0].Value, addressParam)
@@ -334,7 +332,6 @@ func TestContractInvokeHostFunctionInvokeStatefulContractFn(t *testing.T) {
 	assert.True(t, ok)
 	assert.Len(t, invokeHostFunctionOpJson.Parameters, 2)
 	assert.Equal(t, invokeHostFunctionOpJson.Function, "HostFunctionTypeHostFunctionTypeInvokeContract")
-	assert.Equal(t, invokeHostFunctionOpJson.Type, "invoke_contract")
 	addressParam, err := xdr.MarshalBase64(contractIdParameter)
 	require.NoError(t, err)
 	assert.Equal(t, invokeHostFunctionOpJson.Parameters[0].Value, addressParam)

@@ -361,7 +361,6 @@ type InvokeHostFunction struct {
 	Base
 	Function            string                       `json:"function"`
 	Parameters          []HostFunctionParameter      `json:"parameters"`
-	Type                string                       `json:"type"`
 	Address             string                       `json:"address"`
 	Salt                string                       `json:"salt"`
 	AssetBalanceChanges []AssetContractBalanceChange `json:"asset_balance_changes"`

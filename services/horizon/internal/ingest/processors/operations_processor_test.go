@@ -158,35 +158,6 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 								},
 							},
 						},
-						Auth: []xdr.SorobanAuthorizationEntry{
-							{
-								Credentials: xdr.SorobanCredentials{
-									Type: xdr.SorobanCredentialsTypeSorobanCredentialsAddress,
-									Address: &xdr.SorobanAddressCredentials{
-										Address: xdr.ScAddress{
-											Type:      xdr.ScAddressTypeScAddressTypeAccount,
-											AccountId: &accountId,
-										},
-										Nonce:         0,
-										SignatureArgs: nil,
-									},
-								},
-								RootInvocation: xdr.SorobanAuthorizedInvocation{
-									Function: xdr.SorobanAuthorizedFunction{
-										Type: xdr.SorobanAuthorizedFunctionTypeSorobanAuthorizedFunctionTypeContractFn,
-										ContractFn: &xdr.SorobanAuthorizedContractFunction{
-											ContractAddress: xdr.ScAddress{
-												Type:      xdr.ScAddressTypeScAddressTypeAccount,
-												AccountId: &accountId,
-											},
-											FunctionName: "foo",
-											Args:         nil,
-										},
-									},
-									SubInvocations: nil,
-								},
-							},
-						},
 					},
 				},
 			},
@@ -197,7 +168,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 
 		var hostFnArgs []xdr.ScVal = *(wrapper.operation.Body.InvokeHostFunctionOp.HostFunction.InvokeContract)
 		detailsFunctionParams := details["parameters"].([]map[string]string)
-		s.Assert().Equal(details["type"], "invoke_contract")
+		s.Assert().Equal(details["function"], "HostFunctionTypeHostFunctionTypeInvokeContract")
 		s.assertInvokeHostFunctionParameter(detailsFunctionParams, 0, "Sym", hostFnArgs[0])
 		s.assertInvokeHostFunctionParameter(detailsFunctionParams, 1, "I32", hostFnArgs[1])
 		s.assertInvokeHostFunctionParameter(detailsFunctionParams, 2, "U32", hostFnArgs[2])
@@ -233,35 +204,6 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 								},
 							},
 						},
-						Auth: []xdr.SorobanAuthorizationEntry{
-							{
-								Credentials: xdr.SorobanCredentials{
-									Type: xdr.SorobanCredentialsTypeSorobanCredentialsAddress,
-									Address: &xdr.SorobanAddressCredentials{
-										Address: xdr.ScAddress{
-											Type:      xdr.ScAddressTypeScAddressTypeAccount,
-											AccountId: &accountId,
-										},
-										Nonce:         0,
-										SignatureArgs: nil,
-									},
-								},
-								RootInvocation: xdr.SorobanAuthorizedInvocation{
-									Function: xdr.SorobanAuthorizedFunction{
-										Type: xdr.SorobanAuthorizedFunctionTypeSorobanAuthorizedFunctionTypeContractFn,
-										ContractFn: &xdr.SorobanAuthorizedContractFunction{
-											ContractAddress: xdr.ScAddress{
-												Type:      xdr.ScAddressTypeScAddressTypeAccount,
-												AccountId: &accountId,
-											},
-											FunctionName: "foo",
-											Args:         nil,
-										},
-									},
-									SubInvocations: nil,
-								},
-							},
-						},
 					},
 				},
 			},
@@ -270,7 +212,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 		details, err := wrapper.Details()
 		s.Assert().NoError(err)
 
-		s.Assert().Equal(details["type"], "create_contract")
+		s.Assert().Equal(details["function"], "HostFunctionTypeHostFunctionTypeCreateContract")
 		s.Assert().Equal(details["from"], "asset")
 		s.Assert().Equal(details["asset"], "ARS:GCXI6Q73J7F6EUSBZTPW4G4OUGVDHABPYF2U4KO7MVEX52OH5VMVUCRF")
 	})
@@ -299,35 +241,6 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 								Executable: xdr.ContractExecutable{},
 							},
 						},
-						Auth: []xdr.SorobanAuthorizationEntry{
-							{
-								Credentials: xdr.SorobanCredentials{
-									Type: xdr.SorobanCredentialsTypeSorobanCredentialsAddress,
-									Address: &xdr.SorobanAddressCredentials{
-										Address: xdr.ScAddress{
-											Type:      xdr.ScAddressTypeScAddressTypeAccount,
-											AccountId: &accountId,
-										},
-										Nonce:         0,
-										SignatureArgs: nil,
-									},
-								},
-								RootInvocation: xdr.SorobanAuthorizedInvocation{
-									Function: xdr.SorobanAuthorizedFunction{
-										Type: xdr.SorobanAuthorizedFunctionTypeSorobanAuthorizedFunctionTypeContractFn,
-										ContractFn: &xdr.SorobanAuthorizedContractFunction{
-											ContractAddress: xdr.ScAddress{
-												Type:      xdr.ScAddressTypeScAddressTypeAccount,
-												AccountId: &accountId,
-											},
-											FunctionName: "foo",
-											Args:         nil,
-										},
-									},
-									SubInvocations: nil,
-								},
-							},
-						},
 					},
 				},
 			},
@@ -336,7 +249,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 		details, err := wrapper.Details()
 		s.Assert().NoError(err)
 
-		s.Assert().Equal(details["type"], "create_contract")
+		s.Assert().Equal(details["function"], "HostFunctionTypeHostFunctionTypeCreateContract")
 		s.Assert().Equal(details["from"], "address")
 		s.Assert().Equal(details["address"], "GB7BDSZU2Y27LYNLALKKALB52WS2IZWYBDGY6EQBLEED3TJOCVMZRH7H")
 		s.Assert().Equal(details["salt"], xdr.Uint256{1}.String())
@@ -354,35 +267,6 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 							Type: xdr.HostFunctionTypeHostFunctionTypeUploadContractWasm,
 							Wasm: &wasm,
 						},
-						Auth: []xdr.SorobanAuthorizationEntry{
-							{
-								Credentials: xdr.SorobanCredentials{
-									Type: xdr.SorobanCredentialsTypeSorobanCredentialsAddress,
-									Address: &xdr.SorobanAddressCredentials{
-										Address: xdr.ScAddress{
-											Type:      xdr.ScAddressTypeScAddressTypeAccount,
-											AccountId: &accountId,
-										},
-										Nonce:         0,
-										SignatureArgs: nil,
-									},
-								},
-								RootInvocation: xdr.SorobanAuthorizedInvocation{
-									Function: xdr.SorobanAuthorizedFunction{
-										Type: xdr.SorobanAuthorizedFunctionTypeSorobanAuthorizedFunctionTypeContractFn,
-										ContractFn: &xdr.SorobanAuthorizedContractFunction{
-											ContractAddress: xdr.ScAddress{
-												Type:      xdr.ScAddressTypeScAddressTypeAccount,
-												AccountId: &accountId,
-											},
-											FunctionName: "foo",
-											Args:         nil,
-										},
-									},
-									SubInvocations: nil,
-								},
-							},
-						},
 					},
 				},
 			},
@@ -390,8 +274,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 
 		details, err := wrapper.Details()
 		s.Assert().NoError(err)
-
-		s.Assert().Equal(details["type"], "upload_wasm")
+		s.Assert().Equal(details["function"], "HostFunctionTypeHostFunctionTypeUploadContractWasm")
 	})
 
 	s.T().Run("InvokeContractWithSACEventsInDetails", func(t *testing.T) {
@@ -433,35 +316,6 @@ func (s *OperationsProcessorTestSuiteLedger) TestOperationTypeInvokeHostFunction
 						HostFunction: xdr.HostFunction{
 							Type:           xdr.HostFunctionTypeHostFunctionTypeInvokeContract,
 							InvokeContract: &xdr.ScVec{},
-						},
-						Auth: []xdr.SorobanAuthorizationEntry{
-							{
-								Credentials: xdr.SorobanCredentials{
-									Type: xdr.SorobanCredentialsTypeSorobanCredentialsAddress,
-									Address: &xdr.SorobanAddressCredentials{
-										Address: xdr.ScAddress{
-											Type:      xdr.ScAddressTypeScAddressTypeAccount,
-											AccountId: &accountId,
-										},
-										Nonce:         0,
-										SignatureArgs: nil,
-									},
-								},
-								RootInvocation: xdr.SorobanAuthorizedInvocation{
-									Function: xdr.SorobanAuthorizedFunction{
-										Type: xdr.SorobanAuthorizedFunctionTypeSorobanAuthorizedFunctionTypeContractFn,
-										ContractFn: &xdr.SorobanAuthorizedContractFunction{
-											ContractAddress: xdr.ScAddress{
-												Type:      xdr.ScAddressTypeScAddressTypeAccount,
-												AccountId: &accountId,
-											},
-											FunctionName: "foo",
-											Args:         nil,
-										},
-									},
-									SubInvocations: nil,
-								},
-							},
 						},
 					},
 				},
