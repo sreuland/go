@@ -321,7 +321,7 @@ var dbReingestRangeCmd = &cobra.Command{
 			}
 		}
 
-		err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreConfig: false, AlwaysIngest: true})
+		err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false, AlwaysIngest: true})
 		if err != nil {
 			return err
 		}
@@ -369,7 +369,8 @@ var dbFillGapsCmd = &cobra.Command{
 			withRange = true
 		}
 
-		err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreConfig: false, AlwaysIngest: true})
+
+		err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false, AlwaysIngest: true})
 		if err != nil {
 			return err
 		}
