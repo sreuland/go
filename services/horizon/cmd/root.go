@@ -30,7 +30,8 @@ var (
 			return app.Serve()
 		},
 	}
-	originalHelpFunc = RootCmd.HelpFunc()
+	originalHelpFunc  = RootCmd.HelpFunc()
+	originalUsageFunc = RootCmd.UsageFunc()
 )
 
 // ErrUsage indicates we should print the usage string and exit with code 1
@@ -56,6 +57,11 @@ func init() {
 	RootCmd.SetHelpFunc(func(c *cobra.Command, args []string) {
 		enableGlobalOptionsInHelp(c, globalFlags)
 		originalHelpFunc(c, args)
+	})
+
+	RootCmd.SetUsageFunc(func(c *cobra.Command) error {
+		enableGlobalOptionsInHelp(c, globalFlags)
+		return originalUsageFunc(c)
 	})
 
 	err := globalFlags.Init(RootCmd)

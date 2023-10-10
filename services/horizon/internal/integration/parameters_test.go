@@ -533,7 +533,11 @@ func TestDeprecatedOutputs(t *testing.T) {
 	})
 }
 
-func TestHelpOutput(t *testing.T) {
+func TestGlobalFlagsOutput(t *testing.T) {
+
+	// verify Help and Usage output from cli, both help and usage output follow the same
+	// output rules of no globals when sub-comands exist, and only relevant globals
+	// when down to leaf node command.
 
 	dbParams := []string{"--max-db-connections", "--db-url"}
 	// the space after '--ingest' is intentional to ensure correct matching behavior to
@@ -567,6 +571,12 @@ func TestHelpOutput(t *testing.T) {
 			helpSkippedGlobalParams:     apiParams,
 		},
 		{
+			horizonHelpCommand:          []string{"db", "reingest", "range"},
+			helpPrintedGlobalParams:     append(dbParams, ingestionParams...),
+			helpPrintedSubCommandParams: []string{"--parallel-workers", "--force"},
+			helpSkippedGlobalParams:     apiParams,
+		},
+		{
 			horizonHelpCommand:          []string{"db", "fill-gaps", "-h"},
 			helpPrintedGlobalParams:     append(dbParams, ingestionParams...),
 			helpPrintedSubCommandParams: []string{"--parallel-workers", "--force"},
@@ -585,10 +595,28 @@ func TestHelpOutput(t *testing.T) {
 			helpSkippedGlobalParams:     allParams,
 		},
 		{
+			horizonHelpCommand:          []string{"db"},
+			helpPrintedGlobalParams:     []string{},
+			helpPrintedSubCommandParams: []string{},
+			helpSkippedGlobalParams:     allParams,
+		},
+		{
 			horizonHelpCommand:          []string{"-h"},
 			helpPrintedGlobalParams:     []string{},
 			helpPrintedSubCommandParams: []string{},
 			helpSkippedGlobalParams:     allParams,
+		},
+		{
+			horizonHelpCommand:          []string{"db", "reingest", "-h"},
+			helpPrintedGlobalParams:     []string{},
+			helpPrintedSubCommandParams: []string{},
+			helpSkippedGlobalParams:     apiParams,
+		},
+		{
+			horizonHelpCommand:          []string{"db", "reingest"},
+			helpPrintedGlobalParams:     []string{},
+			helpPrintedSubCommandParams: []string{},
+			helpSkippedGlobalParams:     apiParams,
 		},
 		{
 			horizonHelpCommand:          []string{"serve", "-h"},
