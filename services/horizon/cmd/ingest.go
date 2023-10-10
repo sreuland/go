@@ -290,7 +290,7 @@ var ingestInitGenesisStateCmd = &cobra.Command{
 	Use:   "init-genesis-state",
 	Short: "ingests genesis state (ledger 1)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()		
+		ctx := context.Background()
 		if err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false, AlwaysIngest: true}); err != nil {
 			return err
 		}
