@@ -103,6 +103,7 @@ type Config struct {
 	RoundingSlippageFilter int
 
 	EnableIngestionFiltering bool
+	MaxLedgerPerFlush        uint32
 }
 
 // LocalCaptiveCoreEnabled returns true if configured to run
@@ -217,7 +218,8 @@ type system struct {
 
 	runStateVerificationOnLedger func(uint32) bool
 
-	reapOffsets map[string]int64
+	reapOffsets       map[string]int64
+	maxLedgerPerFlush uint32
 
 	currentStateMutex sync.Mutex
 	currentState      State
@@ -307,6 +309,7 @@ func NewSystem(config Config) (System, error) {
 			config.CheckpointFrequency,
 			config.StateVerificationCheckpointFrequency,
 		),
+		maxLedgerPerFlush: config.MaxLedgerPerFlush,
 	}
 
 	system.initMetrics()

@@ -542,6 +542,11 @@ func (m *mockProcessorsRunner) RunTransactionProcessorsOnLedger(ledger xdr.Ledge
 		args.Error(3)
 }
 
+func (m *mockProcessorsRunner) RunTransactionProcessorsOnLedgers(ledgers []xdr.LedgerCloseMeta) error {
+	args := m.Called(ledgers)
+	return args.Error(0)
+}
+
 var _ ProcessorRunnerInterface = (*mockProcessorsRunner)(nil)
 
 type mockStellarCoreClient struct {
