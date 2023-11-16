@@ -281,8 +281,8 @@ func ingestRangeCmdOpts() support.ConfigOptions {
 			ConfigKey:   &maxLedgersPerFlush,
 			OptType:     types.Uint32,
 			Required:    false,
-			FlagDefault: uint32(0),
-			Usage:       "[optional] size of ledgers batch for tx processors to retain in memory first, before flushing once to the workers ongoing db transaction, default is 0, which disables batching, effectively flush to db tx per each ledger.",
+			FlagDefault: uint32(10),
+			Usage:       "[optional] size of ledgers batch for tx processors to retain in memory first, before flushing once to the workers ongoing db transaction, default is 10, 0 disables batching, effectively flush to db tx per each ledger.",
 		},
 		{
 			Name:        "retries",
