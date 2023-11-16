@@ -68,7 +68,7 @@ func (h reingestHistoryRangeState) ingestRange(s *system, fromLedger, toLedger u
 
 		ledgers = append(ledgers, ledgerCloseMeta)
 
-		if s.maxLedgerPerFlush > 0 && len(ledgers)%int(s.maxLedgerPerFlush) == 0 {
+		if s.maxLedgerPerFlush < 1 || len(ledgers)%int(s.maxLedgerPerFlush) == 0 {
 			if err = s.runner.RunTransactionProcessorsOnLedgers(ledgers); err != nil {
 				return errors.Wrapf(err, "error processing ledger range %d - %d", ledgers[0].LedgerSequence(), ledgers[len(ledgers)-1].LedgerSequence())
 			}

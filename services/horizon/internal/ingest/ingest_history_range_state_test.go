@@ -142,25 +142,22 @@ func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeRunTransactionProcess
 	s.historyQ.On("GetLastLedgerIngest", s.ctx).Return(uint32(0), nil).Once()
 	s.historyQ.On("GetLatestHistoryLedger", s.ctx).Return(uint32(99), nil).Once()
 
-	ledgers := []xdr.LedgerCloseMeta{}
-	for i := 100; i <= 200; i++ {
-		meta := xdr.LedgerCloseMeta{
-			V0: &xdr.LedgerCloseMetaV0{
-				LedgerHeader: xdr.LedgerHeaderHistoryEntry{
-					Header: xdr.LedgerHeader{
-						LedgerSeq: xdr.Uint32(i),
-					},
+	meta := xdr.LedgerCloseMeta{
+		V0: &xdr.LedgerCloseMetaV0{
+			LedgerHeader: xdr.LedgerHeaderHistoryEntry{
+				Header: xdr.LedgerHeader{
+					LedgerSeq: xdr.Uint32(100),
 				},
 			},
-		}
-		ledgers = append(ledgers, meta)
-		s.ledgerBackend.On("GetLedger", s.ctx, uint32(i)).Return(meta, nil).Once()
+		},
 	}
-	s.runner.On("RunTransactionProcessorsOnLedgers", ledgers).Return(errors.New("my error")).Once()
+
+	s.ledgerBackend.On("GetLedger", s.ctx, uint32(100)).Return(meta, nil).Once()
+	s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(errors.New("my error")).Once()
 
 	next, err := historyRangeState{fromLedger: 100, toLedger: 200}.run(s.system)
 	s.Assert().Error(err)
-	s.Assert().EqualError(err, "error processing ledger range 100 - 200: my error")
+	s.Assert().EqualError(err, "error processing ledger range 100 - 100: my error")
 	s.Assert().Equal(transition{node: startState{}, sleepDuration: defaultSleep}, next)
 }
 
@@ -170,7 +167,6 @@ func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeSuccessNoFlushMax() {
 	s.historyQ.On("GetLastLedgerIngest", s.ctx).Return(uint32(0), nil).Once()
 	s.historyQ.On("GetLatestHistoryLedger", s.ctx).Return(uint32(99), nil).Once()
 
-	ledgers := []xdr.LedgerCloseMeta{}
 	for i := 100; i <= 200; i++ {
 		meta := xdr.LedgerCloseMeta{
 			V0: &xdr.LedgerCloseMetaV0{
@@ -181,10 +177,10 @@ func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeSuccessNoFlushMax() {
 				},
 			},
 		}
-		ledgers = append(ledgers, meta)
 		s.ledgerBackend.On("GetLedger", s.ctx, uint32(i)).Return(meta, nil).Once()
+		s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(nil).Once()
 	}
-	s.runner.On("RunTransactionProcessorsOnLedgers", ledgers).Return(nil).Once()
+
 	s.historyQ.On("Commit").Return(nil).Once()
 
 	next, err := historyRangeState{fromLedger: 100, toLedger: 200}.run(s.system)
@@ -244,9 +240,9 @@ func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeCommitsWorkOnLedgerBa
 		},
 	}
 	s.ledgerBackend.On("GetLedger", s.ctx, uint32(100)).Return(meta, nil).Once()
+	s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(nil).Once()
 	s.ledgerBackend.On("GetLedger", s.ctx, uint32(101)).
 		Return(xdr.LedgerCloseMeta{}, errors.New("my error")).Once()
-	s.runner.AssertNotCalled(s.T(), "RunTransactionProcessorsOnLedgers")
 
 	next, err := historyRangeState{fromLedger: 100, toLedger: 200}.run(s.system)
 	s.Assert().Error(err)
@@ -365,24 +361,21 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateRunTra
 		"DeleteRangeAll", s.ctx, toidFrom.ToInt64(), toidTo.ToInt64(),
 	).Return(nil).Once()
 
-	ledgers := []xdr.LedgerCloseMeta{}
-	for i := uint32(100); i <= uint32(200); i++ {
-		meta := xdr.LedgerCloseMeta{
-			V0: &xdr.LedgerCloseMetaV0{
-				LedgerHeader: xdr.LedgerHeaderHistoryEntry{
-					Header: xdr.LedgerHeader{
-						LedgerSeq: xdr.Uint32(i),
-					},
+	meta := xdr.LedgerCloseMeta{
+		V0: &xdr.LedgerCloseMetaV0{
+			LedgerHeader: xdr.LedgerHeaderHistoryEntry{
+				Header: xdr.LedgerHeader{
+					LedgerSeq: xdr.Uint32(100),
 				},
 			},
-		}
-		ledgers = append(ledgers, meta)
-		s.ledgerBackend.On("GetLedger", s.ctx, uint32(i)).Return(meta, nil).Once()
+		},
 	}
-	s.runner.On("RunTransactionProcessorsOnLedgers", ledgers).Return(errors.New("my error")).Once()
+
+	s.ledgerBackend.On("GetLedger", s.ctx, uint32(100)).Return(meta, nil).Once()
+	s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(errors.New("my error")).Once()
 
 	err := s.system.ReingestRange([]history.LedgerRange{{100, 200}}, false)
-	s.Assert().EqualError(err, "error processing ledger range 100 - 200: my error")
+	s.Assert().EqualError(err, "error processing ledger range 100 - 100: my error")
 }
 
 func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateCommitFails() {
@@ -398,7 +391,6 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateCommit
 		"DeleteRangeAll", s.ctx, toidFrom.ToInt64(), toidTo.ToInt64(),
 	).Return(nil).Once()
 
-	ledgers := []xdr.LedgerCloseMeta{}
 	for i := uint32(100); i <= uint32(200); i++ {
 		meta := xdr.LedgerCloseMeta{
 			V0: &xdr.LedgerCloseMetaV0{
@@ -409,11 +401,9 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateCommit
 				},
 			},
 		}
-		ledgers = append(ledgers, meta)
 		s.ledgerBackend.On("GetLedger", s.ctx, uint32(i)).Return(meta, nil).Once()
+		s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(nil).Once()
 	}
-
-	s.runner.On("RunTransactionProcessorsOnLedgers", ledgers).Return(nil).Once()
 
 	err := s.system.ReingestRange([]history.LedgerRange{{100, 200}}, false)
 	s.Assert().EqualError(err, "Error committing db transaction: my error")
@@ -432,7 +422,6 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateSucces
 	s.historyQ.On("Commit").Return(nil).Once()
 	s.historyQ.On("RebuildTradeAggregationBuckets", s.ctx, uint32(100), uint32(200), 0).Return(nil).Once()
 
-	ledgers := []xdr.LedgerCloseMeta{}
 	for i := uint32(100); i <= uint32(200); i++ {
 		meta := xdr.LedgerCloseMeta{
 			V0: &xdr.LedgerCloseMetaV0{
@@ -443,11 +432,10 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateSucces
 				},
 			},
 		}
-		ledgers = append(ledgers, meta)
 		s.ledgerBackend.On("GetLedger", s.ctx, uint32(i)).Return(meta, nil).Once()
+		s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(nil).Once()
 	}
 
-	s.runner.On("RunTransactionProcessorsOnLedgers", ledgers).Return(nil).Once()
 	err := s.system.ReingestRange([]history.LedgerRange{{100, 200}}, false)
 	s.Assert().NoError(err)
 }
@@ -549,7 +537,6 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateForceW
 		"DeleteRangeAll", s.ctx, toidFrom.ToInt64(), toidTo.ToInt64(),
 	).Return(nil).Once()
 
-	ledgers := []xdr.LedgerCloseMeta{}
 	for i := 100; i <= 200; i++ {
 		meta := xdr.LedgerCloseMeta{
 			V0: &xdr.LedgerCloseMetaV0{
@@ -560,10 +547,10 @@ func (s *ReingestHistoryRangeStateTestSuite) TestReingestHistoryRangeStateForceW
 				},
 			},
 		}
-		ledgers = append(ledgers, meta)
 		s.ledgerBackend.On("GetLedger", s.ctx, uint32(i)).Return(meta, nil).Once()
+		s.runner.On("RunTransactionProcessorsOnLedgers", []xdr.LedgerCloseMeta{meta}).Return(nil).Once()
 	}
-	s.runner.On("RunTransactionProcessorsOnLedgers", ledgers).Return(nil).Once()
+
 	err := s.system.ReingestRange([]history.LedgerRange{{100, 200}}, true)
 	s.Assert().NoError(err)
 }

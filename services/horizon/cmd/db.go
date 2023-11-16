@@ -243,6 +243,7 @@ var dbReingestCmd = &cobra.Command{
 var (
 	reingestForce       bool
 	parallelWorkers     uint
+	maxLedgersPerFlush  uint32
 	parallelJobSize     uint32
 	retries             uint
 	retryBackoffSeconds uint
@@ -274,6 +275,14 @@ func ingestRangeCmdOpts() support.ConfigOptions {
 			Required:    false,
 			FlagDefault: uint32(100000),
 			Usage:       "[optional] parallel workers will run jobs processing ledger batches of the supplied size",
+		},
+		{
+			Name:        "ledgers-per-flush",
+			ConfigKey:   &maxLedgersPerFlush,
+			OptType:     types.Uint32,
+			Required:    false,
+			FlagDefault: uint32(0),
+			Usage:       "[optional] size of ledgers batch for tx processors to retain in memory first, before flushing once to the workers ongoing db transaction, default is 0, which disables batching, effectively flush to db tx per each ledger.",
 		},
 		{
 			Name:        "retries",
@@ -416,6 +425,7 @@ func runDBReingestRange(ledgerRanges []history.LedgerRange, reingestForce bool, 
 		StellarCoreURL:              config.StellarCoreURL,
 		RoundingSlippageFilter:      config.RoundingSlippageFilter,
 		EnableIngestionFiltering:    config.EnableIngestionFiltering,
+		MaxLedgerPerFlush:           maxLedgersPerFlush,
 	}
 
 	if ingestConfig.HistorySession, err = db.Open("postgres", config.DatabaseURL); err != nil {
