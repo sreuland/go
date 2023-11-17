@@ -299,7 +299,7 @@ func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
 
 	defer mock.AssertExpectationsForObjects(t, mockTxProcessorBatchBuilders(q, mockSession, ctx)...)
 	defer mock.AssertExpectationsForObjects(t, mockChangeProcessorBatchBuilders(q, ctx, true)...)
-	
+
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
 	mockBatchInsertBuilder.On(
