@@ -357,7 +357,6 @@ func TestProcessorRunnerBuildTransactionProcessor(t *testing.T) {
 
 func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
 	ctx := context.Background()
-	maxBatchSize := 100000
 
 	config := Config{
 		NetworkPassphrase:        network.PublicNetworkPassphrase,
@@ -378,34 +377,16 @@ func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
 		},
 	}
 
-	// Batches
 	mockTransactionsFilteredTmpBatchInsertBuilder := &history.MockTransactionsBatchInsertBuilder{}
 	defer mock.AssertExpectationsForObjects(t, mockTransactionsFilteredTmpBatchInsertBuilder)
 	mockTransactionsFilteredTmpBatchInsertBuilder.On("Exec", ctx, mockSession).Return(nil).Once()
 	q.MockQTransactions.On("NewTransactionFilteredTmpBatchInsertBuilder").
 		Return(mockTransactionsFilteredTmpBatchInsertBuilder)
-
-	mockClaimableBalanceBatchInsertBuilder := &history.MockClaimableBalanceBatchInsertBuilder{}
-	q.MockQClaimableBalances.On("NewClaimableBalanceBatchInsertBuilder").
-		Return(mockClaimableBalanceBatchInsertBuilder).Once()
-
-	mockClaimantsBatchInsertBuilder := &history.MockClaimableBalanceClaimantBatchInsertBuilder{}
-	q.MockQClaimableBalances.On("NewClaimableBalanceClaimantBatchInsertBuilder").
-		Return(mockClaimantsBatchInsertBuilder).Once()
-
-	mockClaimantsBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
-	mockClaimableBalanceBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
-
-	mockLiquidityPoolBatchInsertBuilder := &history.MockLiquidityPoolBatchInsertBuilder{}
-	q.MockQLiquidityPools.On("NewLiquidityPoolBatchInsertBuilder").
-		Return(mockLiquidityPoolBatchInsertBuilder).Twice()
-
-	mockLiquidityPoolBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
-
 	q.On("DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64")).
 		Return(int64(0), nil)
 
-	defer mock.AssertExpectationsForObjects(t, mockBatchBuilders(q, mockSession, ctx, maxBatchSize)...)
+	defer mock.AssertExpectationsForObjects(t, mockTXBatchBuilders(q, mockSession, ctx, 1)...)
+	defer mock.AssertExpectationsForObjects(t, mockChangeBatchBuilders(q, mockSession, ctx, 1)...)
 
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
@@ -432,7 +413,6 @@ func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
 
 func TestProcessorRunnerRunAllProcessorsOnLedger(t *testing.T) {
 	ctx := context.Background()
-	maxBatchSize := 100000
 
 	config := Config{
 		NetworkPassphrase: network.PublicNetworkPassphrase,
@@ -453,7 +433,8 @@ func TestProcessorRunnerRunAllProcessorsOnLedger(t *testing.T) {
 	}
 
 	// Batches
-	defer mock.AssertExpectationsForObjects(t, mockBatchBuilders(q, mockSession, ctx, maxBatchSize)...)
+	defer mock.AssertExpectationsForObjects(t, mockTXBatchBuilders(q, mockSession, ctx, 1)...)
+	defer mock.AssertExpectationsForObjects(t, mockChangeBatchBuilders(q, mockSession, ctx, 1)...)
 
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
@@ -482,7 +463,6 @@ func TestProcessorRunnerRunAllProcessorsOnLedger(t *testing.T) {
 
 func TestProcessorRunnerRunTransactionsProcessorsOnLedgers(t *testing.T) {
 	ctx := context.Background()
-	maxBatchSize := 100000
 
 	config := Config{
 		NetworkPassphrase: network.PublicNetworkPassphrase,
@@ -525,7 +505,7 @@ func TestProcessorRunnerRunTransactionsProcessorsOnLedgers(t *testing.T) {
 	}
 
 	// Batches
-	defer mock.AssertExpectationsForObjects(t, mockBatchBuilders(q, mockSession, ctx, maxBatchSize)...)
+	defer mock.AssertExpectationsForObjects(t, mockTXBatchBuilders(q, mockSession, ctx, 3)...)
 
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
@@ -613,16 +593,47 @@ func TestProcessorRunnerRunAllProcessorsOnLedgerProtocolVersionNotSupported(t *t
 	)
 }
 
-func mockBatchBuilders(q *mockDBQ, mockSession *db.MockSession, ctx context.Context, maxBatchSize int) []interface{} {
+func mockChangeBatchBuilders(q *mockDBQ, mockSession *db.MockSession, ctx context.Context, numOfLedgers int) []interface{} {
+	// change processors
+	mockOfferBatchInsertBuilder := &history.MockOffersBatchInsertBuilder{}
+	mockOfferBatchInsertBuilder.On("Exec", ctx).Return(nil).Times(numOfLedgers)
+	q.MockQOffers.On("NewOffersBatchInsertBuilder").Return(mockOfferBatchInsertBuilder).Twice()
+
+	mockAccountSignersBatchInsertBuilder := &history.MockAccountSignersBatchInsertBuilder{}
+	mockAccountSignersBatchInsertBuilder.On("Exec", ctx).Return(nil).Times(numOfLedgers)
+	q.MockQSigners.On("NewAccountSignersBatchInsertBuilder").
+		Return(mockAccountSignersBatchInsertBuilder).Twice()
+
+	mockClaimableBalanceClaimantBatchInsertBuilder := &history.MockClaimableBalanceClaimantBatchInsertBuilder{}
+	mockClaimableBalanceClaimantBatchInsertBuilder.On("Exec", ctx).Return(nil).Times(numOfLedgers)
+	q.MockQClaimableBalances.On("NewClaimableBalanceClaimantBatchInsertBuilder").
+		Return(mockClaimableBalanceClaimantBatchInsertBuilder).Twice()
+
+	mockClaimableBalanceBatchInsertBuilder := &history.MockClaimableBalanceBatchInsertBuilder{}
+	q.MockQClaimableBalances.On("NewClaimableBalanceBatchInsertBuilder").
+		Return(mockClaimableBalanceBatchInsertBuilder).Twice()
+	mockClaimableBalanceBatchInsertBuilder.On("Exec", ctx).Return(nil).Times(numOfLedgers)
+
+	mockLiquidityPoolBatchInsertBuilder := &history.MockLiquidityPoolBatchInsertBuilder{}
+	q.MockQLiquidityPools.On("NewLiquidityPoolBatchInsertBuilder").
+		Return(mockLiquidityPoolBatchInsertBuilder).Twice()
+	mockLiquidityPoolBatchInsertBuilder.On("Exec", ctx).Return(nil).Times(numOfLedgers)
+
+	return []interface{}{mockOfferBatchInsertBuilder,
+		mockAccountSignersBatchInsertBuilder,
+		mockClaimableBalanceClaimantBatchInsertBuilder,
+		mockClaimableBalanceBatchInsertBuilder,
+		mockLiquidityPoolBatchInsertBuilder}
+}
+
+func mockTXBatchBuilders(q *mockDBQ, mockSession *db.MockSession, ctx context.Context, numOfLedgers int) []interface{} {
+	mockTradeBatchInsertBuilder := &history.MockTradeBatchInsertBuilder{}
+	q.On("NewTradeBatchInsertBuilder").Return(mockTradeBatchInsertBuilder).Once()
+
 	mockTransactionsBatchInsertBuilder := &history.MockTransactionsBatchInsertBuilder{}
 	mockTransactionsBatchInsertBuilder.On("Exec", ctx, mockSession).Return(nil).Once()
 	q.MockQTransactions.On("NewTransactionBatchInsertBuilder").
 		Return(mockTransactionsBatchInsertBuilder).Once()
-
-	mockAccountSignersBatchInsertBuilder := &history.MockAccountSignersBatchInsertBuilder{}
-	mockAccountSignersBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
-	q.MockQSigners.On("NewAccountSignersBatchInsertBuilder").
-		Return(mockAccountSignersBatchInsertBuilder).Twice()
 
 	mockOperationsBatchInsertBuilder := &history.MockOperationsBatchInsertBuilder{}
 	mockOperationsBatchInsertBuilder.On("Exec", ctx, mockSession).Return(nil).Once()
@@ -664,29 +675,14 @@ func mockBatchBuilders(q *mockDBQ, mockSession *db.MockSession, ctx context.Cont
 	q.MockQHistoryLiquidityPools.On("NewOperationLiquidityPoolBatchInsertBuilder").
 		Return(mockOperationLiquidityPoolBatchInsertBuilder).Once()
 
-	mockClaimableBalanceClaimantBatchInsertBuilder := &history.MockClaimableBalanceClaimantBatchInsertBuilder{}
-	mockClaimableBalanceClaimantBatchInsertBuilder.On("Exec", ctx).Return(nil)
-	q.MockQClaimableBalances.On("NewClaimableBalanceClaimantBatchInsertBuilder").
-		Return(mockClaimableBalanceClaimantBatchInsertBuilder)
-
-	mockClaimableBalanceBatchInsertBuilder := &history.MockClaimableBalanceBatchInsertBuilder{}
-	q.MockQClaimableBalances.On("NewClaimableBalanceBatchInsertBuilder").
-		Return(mockClaimableBalanceBatchInsertBuilder)
-	mockClaimableBalanceBatchInsertBuilder.On("Exec", ctx).Return(nil)
-
-	mockLiquidityPoolBatchInsertBuilder := &history.MockLiquidityPoolBatchInsertBuilder{}
-	q.MockQLiquidityPools.On("NewLiquidityPoolBatchInsertBuilder").
-		Return(mockLiquidityPoolBatchInsertBuilder).Twice()
-
-	mockLiquidityPoolBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
-
-	mockOfferBatchInsertBuilder := &history.MockOffersBatchInsertBuilder{}
-	mockOfferBatchInsertBuilder.On("Exec", ctx).Return(nil)
-	q.MockQOffers.On("NewOffersBatchInsertBuilder").Return(mockOfferBatchInsertBuilder)
-
-	q.On("NewTradeBatchInsertBuilder").Return(&history.MockTradeBatchInsertBuilder{}).Once()
-
-	return []interface{}{mockAccountSignersBatchInsertBuilder,
+	return []interface{}{mockTradeBatchInsertBuilder,
+		mockTransactionsBatchInsertBuilder,
 		mockOperationsBatchInsertBuilder,
-		mockTransactionsBatchInsertBuilder}
+		mockEffectBatchInsertBuilder,
+		mockTransactionsParticipantsBatchInsertBuilder,
+		mockOperationParticipantBatchInsertBuilder,
+		mockTransactionClaimableBalanceBatchInsertBuilder,
+		mockOperationClaimableBalanceBatchInsertBuilder,
+		mockTransactionLiquidityPoolBatchInsertBuilder,
+		mockOperationLiquidityPoolBatchInsertBuilder}
 }
