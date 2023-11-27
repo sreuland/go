@@ -141,8 +141,11 @@ func (h reingestHistoryRangeState) run(s *system) (transition, error) {
 			return stop(), errors.Wrap(err, getLastIngestedErrMsg)
 		}
 
-		if err := h.ingestRange(s, h.fromLedger, h.toLedger); err != nil {
-			return stop(), err
+		if ingestErr := h.ingestRange(s, h.fromLedger, h.toLedger); ingestErr != nil {
+			if err := s.historyQ.Commit(); err != nil {
+				return stop(), errors.Wrap(ingestErr, commitErrMsg)
+			}
+			return stop(), ingestErr
 		}
 
 		if err := s.historyQ.Commit(); err != nil {
