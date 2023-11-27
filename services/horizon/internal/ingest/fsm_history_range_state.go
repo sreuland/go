@@ -33,6 +33,10 @@ func (h historyRangeState) run(s *system) (transition, error) {
 		return start(), errors.Errorf("invalid range: [%d, %d]", h.fromLedger, h.toLedger)
 	}
 
+	if s.maxLedgerPerFlush < 1 {
+		return start(), errors.New("invalid maxLedgerPerFlush, must be greater than 0")
+	}
+
 	err := s.maybePrepareRange(s.ctx, h.fromLedger)
 	if err != nil {
 		return start(), err
@@ -61,7 +65,7 @@ func (h historyRangeState) run(s *system) (transition, error) {
 		return start(), nil
 	}
 
-	ledgers := []xdr.LedgerCloseMeta{}
+	ledgers := make([]xdr.LedgerCloseMeta, 0, s.maxLedgerPerFlush)
 	for cur := h.fromLedger; cur <= h.toLedger; cur++ {
 		var ledgerCloseMeta xdr.LedgerCloseMeta
 
@@ -70,7 +74,7 @@ func (h historyRangeState) run(s *system) (transition, error) {
 
 		ledgerCloseMeta, err = s.ledgerBackend.GetLedger(s.ctx, cur)
 		if err != nil {
-			// Commit finished work in case of ledger backend error.
+			// Commit prior batches that have been flushed in case of ledger backend error.
 			commitErr := s.historyQ.Commit()
 			if commitErr != nil {
 				log.WithError(commitErr).Error("Error committing partial range results")
@@ -86,11 +90,11 @@ func (h historyRangeState) run(s *system) (transition, error) {
 		}).Info("Ledger returned from the backend")
 		ledgers = append(ledgers, ledgerCloseMeta)
 
-		if s.maxLedgerPerFlush < 1 || len(ledgers)%int(s.maxLedgerPerFlush) == 0 {
+		if len(ledgers) == cap(ledgers) {
 			if err = s.runner.RunTransactionProcessorsOnLedgers(ledgers); err != nil {
 				return start(), errors.Wrapf(err, "error processing ledger range %d - %d", ledgers[0].LedgerSequence(), ledgers[len(ledgers)-1].LedgerSequence())
 			}
-			ledgers = []xdr.LedgerCloseMeta{}
+			ledgers = ledgers[0:0]
 		}
 	}
 

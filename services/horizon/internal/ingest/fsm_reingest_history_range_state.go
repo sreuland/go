@@ -35,6 +35,10 @@ func (h reingestHistoryRangeState) ingestRange(s *system, fromLedger, toLedger u
 		return errors.New("expected transaction to be present")
 	}
 
+	if s.maxLedgerPerFlush < 1 {
+		return errors.New("invalid maxLedgerPerFlush, must be greater than 0")
+	}
+
 	// Clear history data before ingesting - used in `reingest range` command.
 	start, end, err := toid.LedgerRangeInclusive(
 		int32(fromLedger),
@@ -49,7 +53,9 @@ func (h reingestHistoryRangeState) ingestRange(s *system, fromLedger, toLedger u
 		return errors.Wrap(err, "error in DeleteRangeAll")
 	}
 
-	ledgers := []xdr.LedgerCloseMeta{}
+	// s.maxLedgerPerFlush has been validated to be at least 1
+	ledgers := make([]xdr.LedgerCloseMeta, 0, s.maxLedgerPerFlush)
+
 	for cur := fromLedger; cur <= toLedger; cur++ {
 		var ledgerCloseMeta xdr.LedgerCloseMeta
 
@@ -68,11 +74,11 @@ func (h reingestHistoryRangeState) ingestRange(s *system, fromLedger, toLedger u
 
 		ledgers = append(ledgers, ledgerCloseMeta)
 
-		if s.maxLedgerPerFlush < 1 || len(ledgers)%int(s.maxLedgerPerFlush) == 0 {
+		if len(ledgers)%int(s.maxLedgerPerFlush) == 0 {
 			if err = s.runner.RunTransactionProcessorsOnLedgers(ledgers); err != nil {
 				return errors.Wrapf(err, "error processing ledger range %d - %d", ledgers[0].LedgerSequence(), ledgers[len(ledgers)-1].LedgerSequence())
 			}
-			ledgers = []xdr.LedgerCloseMeta{}
+			ledgers = ledgers[0:0]
 		}
 	}
 

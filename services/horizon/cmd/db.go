@@ -243,7 +243,6 @@ var dbReingestCmd = &cobra.Command{
 var (
 	reingestForce       bool
 	parallelWorkers     uint
-	maxLedgersPerFlush  uint32
 	parallelJobSize     uint32
 	retries             uint
 	retryBackoffSeconds uint
@@ -275,14 +274,6 @@ func ingestRangeCmdOpts() support.ConfigOptions {
 			Required:    false,
 			FlagDefault: uint32(100000),
 			Usage:       "[optional] parallel workers will run jobs processing ledger batches of the supplied size",
-		},
-		{
-			Name:        "ledgers-per-flush",
-			ConfigKey:   &maxLedgersPerFlush,
-			OptType:     types.Uint32,
-			Required:    false,
-			FlagDefault: uint32(10),
-			Usage:       "[optional] size of ledgers batch for tx processors to retain in memory first, before flushing once to the workers ongoing db transaction, default is 10, 0 disables batching, effectively flush to db tx per each ledger.",
 		},
 		{
 			Name:        "retries",
@@ -406,6 +397,11 @@ func runDBReingestRange(ledgerRanges []history.LedgerRange, reingestForce bool, 
 
 	if reingestForce && parallelWorkers > 1 {
 		return errors.New("--force is incompatible with --parallel-workers > 1")
+	}
+
+	maxLedgersPerFlush := uint32(100)
+	if parallelWorkers > 0 {
+		maxLedgersPerFlush = uint32(parallelWorkers)
 	}
 
 	ingestConfig := ingest.Config{

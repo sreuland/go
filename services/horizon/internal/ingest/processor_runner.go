@@ -345,17 +345,14 @@ func (s *ProcessorRunner) streamLedger(ledger xdr.LedgerCloseMeta,
 
 	tradeStats := groupProcessors.tradeProcessor.GetStats()
 
-	curHeap, sysHeap := getMemStats()
 	log.WithFields(transactionStats.Map()).
 		WithFields(tradeStats.Map()).
 		WithFields(logpkg.F{
-			"currentHeapSizeMB": curHeap,
-			"systemHeapSizeMB":  sysHeap,
-			"sequence":          ledger.LedgerSequence(),
-			"state":             false,
-			"ledger":            true,
-			"commit":            false,
-			"duration":          time.Since(startTime).Seconds(),
+			"sequence": ledger.LedgerSequence(),
+			"state":    false,
+			"ledger":   true,
+			"commit":   false,
+			"duration": time.Since(startTime).Seconds(),
 		}).Info("Processed ledger")
 
 	return nil
@@ -422,7 +419,7 @@ func (s *ProcessorRunner) RunTransactionProcessorsOnLedgers(ledgers []xdr.Ledger
 		"state":             false,
 		"ledger":            true,
 		"commit":            false,
-	}).Info("Running processors for batch of ledgers")
+	}).Infof("Running processors for batch of %v ledgers", len(ledgers))
 
 	for _, ledger := range ledgers {
 		// ensure capture of the ledger to history regardless of whether it has transactions.
@@ -455,7 +452,7 @@ func (s *ProcessorRunner) RunTransactionProcessorsOnLedgers(ledgers []xdr.Ledger
 		"ledger":            true,
 		"commit":            false,
 		"duration":          time.Since(startTime).Seconds(),
-	}).Info("Flushed processors for batch of ledgers")
+	}).Infof("Flushed processors for batch of %v ledgers", len(ledgers))
 
 	return nil
 }
