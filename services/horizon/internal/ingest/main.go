@@ -68,6 +68,10 @@ const (
 
 	defaultCoreCursorName           = "HORIZON"
 	stateVerificationErrorThreshold = 3
+
+	// 100 ledgers per flush has shown in stress tests
+	// to be best point on performance curve, default to that.
+	MaxLedgersPerFlush uint32 = 100
 )
 
 var log = logpkg.DefaultLogger.WithField("service", "ingest")
@@ -282,9 +286,7 @@ func NewSystem(config Config) (System, error) {
 
 	maxLedgersPerFlush := config.MaxLedgerPerFlush
 	if maxLedgersPerFlush < 1 {
-		// 100 ledgers per flush has shown in stress tests
-		// to be best point on performance curve, default to that.
-		maxLedgersPerFlush = 100
+		maxLedgersPerFlush = MaxLedgersPerFlush
 	}
 
 	system := &system{

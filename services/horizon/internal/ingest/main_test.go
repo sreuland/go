@@ -106,6 +106,7 @@ func TestNewSystem(t *testing.T) {
 
 	assert.Equal(t, config, system.runner.(*ProcessorRunner).config)
 	assert.Equal(t, system.ctx, system.runner.(*ProcessorRunner).ctx)
+	assert.Equal(t, system.maxLedgerPerFlush, MaxLedgersPerFlush)
 }
 
 func TestStateMachineRunReturnsUnexpectedTransaction(t *testing.T) {
