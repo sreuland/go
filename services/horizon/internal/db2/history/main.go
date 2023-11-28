@@ -312,6 +312,7 @@ type QAccounts interface {
 	GetAccountsByIDs(ctx context.Context, ids []string) ([]AccountEntry, error)
 	UpsertAccounts(ctx context.Context, accounts []AccountEntry) error
 	RemoveAccounts(ctx context.Context, accountIDs []string) (int64, error)
+	NewAccountsBatchInsertBuilder() AccountsBatchInsertBuilder
 }
 
 // AccountSigner is a row of data from the `accounts_signers` table
@@ -356,6 +357,7 @@ type QData interface {
 	GetAccountDataByKeys(ctx context.Context, keys []AccountDataKey) ([]Data, error)
 	UpsertAccountData(ctx context.Context, data []Data) error
 	RemoveAccountData(ctx context.Context, keys []AccountDataKey) (int64, error)
+	NewAccountDataBatchInsertBuilder() AccountDataBatchInsertBuilder
 }
 
 // Asset is a row of data from the `history_assets` table
@@ -846,6 +848,7 @@ type QTrustLines interface {
 	GetTrustLinesByKeys(ctx context.Context, ledgerKeys []string) ([]TrustLine, error)
 	UpsertTrustLines(ctx context.Context, trustlines []TrustLine) error
 	RemoveTrustLines(ctx context.Context, ledgerKeys []string) (int64, error)
+	NewTrustLinesBatchInsertBuilder() TrustLinesBatchInsertBuilder
 }
 
 func (q *Q) NewAccountSignersBatchInsertBuilder() AccountSignersBatchInsertBuilder {
