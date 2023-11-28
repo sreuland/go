@@ -399,7 +399,9 @@ func runDBReingestRange(ledgerRanges []history.LedgerRange, reingestForce bool, 
 		return errors.New("--force is incompatible with --parallel-workers > 1")
 	}
 
-	maxLedgersPerFlush := uint32(100)
+	// set to 0 to allow system default to be applied for flush max,
+	// unless parallel workers are define, then set flush size to the number of workers.
+	maxLedgersPerFlush := uint32(0)
 	if parallelWorkers > 0 {
 		maxLedgersPerFlush = uint32(parallelWorkers)
 	}

@@ -280,6 +280,13 @@ func NewSystem(config Config) (System, error) {
 	historyAdapter := newHistoryArchiveAdapter(archive)
 	filters := filters.NewFilters()
 
+	maxLedgersPerFlush := config.MaxLedgerPerFlush
+	if maxLedgersPerFlush < 1 {
+		// 100 ledgers per flush has shown in stress tests
+		// to be best point on performance curve, default to that.
+		maxLedgersPerFlush = 100
+	}
+
 	system := &system{
 		cancel:                      cancel,
 		config:                      config,
@@ -306,7 +313,7 @@ func NewSystem(config Config) (System, error) {
 			config.CheckpointFrequency,
 			config.StateVerificationCheckpointFrequency,
 		),
-		maxLedgerPerFlush: config.MaxLedgerPerFlush,
+		maxLedgerPerFlush: maxLedgersPerFlush,
 	}
 
 	system.initMetrics()
