@@ -91,9 +91,7 @@ func mustInitHorizonDB(app *App) {
 
 func initIngester(app *App) {
 	var err error
-	var coreSession db.SessionInterface
 	app.ingester, err = ingest.NewSystem(ingest.Config{
-		CoreSession: coreSession,
 		HistorySession: mustNewDBSession(
 			db.IngestSubservice, app.config.DatabaseURL, ingest.MaxDBConnections, ingest.MaxDBConnections, app.prometheusRegistry,
 		),
@@ -101,7 +99,6 @@ func initIngester(app *App) {
 		HistoryArchiveURLs:                   app.config.HistoryArchiveURLs,
 		CheckpointFrequency:                  app.config.CheckpointFrequency,
 		StellarCoreURL:                       app.config.StellarCoreURL,
-		StellarCoreCursor:                    app.config.CursorName,
 		CaptiveCoreBinaryPath:                app.config.CaptiveCoreBinaryPath,
 		CaptiveCoreStoragePath:               app.config.CaptiveCoreStoragePath,
 		CaptiveCoreConfigUseDB:               app.config.CaptiveCoreConfigUseDB,
