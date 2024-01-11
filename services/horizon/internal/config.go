@@ -21,7 +21,6 @@ type Config struct {
 
 	EnableIngestionFiltering    bool
 	CaptiveCoreBinaryPath       string
-	RemoteCaptiveCoreURL        string
 	CaptiveCoreConfigPath       string
 	CaptiveCoreTomlParams       ledgerbackend.CaptiveCoreTomlParams
 	CaptiveCoreToml             *ledgerbackend.CaptiveCoreToml

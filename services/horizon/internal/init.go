@@ -103,7 +103,6 @@ func initIngester(app *App) {
 		CaptiveCoreStoragePath:               app.config.CaptiveCoreStoragePath,
 		CaptiveCoreConfigUseDB:               app.config.CaptiveCoreConfigUseDB,
 		CaptiveCoreToml:                      app.config.CaptiveCoreToml,
-		RemoteCaptiveCoreURL:                 app.config.RemoteCaptiveCoreURL,
 		DisableStateVerification:             app.config.IngestDisableStateVerification,
 		StateVerificationCheckpointFrequency: uint32(app.config.IngestStateVerificationCheckpointFrequency),
 		StateVerificationTimeout:             app.config.IngestStateVerificationTimeout,

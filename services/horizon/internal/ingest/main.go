@@ -84,7 +84,6 @@ type Config struct {
 	CaptiveCoreStoragePath string
 	CaptiveCoreToml        *ledgerbackend.CaptiveCoreToml
 	CaptiveCoreConfigUseDB bool
-	RemoteCaptiveCoreURL   string
 	NetworkPassphrase      string
 
 	HistorySession     db.SessionInterface
@@ -107,19 +106,6 @@ type Config struct {
 
 	EnableIngestionFiltering bool
 	MaxLedgerPerFlush        uint32
-}
-
-// LocalCaptiveCoreEnabled returns true if configured to run
-// a local captive core instance for ingestion.
-func (c Config) LocalCaptiveCoreEnabled() bool {
-	// c.RemoteCaptiveCoreURL is always empty when running local captive core.
-	return c.RemoteCaptiveCoreURL == ""
-}
-
-// RemoteCaptiveCoreEnabled returns true if configured to run
-// a remote captive core instance for ingestion.
-func (c Config) RemoteCaptiveCoreEnabled() bool {
-	return c.RemoteCaptiveCoreURL != ""
 }
 
 const (
@@ -243,35 +229,26 @@ func NewSystem(config Config) (System, error) {
 		return nil, errors.Wrap(err, "error creating history archive")
 	}
 
-	var ledgerBackend ledgerbackend.LedgerBackend
-	if config.RemoteCaptiveCoreEnabled() {
-		ledgerBackend, err = ledgerbackend.NewRemoteCaptive(config.RemoteCaptiveCoreURL)
-		if err != nil {
-			cancel()
-			return nil, errors.Wrap(err, "error creating captive core backend")
-		}
-	} else {
-		// the only other option is local captive core config
-		logger := log.WithField("subservice", "stellar-core")
-		ledgerBackend, err = ledgerbackend.NewCaptive(
-			ledgerbackend.CaptiveCoreConfig{
-				BinaryPath:          config.CaptiveCoreBinaryPath,
-				StoragePath:         config.CaptiveCoreStoragePath,
-				UseDB:               config.CaptiveCoreConfigUseDB,
-				Toml:                config.CaptiveCoreToml,
-				NetworkPassphrase:   config.NetworkPassphrase,
-				HistoryArchiveURLs:  config.HistoryArchiveURLs,
-				CheckpointFrequency: config.CheckpointFrequency,
-				LedgerHashStore:     ledgerbackend.NewHorizonDBLedgerHashStore(config.HistorySession),
-				Log:                 logger,
-				Context:             ctx,
-				UserAgent:           fmt.Sprintf("captivecore horizon/%s golang/%s", apkg.Version(), runtime.Version()),
-			},
-		)
-		if err != nil {
-			cancel()
-			return nil, errors.Wrap(err, "error creating captive core backend")
-		}
+	// the only ingest option is local captive core config
+	logger := log.WithField("subservice", "stellar-core")
+	ledgerBackend, err := ledgerbackend.NewCaptive(
+		ledgerbackend.CaptiveCoreConfig{
+			BinaryPath:          config.CaptiveCoreBinaryPath,
+			StoragePath:         config.CaptiveCoreStoragePath,
+			UseDB:               config.CaptiveCoreConfigUseDB,
+			Toml:                config.CaptiveCoreToml,
+			NetworkPassphrase:   config.NetworkPassphrase,
+			HistoryArchiveURLs:  config.HistoryArchiveURLs,
+			CheckpointFrequency: config.CheckpointFrequency,
+			LedgerHashStore:     ledgerbackend.NewHorizonDBLedgerHashStore(config.HistorySession),
+			Log:                 logger,
+			Context:             ctx,
+			UserAgent:           fmt.Sprintf("captivecore horizon/%s golang/%s", apkg.Version(), runtime.Version()),
+		},
+	)
+	if err != nil {
+		cancel()
+		return nil, errors.Wrap(err, "error creating captive core backend")
 	}
 
 	historyQ := &history.Q{config.HistorySession.Clone()}
