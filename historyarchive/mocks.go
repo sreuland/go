@@ -103,3 +103,8 @@ func (m *MockArchive) GetXdrStream(pth string) (*XdrStream, error) {
 	a := m.Called(pth)
 	return a.Get(0).(*XdrStream), a.Error(1)
 }
+
+func (m *MockArchive) GetStats() []ArchiveStats {
+	a := m.Called()
+	return a.Get(0).([]ArchiveStats)
+}
