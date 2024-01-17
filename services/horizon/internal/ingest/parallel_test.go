@@ -40,7 +40,6 @@ func TestParallelReingestRange(t *testing.T) {
 			time.Sleep(time.Millisecond * time.Duration(10+rand.Int31n(50)))
 		}).Return(error(nil))
 	result.On("RebuildTradeAggregationBuckets", uint32(1), uint32(2050)).Return(nil).Once()
-	result.On("RebuildTradeAggregationBuckets", uint32(1), uint32(1024)).Return(nil).Once()
 	factory := func(c Config) (System, error) {
 		return result, nil
 	}
@@ -61,6 +60,7 @@ func TestParallelReingestRange(t *testing.T) {
 	rangesCalled = nil
 	system, err = newParallelSystems(config, 1, factory)
 	assert.NoError(t, err)
+	result.On("RebuildTradeAggregationBuckets", uint32(1), uint32(1024)).Return(nil).Once()
 	err = system.ReingestRange([]history.LedgerRange{{1, 1024}}, 64)
 	result.AssertExpectations(t)
 	expected = []history.LedgerRange{
