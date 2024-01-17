@@ -544,8 +544,8 @@ func assertXdrEquals(t *testing.T, a, b xdrEntry) {
 func TestGetLedgers(t *testing.T) {
 	archive := GetTestMockArchive()
 	_, err := archive.GetLedgers(1000, 1002)
-	assert.Equal(t, uint32(1), archive.GetStats()[0].Requests)
-	assert.Equal(t, uint32(0), archive.GetStats()[0].FileDownloads)
+	assert.Equal(t, uint32(1), archive.GetStats()[0].GetRequests())
+	assert.Equal(t, uint32(0), archive.GetStats()[0].GetDownloads())
 	assert.EqualError(t, err, "checkpoint 1023 is not published")
 
 	ledgerHeaders := []xdr.LedgerHeaderHistoryEntry{
@@ -633,8 +633,8 @@ func TestGetLedgers(t *testing.T) {
 	ledgers, err := archive.GetLedgers(1000, 1002)
 	assert.NoError(t, err)
 	assert.Len(t, ledgers, 3)
-	assert.Equal(t, uint32(7), archive.GetStats()[0].Requests)      // it started at 1, incurred 6 requests total, 3 queries, 3 downloads
-	assert.Equal(t, uint32(3), archive.GetStats()[0].FileDownloads) // started 0, incurred 3 file downloads
+	assert.Equal(t, uint32(7), archive.GetStats()[0].GetRequests())  // it started at 1, incurred 6 requests total, 3 queries, 3 downloads
+	assert.Equal(t, uint32(3), archive.GetStats()[0].GetDownloads()) // started 0, incurred 3 file downloads
 	for i, seq := range []uint32{1000, 1001, 1002} {
 		ledger := ledgers[seq]
 		assertXdrEquals(t, ledgerHeaders[i], ledger.Header)

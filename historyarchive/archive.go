@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
 
@@ -61,24 +62,40 @@ type Ledger struct {
 
 // all counters are uint32, golang will auto wrap them back to 0 if they overflow after addition.
 type ArchiveStats struct {
-	Requests      uint32
-	FileDownloads uint32
-	FileUploads   uint32
-	BackendName   string
+	requests      atomic.Uint32
+	fileDownloads atomic.Uint32
+	fileUploads   atomic.Uint32
+	backendName   string
 }
 
 func (as *ArchiveStats) incrementDownloads() {
-	as.FileDownloads++
+	as.fileDownloads.Add(1)
 	as.incrementRequests()
 }
 
 func (as *ArchiveStats) incrementUploads() {
-	as.FileUploads++
+	as.fileUploads.Add(1)
 	as.incrementRequests()
 }
 
 func (as *ArchiveStats) incrementRequests() {
-	as.Requests++
+	as.requests.Add(1)
+}
+
+func (as *ArchiveStats) GetRequests() uint32 {
+	return as.requests.Load()
+}
+
+func (as *ArchiveStats) GetDownloads() uint32 {
+	return as.fileDownloads.Load()
+}
+
+func (as *ArchiveStats) GetUploads() uint32 {
+	return as.fileUploads.Load()
+}
+
+func (as *ArchiveStats) GetBackendName() string {
+	return as.backendName
 }
 
 type ArchiveBackend interface {
@@ -466,7 +483,7 @@ func Connect(u string, opts ConnectOptions) (*Archive, error) {
 		err = errors.New("unknown URL scheme: '" + parsed.Scheme + "'")
 	}
 
-	arch.stats = ArchiveStats{BackendName: parsed.String()}
+	arch.stats = ArchiveStats{backendName: parsed.String()}
 
 	return &arch, err
 }

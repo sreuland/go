@@ -577,19 +577,19 @@ func addHistoryArchiveStatsMetrics(s *system, stats []historyarchive.ArchiveStat
 	for _, historyServerStat := range stats {
 		s.Metrics().HistoryArchiveStatsCounter.
 			With(prometheus.Labels{
-				"source": historyServerStat.BackendName,
+				"source": historyServerStat.GetBackendName(),
 				"type":   "file_downloads"}).
-			Add(float64(historyServerStat.FileDownloads))
+			Add(float64(historyServerStat.GetDownloads()))
 		s.Metrics().HistoryArchiveStatsCounter.
 			With(prometheus.Labels{
-				"source": historyServerStat.BackendName,
+				"source": historyServerStat.GetBackendName(),
 				"type":   "file_uploads"}).
-			Add(float64(historyServerStat.FileUploads))
+			Add(float64(historyServerStat.GetUploads()))
 		s.Metrics().HistoryArchiveStatsCounter.
 			With(prometheus.Labels{
-				"source": historyServerStat.BackendName,
+				"source": historyServerStat.GetBackendName(),
 				"type":   "requests"}).
-			Add(float64(historyServerStat.Requests))
+			Add(float64(historyServerStat.GetRequests()))
 	}
 }
 
