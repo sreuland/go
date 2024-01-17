@@ -60,41 +60,48 @@ type Ledger struct {
 	TransactionResult xdr.TransactionHistoryResultEntry
 }
 
-// all counters are uint32, golang will auto wrap them back to 0 if they overflow after addition.
-type ArchiveStats struct {
+// golang will auto wrap them back to 0 if they overflow after addition.
+type archiveStats struct {
 	requests      atomic.Uint32
 	fileDownloads atomic.Uint32
 	fileUploads   atomic.Uint32
 	backendName   string
 }
 
-func (as *ArchiveStats) incrementDownloads() {
+type ArchiveStats interface {
+	GetRequests() uint32
+	GetDownloads() uint32
+	GetUploads() uint32
+	GetBackendName() string
+}
+
+func (as *archiveStats) incrementDownloads() {
 	as.fileDownloads.Add(1)
 	as.incrementRequests()
 }
 
-func (as *ArchiveStats) incrementUploads() {
+func (as *archiveStats) incrementUploads() {
 	as.fileUploads.Add(1)
 	as.incrementRequests()
 }
 
-func (as *ArchiveStats) incrementRequests() {
+func (as *archiveStats) incrementRequests() {
 	as.requests.Add(1)
 }
 
-func (as *ArchiveStats) GetRequests() uint32 {
+func (as *archiveStats) GetRequests() uint32 {
 	return as.requests.Load()
 }
 
-func (as *ArchiveStats) GetDownloads() uint32 {
+func (as *archiveStats) GetDownloads() uint32 {
 	return as.fileDownloads.Load()
 }
 
-func (as *ArchiveStats) GetUploads() uint32 {
+func (as *archiveStats) GetUploads() uint32 {
 	return as.fileUploads.Load()
 }
 
-func (as *ArchiveStats) GetBackendName() string {
+func (as *archiveStats) GetBackendName() string {
 	return as.backendName
 }
 
@@ -155,11 +162,11 @@ type Archive struct {
 	checkpointManager CheckpointManager
 
 	backend ArchiveBackend
-	stats   ArchiveStats
+	stats   archiveStats
 }
 
 func (arch *Archive) GetStats() []ArchiveStats {
-	return []ArchiveStats{arch.stats}
+	return []ArchiveStats{&arch.stats}
 }
 
 func (arch *Archive) GetCheckpointManager() CheckpointManager {
@@ -483,7 +490,7 @@ func Connect(u string, opts ConnectOptions) (*Archive, error) {
 		err = errors.New("unknown URL scheme: '" + parsed.Scheme + "'")
 	}
 
-	arch.stats = ArchiveStats{backendName: parsed.String()}
+	arch.stats = archiveStats{backendName: parsed.String()}
 
 	return &arch, err
 }
