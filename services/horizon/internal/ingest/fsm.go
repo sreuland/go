@@ -498,7 +498,7 @@ func (r resumeState) run(s *system) (transition, error) {
 	}
 
 	rebuildStart := time.Now()
-	err = s.historyQ.RebuildTradeAggregationBuckets(s.ctx, ingestLedger, ingestLedger, s.config.RoundingSlippageFilter)
+	err = s.RebuildTradeAggregationBuckets(ingestLedger, ingestLedger)
 	if err != nil {
 		return retryResume(r), errors.Wrap(err, "error rebuilding trade aggregations")
 	}
@@ -713,7 +713,7 @@ func (v verifyRangeState) run(s *system) (transition, error) {
 			Info("Processed ledger")
 	}
 
-	err = s.historyQ.RebuildTradeAggregationBuckets(s.ctx, v.fromLedger, v.toLedger, s.config.RoundingSlippageFilter)
+	err = s.RebuildTradeAggregationBuckets(v.fromLedger, v.toLedger)
 	if err != nil {
 		return stop(), errors.Wrap(err, "error rebuilding trade aggregations")
 	}
