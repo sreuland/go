@@ -33,12 +33,7 @@ func NewArchivePool(archiveURLs []string, config ConnectOptions) (ArchivePool, e
 	for _, url := range archiveURLs {
 		archive, err := Connect(
 			url,
-			ConnectOptions{
-				NetworkPassphrase:   config.NetworkPassphrase,
-				CheckpointFrequency: config.CheckpointFrequency,
-				Context:             config.Context,
-				UserAgent:           config.UserAgent,
-			},
+			config,
 		)
 
 		if err != nil {
