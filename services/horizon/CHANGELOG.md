@@ -5,6 +5,9 @@ file. This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+### Fixed
+- Trade agg rebuild errors reported on `db reingest range` with parellel workers ([5168](https://github.com/stellar/go/pull/5168))
+
 ### Added
 
 - Add a deprecation warning for using command-line flags when running Horizon ([5051](https://github.com/stellar/go/pull/5051))
