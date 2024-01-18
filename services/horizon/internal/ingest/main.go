@@ -173,7 +173,7 @@ type System interface {
 	StressTest(numTransactions, changesPerTransaction int) error
 	VerifyRange(fromLedger, toLedger uint32, verifyState bool) error
 	BuildState(sequence uint32, skipChecks bool) error
-	ReingestRange(ledgerRanges []history.LedgerRange, force bool, rebuildTradAgg bool) error
+	ReingestRange(ledgerRanges []history.LedgerRange, force bool, rebuildTradeAgg bool) error
 	BuildGenesisState() error
 	Shutdown()
 	GetCurrentState() State
