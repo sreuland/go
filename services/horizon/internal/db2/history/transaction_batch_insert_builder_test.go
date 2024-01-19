@@ -8,6 +8,7 @@ import (
 	"github.com/guregu/null"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/xdr"
@@ -275,4 +276,111 @@ func TestTransactionToMap_Preconditions(t *testing.T) {
 	assert.Equal(t, null.StringFrom(fmt.Sprint(uint64(math.MaxUint64))), row.MinAccountSequenceAge)
 	assert.Equal(t, null.IntFrom(3), row.MinAccountSequenceLedgerGap)
 	assert.Equal(t, pq.StringArray{signerKey.Address()}, row.ExtraSigners)
+}
+
+func TestTransactionsDropSorobanTxMeta(t *testing.T) {
+	truth := true
+	minSeqNum := xdr.SequenceNumber(math.MaxInt64)
+	source := xdr.MuxedAccount{
+		Type:    xdr.CryptoKeyTypeKeyTypeEd25519,
+		Ed25519: &xdr.Uint256{3, 2, 1},
+	}
+	signerKey := xdr.SignerKey{
+		Type:    xdr.SignerKeyTypeSignerKeyTypeEd25519,
+		Ed25519: source.Ed25519,
+	}
+	tx := ingest.LedgerTransaction{
+		Index: 1,
+		Envelope: xdr.TransactionEnvelope{
+			Type: xdr.EnvelopeTypeEnvelopeTypeTx,
+			V1: &xdr.TransactionV1Envelope{
+				Tx: xdr.Transaction{
+					SourceAccount: source,
+					Operations: []xdr.Operation{
+						{
+							SourceAccount: &source,
+							Body: xdr.OperationBody{
+								Type: xdr.OperationTypePayment,
+								PaymentOp: &xdr.PaymentOp{
+									Destination: source,
+									Asset:       xdr.Asset{Type: xdr.AssetTypeAssetTypeNative},
+									Amount:      100,
+								},
+							},
+						},
+					},
+					Cond: xdr.Preconditions{
+						Type: xdr.PreconditionTypePrecondV2,
+						V2: &xdr.PreconditionsV2{
+							// The important bit.
+							TimeBounds: &xdr.TimeBounds{
+								MinTime: 1000,
+								MaxTime: 2000,
+							},
+							LedgerBounds: &xdr.LedgerBounds{
+								MinLedger: 5,
+								MaxLedger: 10,
+							},
+							MinSeqNum:       &minSeqNum,
+							MinSeqAge:       xdr.Duration(math.MaxUint64),
+							MinSeqLedgerGap: xdr.Uint32(3),
+							ExtraSigners:    []xdr.SignerKey{signerKey},
+						},
+					},
+				},
+			},
+		},
+		Result: xdr.TransactionResultPair{
+			TransactionHash: xdr.Hash{1, 2, 3},
+			Result: xdr.TransactionResult{
+				Result: xdr.TransactionResultResult{
+					Code: xdr.TransactionResultCodeTxFeeBumpInnerSuccess,
+					InnerResultPair: &xdr.InnerTransactionResultPair{
+						TransactionHash: xdr.Hash{3, 2, 1},
+						Result: xdr.InnerTransactionResult{
+							Result: xdr.InnerTransactionResultResult{
+								Results: &[]xdr.OperationResult{},
+							},
+						},
+					},
+					Results: &[]xdr.OperationResult{},
+				},
+			},
+		},
+		UnsafeMeta: xdr.TransactionMeta{
+			V:          3,
+			Operations: &[]xdr.OperationMeta{},
+			V3: &xdr.TransactionMetaV3{
+				TxChangesBefore: []xdr.LedgerEntryChange{
+					{
+						Type: xdr.LedgerEntryChangeTypeLedgerEntryUpdated,
+					},
+					{
+						Type: xdr.LedgerEntryChangeTypeLedgerEntryCreated,
+					},
+				},
+				Operations: []xdr.OperationMeta{{}},
+				TxChangesAfter: []xdr.LedgerEntryChange{{
+					Type: xdr.LedgerEntryChangeTypeLedgerEntryRemoved,
+				}},
+				SorobanMeta: &xdr.SorobanTransactionMeta{
+					ReturnValue: xdr.ScVal{Type: xdr.ScValTypeScvBool, B: &truth},
+				},
+			},
+		},
+	}
+
+	encoder := xdr.NewEncodingBuffer()
+	processedTx, err := transactionToRow(tx, 123, encoder)
+	require.NoError(t, err)
+
+	var meta xdr.TransactionMeta
+	err = xdr.SafeUnmarshalBase64(processedTx.TxMeta, &meta)
+	require.NoError(t, err)
+
+	require.NotNil(t, meta.V3)
+	require.Empty(t, meta.V3.Operations)
+	require.Empty(t, meta.V3.TxChangesAfter)
+	require.Empty(t, meta.V3.TxChangesBefore)
+	require.Nil(t, meta.V3.SorobanMeta)
 }

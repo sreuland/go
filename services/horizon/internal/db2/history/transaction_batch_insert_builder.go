@@ -164,10 +164,33 @@ func transactionToRow(transaction ingest.LedgerTransaction, sequence uint32, enc
 	if err != nil {
 		return TransactionWithoutLedger{}, err
 	}
-	metaBase64, err := encodingBuffer.MarshalBase64(transaction.UnsafeMeta)
+
+	// We intentionally avoid ingestion of transaction metadata for Soroban
+	// transactions after Protocol 20 due to performance concerns:
+	//   - Soroban @ 10/tps adds 30-100% txmeta/ledger
+	//   - Soroban @ 150/tps means Horizon is unable to ingest meta
+	//   - the data is not ergonomic
+	//   - this data is available in Soroban RPC
+	//
+	// https://stellarfoundation.slack.com/archives/C02B04RMK/p1705624375148539
+	//
+	// In order to avoid breakage, we instead just make the meta appear empty.
+	var metaBase64 string
+	if transaction.UnsafeMeta.V == 3 &&
+		transaction.UnsafeMeta.MustV3().SorobanMeta != nil {
+		transaction.UnsafeMeta.V3 = &xdr.TransactionMetaV3{
+			Ext:             xdr.ExtensionPoint{},
+			TxChangesBefore: xdr.LedgerEntryChanges{},
+			Operations:      []xdr.OperationMeta{},
+			TxChangesAfter:  xdr.LedgerEntryChanges{},
+			SorobanMeta:     nil,
+		}
+	}
+	metaBase64, err = encodingBuffer.MarshalBase64(transaction.UnsafeMeta)
 	if err != nil {
 		return TransactionWithoutLedger{}, err
 	}
+
 	feeMetaBase64, err := encodingBuffer.MarshalBase64(transaction.FeeChanges)
 	if err != nil {
 		return TransactionWithoutLedger{}, err
