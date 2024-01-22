@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stellar/go/clients/horizonclient"
+	"github.com/stellar/go/protocols/horizon"
 	"github.com/stellar/go/protocols/horizon/operations"
 	"github.com/stellar/go/services/horizon/internal/test/integration"
 	"github.com/stellar/go/txnbuild"
@@ -56,6 +57,8 @@ func TestContractInvokeHostFunctionInstallContract(t *testing.T) {
 	err = xdr.SafeUnmarshalBase64(clientTx.EnvelopeXdr, &txEnv)
 	require.NoError(t, err)
 
+	verifyEmptySorobanMeta(t, clientTx)
+
 	opResults, ok := txResult.OperationResults()
 	assert.True(t, ok)
 	assert.Equal(t, len(opResults), 1)
@@ -103,6 +106,7 @@ func TestContractInvokeHostFunctionCreateContractByAddress(t *testing.T) {
 
 	clientTx, err := itest.Client().TransactionDetail(tx.Hash)
 	require.NoError(t, err)
+	verifyEmptySorobanMeta(t, clientTx)
 
 	assert.Equal(t, tx.Hash, clientTx.Hash)
 	var txResult xdr.TransactionResult
@@ -196,6 +200,7 @@ func TestContractInvokeHostFunctionInvokeStatelessContractFn(t *testing.T) {
 
 	clientTx, err := itest.Client().TransactionDetail(tx.Hash)
 	require.NoError(t, err)
+	verifyEmptySorobanMeta(t, clientTx)
 
 	assert.Equal(t, tx.Hash, clientTx.Hash)
 	var txResult xdr.TransactionResult
@@ -292,6 +297,7 @@ func TestContractInvokeHostFunctionInvokeStatefulContractFn(t *testing.T) {
 
 	clientTx, err := itest.Client().TransactionDetail(tx.Hash)
 	require.NoError(t, err)
+	verifyEmptySorobanMeta(t, clientTx)
 
 	assert.Equal(t, tx.Hash, clientTx.Hash)
 	var txResult xdr.TransactionResult
@@ -344,6 +350,18 @@ func assembleInstallContractCodeOp(t *testing.T, sourceAccount string, wasmFileN
 		},
 		SourceAccount: sourceAccount,
 	}
+}
+
+func verifyEmptySorobanMeta(t *testing.T, clientTx horizon.Transaction) {
+	var txMeta xdr.TransactionMeta
+	err := xdr.SafeUnmarshalBase64(clientTx.ResultMetaXdr, &txMeta)
+	require.NoError(t, err)
+
+	require.NotNil(t, txMeta.V3)
+	require.Empty(t, txMeta.V3.Operations)
+	require.Empty(t, txMeta.V3.TxChangesAfter)
+	require.Empty(t, txMeta.V3.TxChangesBefore)
+	require.Nil(t, txMeta.V3.SorobanMeta)
 }
 
 func assembleCreateContractOp(t *testing.T, sourceAccount string, wasmFileName string, contractSalt string, passPhrase string) *txnbuild.InvokeHostFunction {

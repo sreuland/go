@@ -1395,6 +1395,7 @@ func assertInvokeHostFnSucceeds(itest *integration.Test, signer *keypair.Full, o
 	preFlightOp, minFee := itest.PreflightHostFunctions(&acc, *op)
 	clientTx, err := itest.SubmitOperationsWithFee(&acc, signer, minFee+txnbuild.MinBaseFee, &preFlightOp)
 	require.NoError(itest.CurrentTest(), err)
+	verifyEmptySorobanMeta(itest.CurrentTest(), clientTx)
 
 	var txResult xdr.TransactionResult
 	err = xdr.SafeUnmarshalBase64(clientTx.ResultXdr, &txResult)
