@@ -29,7 +29,7 @@ file. This project adheres to [Semantic Versioning](http://semver.org/).
   * removed automatic updating of core cursor from ingestion background processing. 
     * Note for upgrading on existing horizon deployments - Since horizon will no longer maintain advancement of this cursor on core, it may require manual removal of the cursor from the core process that your horizon was using for captive core, otherwise that core process may un-necessarily retain older data in buckets on disk up to the last cursor ledger sequence set by prior horizon release. 
     
-    The captive core process to check and verify presence of cursor usage is determined by the horizon deployment, if `--stellar-core-url` is present or  `--captive-core-http-port` is present and set to non-zero value, or `--captive-core-config-path` is used and the toml has `HTTP_PORT` set to non-zero and `PUBLIC_HTTP_PORT` is not set to false, then it is recommended to perform the following preventative measure on the machine hosting horizon after upgraded to 2.28.0 and process restarted:
+    The captive core process to check and verify presence of cursor usage is determined by the horizon deployment, if `NETWORK` is present, or `STELLAR_CORE_URL` is present or  `CAPTIVE-CORE-HTTP-PORT` is present and set to non-zero value, or `CAPTIVE-CORE_CONFIG_PATH` is used and the toml has `HTTP_PORT` set to non-zero and `PUBLIC_HTTP_PORT` is not set to false, then it is recommended to perform the following preventative measure on the machine hosting horizon after upgraded to 2.28.0 and process restarted:
     ```
     $ curl http://<captive_core_process_url:captive_core_process_port>/getcursor
     2. # If there are no cursors reported, done, no need for any action
