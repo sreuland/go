@@ -80,9 +80,26 @@ func (abc *ArchiveBucketCache) GetFile(
 
 		// Since it's not on-disk, pull it from the remote backend, shove it
 		// into the cache, and write it to disk.
-		remote, err := upstream.GetFile(filepath)
+		remoteArchiveReader, err := upstream.GetFile(filepath)
 		if err != nil {
-			return remote, false, err
+			return nil, false, err
+		}
+
+		tempArchiveFilePath := path.Join(abc.path, filepath + ".remote")
+		tempArchiveFile, err := os.Create(tempArchiveFilePath)
+		if err != nil {
+			return remoteArchiveReader, false, err
+		}
+
+		// blocking, download of xdr/gz archive file do can verify checksum before adding to cache
+		// or return remoteArchiveReader here and send the rest as async routine to a small thread pool, capped at 5 workers?
+		_, err = io.Copy(tempArchiveFile, remoteArchiveReader)
+		if err != nil {
+			return remoteArchiveReader, false, err
+		}
+
+	    if !abc.verifyArchiveFileChecksum(tempArchiveFile) {
+			return remoteArchiveReader, false, err
 		}
 
 		local, err := abc.createLocal(filepath)
@@ -90,10 +107,10 @@ func (abc *ArchiveBucketCache) GetFile(
 			// If there's some local FS error, we can still continue with the
 			// remote version, so just log it and continue.
 			L.WithError(err).Warn("Creating cache file failed")
-			return remote, false, nil
+			return remoteArchiveReader, false, nil
 		}
 
-		return teeReadCloser(remote, local, func() error {
+		return teeReadCloser(tempArchiveFile, local, func() error {
 			L.Debug("Download complete: removing lockfile")
 			return os.Remove(NameLockfile(localPath))
 		}), false, nil
@@ -111,6 +128,15 @@ func (abc *ArchiveBucketCache) GetFile(
 	}
 
 	return local, true, nil
+}
+
+func (abc *ArchiveBucketCache) verifyArchiveFileChecksum(archiveFile *os.File) bool {
+	// can we compute a hash over downloaded bytes in archiveFile
+	// and compare that inline here to any form of checksum from HA server, is the archiveFile filename itself 
+	// a reproducible hash, i.e. is it <file checksum>.tar.gz  
+	// was thinking Archive.VerifyBucketHash() in verify.go is doing similar?
+
+    return false 
 }
 
 func (abc *ArchiveBucketCache) Exists(filepath string) bool {
