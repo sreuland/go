@@ -414,7 +414,7 @@ func (s *system) initMetrics() {
 				"'type' label will further categorize the potential request into specific requests, " +
 				"'file_downloads' - the count of files downloaded from an archive server, " +
 				"'file_uploads' - the count of files uploaded to an archive server, " +
-				"'requests' - the count of non-download, http query requests sent to an archive server, " +
+				"'requests' - the count of all http query requests sent to an archive server, " +
 				"'cache_hits' - the count of requests for an archive file that were found on local cache instead, no download request sent to archive server.",
 		},
 		[]string{"source", "type"},
