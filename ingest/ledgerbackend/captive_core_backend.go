@@ -120,8 +120,15 @@ type CaptiveCoreConfig struct {
 	BinaryPath string
 	// NetworkPassphrase is the Stellar network passphrase used by captive core when connecting to the Stellar network
 	NetworkPassphrase string
-	// HistoryArchiveURLs are a list of history archive urls
+
+	// Optional, caller can pass pre-existing instance of archive pool instead of HistoryArchiveURLs
+	// if using this, then HistoryArchiveURLs should be empty as non-empty will override this.
+	HistoryArchivePool historyarchive.ArchivePool
+
+	// HistoryArchiveURLs are a list of history archive urls, if any urls are present here
+	// then captive core will create it's own internal archive pool from urls.
 	HistoryArchiveURLs []string
+
 	// UserAgent is the value of `User-Agent` header that will be send along http archive requests.
 	UserAgent string
 	Toml      *CaptiveCoreToml
@@ -173,21 +180,24 @@ func NewCaptive(config CaptiveCoreConfig) (*CaptiveStellarCore, error) {
 	var cancel context.CancelFunc
 	config.Context, cancel = context.WithCancel(parentCtx)
 
-	archivePool, err := historyarchive.NewArchivePool(
-		config.HistoryArchiveURLs,
-		historyarchive.ArchiveOptions{
-			NetworkPassphrase:   config.NetworkPassphrase,
-			CheckpointFrequency: config.CheckpointFrequency,
-			ConnectOptions: storage.ConnectOptions{
-				Context:   config.Context,
-				UserAgent: config.UserAgent,
+	archivePool := config.HistoryArchivePool
+	if len(config.HistoryArchiveURLs) > 0 {
+		var poolErr error
+		archivePool, poolErr = historyarchive.NewArchivePool(
+			config.HistoryArchiveURLs,
+			historyarchive.ArchiveOptions{
+				NetworkPassphrase:   config.NetworkPassphrase,
+				CheckpointFrequency: config.CheckpointFrequency,
+				ConnectOptions: storage.ConnectOptions{
+					Context:   config.Context,
+					UserAgent: config.UserAgent,
+				},
 			},
-		},
-	)
-
-	if err != nil {
-		cancel()
-		return nil, errors.Wrap(err, "Error connecting to ALL history archives.")
+		)
+		if poolErr != nil {
+			cancel()
+			return nil, errors.Wrap(poolErr, "Error connecting to ALL history archives.")
+		}
 	}
 
 	c := &CaptiveStellarCore{
