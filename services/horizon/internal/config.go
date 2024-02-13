@@ -109,6 +109,4 @@ type Config struct {
 	Network string
 	// DisableTxSub disables transaction submission functionality for Horizon.
 	DisableTxSub bool
-	// SkipSorobanIngestion skips Soroban related ingestion processing.
-	SkipSorobanIngestion bool
 }

@@ -420,7 +420,6 @@ func runDBReingestRange(ledgerRanges []history.LedgerRange, reingestForce bool, 
 		RoundingSlippageFilter:      config.RoundingSlippageFilter,
 		EnableIngestionFiltering:    config.EnableIngestionFiltering,
 		MaxLedgerPerFlush:           maxLedgersPerFlush,
-		SkipSorobanIngestion:        config.SkipSorobanIngestion,
 	}
 
 	if ingestConfig.HistorySession, err = db.Open("postgres", config.DatabaseURL); err != nil {

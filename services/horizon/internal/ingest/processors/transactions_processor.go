@@ -11,40 +11,23 @@ import (
 )
 
 type TransactionProcessor struct {
-	batch       history.TransactionBatchInsertBuilder
-	skipSoroban bool
+	batch history.TransactionBatchInsertBuilder
 }
 
-func NewTransactionFilteredTmpProcessor(batch history.TransactionBatchInsertBuilder, skipSoroban bool) *TransactionProcessor {
+func NewTransactionFilteredTmpProcessor(batch history.TransactionBatchInsertBuilder) *TransactionProcessor {
 	return &TransactionProcessor{
-		batch:       batch,
-		skipSoroban: skipSoroban,
+		batch: batch,
 	}
 }
 
-func NewTransactionProcessor(batch history.TransactionBatchInsertBuilder, skipSoroban bool) *TransactionProcessor {
+func NewTransactionProcessor(batch history.TransactionBatchInsertBuilder) *TransactionProcessor {
 	return &TransactionProcessor{
-		batch:       batch,
-		skipSoroban: skipSoroban,
+		batch: batch,
 	}
 }
 
 func (p *TransactionProcessor) ProcessTransaction(lcm xdr.LedgerCloseMeta, transaction ingest.LedgerTransaction) error {
-	elidedTransaction := transaction
-
-	if p.skipSoroban &&
-		elidedTransaction.UnsafeMeta.V == 3 &&
-		elidedTransaction.UnsafeMeta.MustV3().SorobanMeta != nil {
-		elidedTransaction.UnsafeMeta.V3 = &xdr.TransactionMetaV3{
-			Ext:             xdr.ExtensionPoint{},
-			TxChangesBefore: xdr.LedgerEntryChanges{},
-			Operations:      []xdr.OperationMeta{},
-			TxChangesAfter:  xdr.LedgerEntryChanges{},
-			SorobanMeta:     nil,
-		}
-	}
-
-	if err := p.batch.Add(elidedTransaction, lcm.LedgerSequence()); err != nil {
+	if err := p.batch.Add(transaction, lcm.LedgerSequence()); err != nil {
 		return errors.Wrap(err, "Error batch inserting transaction rows")
 	}
 
