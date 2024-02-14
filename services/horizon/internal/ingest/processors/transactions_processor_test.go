@@ -109,7 +109,7 @@ func (s *TransactionsProcessorTestSuiteLedger) TestAddTransactionsWithMetaSuccee
 }
 
 func (s *TransactionsProcessorTestSuiteLedger) TestAddTransactionsWithSkippedMetaSucceeds() {
-	elidingTxProcessor := NewTransactionProcessor(s.mockBatchInsertBuilder, false)
+	elidingTxProcessor := NewTransactionProcessor(s.mockBatchInsertBuilder, true)
 
 	sequence := uint32(20)
 	lcm := xdr.LedgerCloseMeta{
@@ -149,30 +149,33 @@ func (s *TransactionsProcessorTestSuiteLedger) TestAddTransactionsWithSkippedMet
 	thirdTx.UnsafeMeta.V3.TxChangesAfter = xdr.LedgerEntryChanges{ledgerEntryChange}
 	thirdTx.UnsafeMeta.V3.SorobanMeta = &xdr.SorobanTransactionMeta{}
 
-	s.mockBatchInsertBuilder.On("Add", firstTx, sequence).Run(func(args mock.Arguments) {
+	s.mockBatchInsertBuilder.On("Add", mock.AnythingOfType("ingest.LedgerTransaction"), sequence).Run(func(args mock.Arguments) {
 		tx := args.Get(0).(ingest.LedgerTransaction)
 		s.Assert().Len(tx.UnsafeMeta.V1.TxChanges, 0)
 		s.Assert().Len(tx.UnsafeMeta.V1.Operations, 0)
 	}).Return(nil).Once()
 
-	s.mockBatchInsertBuilder.On("Add", secondTx, sequence).Run(func(args mock.Arguments) {
+	sequence++
+	s.mockBatchInsertBuilder.On("Add", mock.AnythingOfType("ingest.LedgerTransaction"), sequence).Run(func(args mock.Arguments) {
 		tx := args.Get(0).(ingest.LedgerTransaction)
 		s.Assert().Len(tx.UnsafeMeta.V2.TxChangesAfter, 0)
 		s.Assert().Len(tx.UnsafeMeta.V2.TxChangesBefore, 0)
-		s.Assert().Len(tx.UnsafeMeta.V2.Operations, 3)
+		s.Assert().Len(tx.UnsafeMeta.V2.Operations, 0)
 	}).Return(nil).Once()
 
-	s.mockBatchInsertBuilder.On("Add", thirdTx, sequence).Run(func(args mock.Arguments) {
+	sequence++
+	s.mockBatchInsertBuilder.On("Add", mock.AnythingOfType("ingest.LedgerTransaction"), sequence).Run(func(args mock.Arguments) {
 		tx := args.Get(0).(ingest.LedgerTransaction)
 		s.Assert().Len(tx.UnsafeMeta.V3.TxChangesAfter, 0)
 		s.Assert().Len(tx.UnsafeMeta.V3.TxChangesBefore, 0)
 		s.Assert().Nil(tx.UnsafeMeta.V3.SorobanMeta)
-		s.Assert().Len(tx.UnsafeMeta.V3.Operations, 4)
+		s.Assert().Len(tx.UnsafeMeta.V3.Operations, 0)
 	}).Return(nil).Once()
 
 	s.mockBatchInsertBuilder.On("Exec", s.ctx, s.mockSession).Return(nil).Once()
 
 	s.Assert().NoError(elidingTxProcessor.ProcessTransaction(lcm, firstTx))
+	lcm.V0.LedgerHeader.Header.LedgerSeq++
 	s.Assert().NoError(elidingTxProcessor.ProcessTransaction(lcm, secondTx))
 	lcm.V0.LedgerHeader.Header.LedgerSeq++
 	s.Assert().NoError(elidingTxProcessor.ProcessTransaction(lcm, thirdTx))
