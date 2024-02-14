@@ -60,6 +60,8 @@ const (
 	EnableIngestionFilteringFlagName = "exp-enable-ingestion-filtering"
 	// DisableTxSubFlagName is the command line flag for disabling transaction submission feature of Horizon
 	DisableTxSubFlagName = "disable-tx-sub"
+	// SkipTxmeta is the command line flag for disabling persistence of tx meta in history transaction table
+	SkipTxmeta = "skip-txmeta"
 
 	// StellarPubnet is a constant representing the Stellar public network
 	StellarPubnet = "pubnet"
@@ -735,6 +737,15 @@ func Flags() (*Config, support.ConfigOptions) {
 				" It automatically configures network settings, including %s, %s, and %s.",
 				StellarPubnet, StellarTestnet, NetworkPassphraseFlagName,
 				HistoryArchiveURLsFlagName, CaptiveCoreConfigPathName),
+			UsedInCommands: IngestionCommands,
+		},
+		&support.ConfigOption{
+			Name:           SkipTxmeta,
+			ConfigKey:      &config.SkipTxmeta,
+			OptType:        types.Bool,
+			FlagDefault:    false,
+			Required:       false,
+			Usage:          "excludes tx meta from persistence on transaction history",
 			UsedInCommands: IngestionCommands,
 		},
 	}

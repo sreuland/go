@@ -407,7 +407,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestAddOperationSucceeds() {
 			Ed25519: *unmuxed.Ed25519,
 		},
 	}
-	firstTx := createTransaction(true, 1)
+	firstTx := createTransaction(true, 1, 2)
 	firstTx.Index = 1
 	firstTx.Envelope.Operations()[0].Body = xdr.OperationBody{
 		Type: xdr.OperationTypePayment,
@@ -418,8 +418,8 @@ func (s *OperationsProcessorTestSuiteLedger) TestAddOperationSucceeds() {
 		},
 	}
 	firstTx.Envelope.V1.Tx.SourceAccount = muxed
-	secondTx := createTransaction(false, 3)
-	thirdTx := createTransaction(true, 4)
+	secondTx := createTransaction(false, 3, 2)
+	thirdTx := createTransaction(true, 4, 2)
 
 	txs := []ingest.LedgerTransaction{
 		firstTx,
@@ -451,7 +451,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestAddOperationFails() {
 			},
 		},
 	}
-	tx := createTransaction(true, 1)
+	tx := createTransaction(true, 1, 2)
 
 	s.mockBatchInsertBuilder.
 		On(
@@ -482,7 +482,7 @@ func (s *OperationsProcessorTestSuiteLedger) TestExecFails() {
 			},
 		},
 	}
-	tx := createTransaction(true, 1)
+	tx := createTransaction(true, 1, 2)
 
 	s.mockBatchInsertBuilder.
 		On(
