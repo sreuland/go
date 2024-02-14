@@ -183,6 +183,27 @@ func (s *TransactionsProcessorTestSuiteLedger) TestAddTransactionsWithSkippedMet
 	s.Assert().NoError(elidingTxProcessor.Flush(s.ctx, s.mockSession))
 }
 
+func (s *TransactionsProcessorTestSuiteLedger) TestAddTransactionsWithSkippedMetaFails() {
+	elidingTxProcessor := NewTransactionProcessor(s.mockBatchInsertBuilder, true)
+
+	sequence := uint32(20)
+	lcm := xdr.LedgerCloseMeta{
+		V0: &xdr.LedgerCloseMetaV0{
+			LedgerHeader: xdr.LedgerHeaderHistoryEntry{
+				Header: xdr.LedgerHeader{
+					LedgerSeq: xdr.Uint32(sequence),
+				},
+			},
+		},
+	}
+
+	firstTx := createTransaction(true, 1, 1)
+	// intentionally mangle the transaction to have an invalid tx meta version
+	firstTx.UnsafeMeta.V = 8
+
+	s.Assert().ErrorContains(elidingTxProcessor.ProcessTransaction(lcm, firstTx), "received an un-supported tx-meta version 8")
+}
+
 func (s *TransactionsProcessorTestSuiteLedger) TestAddTransactionsFails() {
 	sequence := uint32(20)
 	lcm := xdr.LedgerCloseMeta{

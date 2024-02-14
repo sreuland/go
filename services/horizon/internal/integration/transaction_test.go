@@ -38,9 +38,10 @@ func TestP19MetaTransaction(t *testing.T) {
 
 	assert.Greater(t, len(txMetaResult.MustV2().Operations), 0)
 	assert.Greater(t, len(txMetaResult.MustV2().TxChangesBefore), 0)
-	// TODO, generate TxChangesAfter also
+	// TODO figure out how to generate TxChangesAfter also
 	//assert.Greater(t, len(txMetaResult.MustV2().TxChangesAfter), 0)
 }
+
 func TestP19MetaDisabledTransaction(t *testing.T) {
 	itest := integration.NewTest(t, integration.Config{
 		ProtocolVersion:    19,
