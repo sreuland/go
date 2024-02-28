@@ -2,15 +2,22 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/support/db/dbtest"
+	"github.com/stellar/go/support/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestServerTimeout(t *testing.T) {
+func TestContextTimeoutDuringSql(t *testing.T) {
 	db := dbtest.Postgres(t).Load(testSchema)
 	defer db.Close()
 
@@ -19,16 +26,147 @@ func TestServerTimeout(t *testing.T) {
 	ctx, cancel = context.WithTimeout(ctx, time.Duration(1))
 	assert := assert.New(t)
 
-	sess := &Session{DB: db.Open()}
-	defer sess.DB.Close()
+	sessRaw := &Session{DB: db.Open()}
+	reg := prometheus.NewRegistry()
+
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+	defer sess.Close()
 	defer cancel()
 
 	var count int
 	err := sess.GetRaw(ctx, &count, "SELECT pg_sleep(2), COUNT(*) FROM people")
 	assert.ErrorIs(err, ErrTimeout, "long running db server operation past context timeout, should return timeout")
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "test_db_server_timeout_closed_session_total" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), float64(1))
+			return
+		}
+	}
+	assert.Fail("server_timeout_closed_session_total metrics were not correct")
 }
 
-func TestUserCancel(t *testing.T) {
+func TestContextTimeoutBeforeSql(t *testing.T) {
+	db := dbtest.Postgres(t).Load(testSchema)
+	defer db.Close()
+
+	var cancel context.CancelFunc
+	ctx := context.Background()
+	ctx, cancel = context.WithTimeout(ctx, time.Second)
+	assert := assert.New(t)
+
+	sessRaw := &Session{DB: db.Open()}
+	reg := prometheus.NewRegistry()
+
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+	defer sess.Close()
+	defer cancel()
+
+	var count int
+	time.Sleep(time.Second)
+	err := sess.GetRaw(ctx, &count, "SELECT pg_sleep(5) FROM people")
+	assert.ErrorIs(err, ErrTimeout, "any db server operation should return error immediately if context already timed out")
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "test_db_server_timeout_closed_session_total" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), float64(1))
+			return
+		}
+	}
+	assert.Fail("server_timeout_closed_session_total metrics were not correct")
+}
+
+func TestExternallyCancelledSql(t *testing.T) {
+	var cancel context.CancelFunc
+	ctx := context.Background()
+	ctx, cancel = context.WithCancel(ctx)
+	assert := assert.New(t)
+
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDB.Close()
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	sessRaw := &Session{DB: sqlxDB}
+	reg := prometheus.NewRegistry()
+
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+
+	defer sess.Close()
+	defer cancel()
+
+	// simulate an external(not originating from horizon) cancelled sql statement, such as cancelled from psql usage
+	mock.ExpectQuery("SELECT 1").WillReturnError(errors.New("pq: canceling statement due to user request"))
+
+	var count int
+	err = sess.GetRaw(ctx, &count, "SELECT 1")
+	assert.ErrorIs(err, ErrCancelled, "externally cancelled sql statement, should return cancelled error")
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "test_db_client_closed_session_total" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), float64(1))
+			return
+		}
+	}
+	assert.Fail("client_closed_session_total metrics were not correct")
+}
+
+func TestSqlStatementTimeout(t *testing.T) {
+	var cancel context.CancelFunc
+	ctx := context.Background()
+	ctx, cancel = context.WithCancel(ctx)
+	assert := assert.New(t)
+
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDB.Close()
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	sessRaw := &Session{DB: sqlxDB}
+	reg := prometheus.NewRegistry()
+
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+
+	defer sess.Close()
+	defer cancel()
+
+	// simulate pg statement timeout
+	mock.ExpectQuery("SELECT 1").WillReturnError(errors.New("pq: canceling statement due to statement timeout"))
+
+	var count int
+	err = sess.GetRaw(ctx, &count, "SELECT 1")
+	assert.ErrorIs(err, ErrStatementTimeout, "sql statement timeout, should return timeout error")
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "test_db_statement_timeout_closed_session_total" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), float64(1))
+			return
+		}
+	}
+	assert.Fail("statement_timeout_closed_session_total metrics were not correct")
+}
+
+func TestContextCancelledBeforeSql(t *testing.T) {
 	db := dbtest.Postgres(t).Load(testSchema)
 	defer db.Close()
 
@@ -37,14 +175,72 @@ func TestUserCancel(t *testing.T) {
 	ctx, cancel = context.WithCancel(ctx)
 	assert := assert.New(t)
 
-	sess := &Session{DB: db.Open()}
-	defer sess.DB.Close()
+	sessRaw := &Session{DB: db.Open()}
+	reg := prometheus.NewRegistry()
+
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+	defer sess.Close()
 	defer cancel()
 
 	var count int
 	cancel()
 	err := sess.GetRaw(ctx, &count, "SELECT pg_sleep(2), COUNT(*) FROM people")
-	assert.ErrorIs(err, ErrCancelled, "any ongoing db server operation should return error immediately after user cancel")
+	assert.ErrorIs(err, ErrCancelled, "any db server operation should return error immediately if user already cancel")
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "test_db_client_closed_session_total" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), float64(1))
+			return
+		}
+	}
+	assert.Fail("client_closed_session_total metrics were not correct")
+}
+
+func TestContextCancelDuringSql(t *testing.T) {
+	db := dbtest.Postgres(t).Load(testSchema)
+	defer db.Close()
+
+	var cancel context.CancelFunc
+	ctx := context.Background()
+	ctx, cancel = context.WithCancel(ctx)
+	assert := assert.New(t)
+
+	sessRaw := &Session{DB: db.Open()}
+	reg := prometheus.NewRegistry()
+
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+	defer sess.Close()
+	defer cancel()
+
+	var count int
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		err := sess.GetRaw(ctx, &count, "SELECT pg_sleep(5) FROM people")
+		assert.ErrorIs(err, ErrCancelled, "any ongoing db server operation should return error immediately after user cancel")
+		wg.Done()
+	}()
+	time.Sleep(time.Second)
+	cancel()
+
+	require.Eventually(t, func() bool { wg.Wait(); return true }, 5*time.Second, time.Second)
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "test_db_client_closed_session_total" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), float64(1))
+			return
+		}
+	}
+	assert.Fail("client_closed_session_total metrics were not correct")
 }
 
 func TestSession(t *testing.T) {

@@ -243,10 +243,12 @@ func (s *Session) replaceWithKnownError(err error, ctx context.Context) error {
 	case ctx.Err() == context.Canceled:
 		return ErrCancelled
 	case ctx.Err() == context.DeadlineExceeded:
-		// if libpq waits too long to obtain conn from pool, can get ctx timeout before server trip
+		// when horizon's context times out(it's set to app connection-timeout), it triggers pg to emit "pq: canceling statement due to user request"
+		// so, in order of precedence, check the ctx deadline first to classify this as a timeout, not a cancel
 		return ErrTimeout
 	case strings.Contains(err.Error(), "pq: canceling statement due to user request"):
-		return ErrTimeout
+		// this is from an external initiated cancel signal sent to pg on a running sql query
+		return ErrCancelled
 	case strings.Contains(err.Error(), "pq: canceling statement due to conflict with recovery"):
 		return ErrConflictWithRecovery
 	case strings.Contains(err.Error(), "driver: bad connection"):
