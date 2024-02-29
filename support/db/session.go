@@ -10,6 +10,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/stellar/go/support/db/sqlutils"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/support/log"
@@ -23,7 +24,7 @@ func (s *Session) Begin(ctx context.Context) error {
 
 	tx, err := s.DB.BeginTxx(ctx, nil)
 	if err != nil {
-		if knownErr := s.replaceWithKnownError(err, ctx); knownErr != nil {
+		if knownErr := s.handleError(err, ctx); knownErr != nil {
 			return knownErr
 		}
 
@@ -44,7 +45,7 @@ func (s *Session) BeginTx(ctx context.Context, opts *sql.TxOptions) error {
 
 	tx, err := s.DB.BeginTxx(ctx, opts)
 	if err != nil {
-		if knownErr := s.replaceWithKnownError(err, ctx); knownErr != nil {
+		if knownErr := s.handleError(err, ctx); knownErr != nil {
 			return knownErr
 		}
 
@@ -92,7 +93,7 @@ func (s *Session) Commit() error {
 	s.tx = nil
 	s.txOptions = nil
 
-	if knownErr := s.replaceWithKnownError(err, context.Background()); knownErr != nil {
+	if knownErr := s.handleError(err, context.Background()); knownErr != nil {
 		return knownErr
 	}
 	return err
@@ -146,7 +147,7 @@ func (s *Session) GetRaw(ctx context.Context, dest interface{}, query string, ar
 		return nil
 	}
 
-	if knownErr := s.replaceWithKnownError(err, ctx); knownErr != nil {
+	if knownErr := s.handleError(err, ctx); knownErr != nil {
 		return knownErr
 	}
 
@@ -215,7 +216,7 @@ func (s *Session) ExecRaw(ctx context.Context, query string, args ...interface{}
 		return result, nil
 	}
 
-	if knownErr := s.replaceWithKnownError(err, ctx); knownErr != nil {
+	if knownErr := s.handleError(err, ctx); knownErr != nil {
 		return nil, knownErr
 	}
 
@@ -232,11 +233,31 @@ func (s *Session) NoRows(err error) bool {
 	return err == sql.ErrNoRows
 }
 
-// replaceWithKnownError tries to replace Postgres error with package error.
-// Returns a new error if the err is known.
-func (s *Session) replaceWithKnownError(err error, ctx context.Context) error {
-	if err == nil {
+func (s *Session) AddErrorHandler(handler ErrorHandlerFunc) {
+	s.errorHandlers = append(s.errorHandlers, handler)
+}
+
+// handleError does housekeeping on errors from db.
+// dbErr - the libpq client error
+// ctx   - the caller's context
+//
+// tries to replace dbErr with horizon package error, returns a new error if the err is known.
+// invokes any additional error handlers that may have been
+// added to the session, passing the caller's context
+func (s *Session) handleError(dbErr error, ctx context.Context) error {
+	if dbErr == nil {
 		return nil
+	}
+
+	for _, handler := range s.errorHandlers {
+		handler(dbErr, ctx)
+	}
+
+	var abendDbErrorCode pq.ErrorCode
+
+	// libpq will only return pg server error if context did not cancel/timeout
+	if err, ok := dbErr.(*pq.Error); ok {
+		abendDbErrorCode = err.Code
 	}
 
 	switch {
@@ -246,16 +267,14 @@ func (s *Session) replaceWithKnownError(err error, ctx context.Context) error {
 		// when horizon's context times out(it's set to app connection-timeout), it triggers pg to emit "pq: canceling statement due to user request"
 		// so, in order of precedence, check the ctx deadline first to classify this as a timeout, not a cancel
 		return ErrTimeout
-	case strings.Contains(err.Error(), "pq: canceling statement due to user request"):
-		// this is from an external initiated cancel signal sent to pg on a running sql query
-		return ErrCancelled
-	case strings.Contains(err.Error(), "pq: canceling statement due to conflict with recovery"):
-		return ErrConflictWithRecovery
-	case strings.Contains(err.Error(), "driver: bad connection"):
-		return ErrBadConnection
-	case strings.Contains(err.Error(), "pq: canceling statement due to statement timeout"):
+	case abendDbErrorCode.Name() == "query_canceled":
+		// https://www.postgresql.org/docs/12/errcodes-appendix.html, query_canceled
 		return ErrStatementTimeout
-	case strings.Contains(err.Error(), "transaction has already been committed or rolled back"):
+	case strings.Contains(dbErr.Error(), "pq: canceling statement due to conflict with recovery"):
+		return ErrConflictWithRecovery
+	case strings.Contains(dbErr.Error(), "driver: bad connection"):
+		return ErrBadConnection
+	case strings.Contains(dbErr.Error(), "transaction has already been committed or rolled back"):
 		return ErrAlreadyRolledback
 	default:
 		return nil
@@ -286,7 +305,7 @@ func (s *Session) QueryRaw(ctx context.Context, query string, args ...interface{
 		return result, nil
 	}
 
-	if knownErr := s.replaceWithKnownError(err, ctx); knownErr != nil {
+	if knownErr := s.handleError(err, ctx); knownErr != nil {
 		return nil, knownErr
 	}
 
@@ -320,7 +339,7 @@ func (s *Session) Rollback() error {
 	s.tx = nil
 	s.txOptions = nil
 
-	if knownErr := s.replaceWithKnownError(err, context.Background()); knownErr != nil {
+	if knownErr := s.handleError(err, context.Background()); knownErr != nil {
 		return knownErr
 	}
 	return err
@@ -364,7 +383,7 @@ func (s *Session) SelectRaw(
 		return nil
 	}
 
-	if knownErr := s.replaceWithKnownError(err, ctx); knownErr != nil {
+	if knownErr := s.handleError(err, ctx); knownErr != nil {
 		return knownErr
 	}
 

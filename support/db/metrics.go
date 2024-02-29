@@ -9,6 +9,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -45,23 +46,21 @@ func contextRoute(ctx context.Context) string {
 type SessionWithMetrics struct {
 	SessionInterface
 
-	registry                   *prometheus.Registry
-	queryCounter               *prometheus.CounterVec
-	queryDurationSummary       *prometheus.SummaryVec
-	maxOpenConnectionsGauge    prometheus.GaugeFunc
-	openConnectionsGauge       prometheus.GaugeFunc
-	inUseConnectionsGauge      prometheus.GaugeFunc
-	idleConnectionsGauge       prometheus.GaugeFunc
-	waitCountCounter           prometheus.CounterFunc
-	waitDurationCounter        prometheus.CounterFunc
-	maxIdleClosedCounter       prometheus.CounterFunc
-	maxIdleTimeClosedCounter   prometheus.CounterFunc
-	maxLifetimeClosedCounter   prometheus.CounterFunc
-	roundTripProbe             *roundTripProbe
-	roundTripTimeSummary       prometheus.Summary
-	closedFromClientDisconnect prometheus.Counter
-	closedFromServerTimeout    prometheus.Counter
-	closedFromStatementTimeout prometheus.Counter
+	registry                 *prometheus.Registry
+	queryCounter             *prometheus.CounterVec
+	queryDurationSummary     *prometheus.SummaryVec
+	maxOpenConnectionsGauge  prometheus.GaugeFunc
+	openConnectionsGauge     prometheus.GaugeFunc
+	inUseConnectionsGauge    prometheus.GaugeFunc
+	idleConnectionsGauge     prometheus.GaugeFunc
+	waitCountCounter         prometheus.CounterFunc
+	waitDurationCounter      prometheus.CounterFunc
+	maxIdleClosedCounter     prometheus.CounterFunc
+	maxIdleTimeClosedCounter prometheus.CounterFunc
+	maxLifetimeClosedCounter prometheus.CounterFunc
+	roundTripProbe           *roundTripProbe
+	roundTripTimeSummary     prometheus.Summary
+	abendCounter             *prometheus.CounterVec
 }
 
 func RegisterMetrics(base *Session, namespace string, sub Subservice, registry *prometheus.Registry) SessionInterface {
@@ -69,6 +68,8 @@ func RegisterMetrics(base *Session, namespace string, sub Subservice, registry *
 		SessionInterface: base,
 		registry:         registry,
 	}
+
+	base.AddErrorHandler(s.handleErrorEvent)
 
 	s.queryCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -230,39 +231,17 @@ func RegisterMetrics(base *Session, namespace string, sub Subservice, registry *
 	)
 	registry.MustRegister(s.maxLifetimeClosedCounter)
 
-	s.closedFromClientDisconnect = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: namespace,
-			Subsystem: "db",
-			Name:      "client_closed_session_total",
-			Help: "total number of connections closed due to an upstream caller cancelling the context, " +
-				"this captures instances where http clients close their connection before receiving a response.",
-			ConstLabels: prometheus.Labels{"subservice": string(sub)},
-		},
-	)
-	registry.MustRegister(s.closedFromClientDisconnect)
-
-	s.closedFromServerTimeout = prometheus.NewCounter(
+	s.abendCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace:   namespace,
 			Subsystem:   "db",
-			Name:        "server_timeout_closed_session_total",
-			Help:        "total number of connections closed due to the sql taking longer than horizon CONNECTION_TIMEOUT",
+			Name:        "abend_total",
+			Help:        "total number of abends, details are captured in labels",
 			ConstLabels: prometheus.Labels{"subservice": string(sub)},
 		},
+		[]string{"origin", "condition", "type"},
 	)
-	registry.MustRegister(s.closedFromServerTimeout)
-
-	s.closedFromStatementTimeout = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Namespace:   namespace,
-			Subsystem:   "db",
-			Name:        "statement_timeout_closed_session_total",
-			Help:        "total number of connections closed due to the sql statement taking longer than db statement_timeout, which horizon sets based on CONNECTION_TIMEOUT",
-			ConstLabels: prometheus.Labels{"subservice": string(sub)},
-		},
-	)
-	registry.MustRegister(s.closedFromStatementTimeout)
+	registry.MustRegister(s.abendCounter)
 
 	s.roundTripTimeSummary = prometheus.NewSummary(
 		prometheus.SummaryOpts{
@@ -300,26 +279,8 @@ func (s *SessionWithMetrics) Close() error {
 	s.registry.Unregister(s.maxIdleClosedCounter)
 	s.registry.Unregister(s.maxIdleTimeClosedCounter)
 	s.registry.Unregister(s.maxLifetimeClosedCounter)
-	s.registry.Unregister(s.closedFromClientDisconnect)
-	s.registry.Unregister(s.closedFromServerTimeout)
-	s.registry.Unregister(s.closedFromStatementTimeout)
+	s.registry.Unregister(s.abendCounter)
 	return s.SessionInterface.Close()
-}
-
-func (s *SessionWithMetrics) BeginTx(ctx context.Context, opts *sql.TxOptions) error {
-	return s.applyDisconnectMetrics(s.SessionInterface.BeginTx(ctx, opts))
-}
-
-func (s *SessionWithMetrics) Begin(ctx context.Context) error {
-	return s.applyDisconnectMetrics(s.SessionInterface.Begin(ctx))
-}
-
-func (s *SessionWithMetrics) Commit() error {
-	return s.applyDisconnectMetrics(s.SessionInterface.Commit())
-}
-
-func (s *SessionWithMetrics) Rollback() error {
-	return s.applyDisconnectMetrics(s.SessionInterface.Rollback())
 }
 
 func (s *SessionWithMetrics) TruncateTables(ctx context.Context, tables []string) (err error) {
@@ -356,18 +317,16 @@ func (s *SessionWithMetrics) Clone() SessionInterface {
 		queryDurationSummary: s.queryDurationSummary,
 		// txnCounter:               s.txnCounter,
 		// txnDurationSummary:       s.txnDurationSummary,
-		maxOpenConnectionsGauge:    s.maxOpenConnectionsGauge,
-		openConnectionsGauge:       s.openConnectionsGauge,
-		inUseConnectionsGauge:      s.inUseConnectionsGauge,
-		idleConnectionsGauge:       s.idleConnectionsGauge,
-		waitCountCounter:           s.waitCountCounter,
-		waitDurationCounter:        s.waitDurationCounter,
-		maxIdleClosedCounter:       s.maxIdleClosedCounter,
-		maxIdleTimeClosedCounter:   s.maxIdleTimeClosedCounter,
-		maxLifetimeClosedCounter:   s.maxLifetimeClosedCounter,
-		closedFromClientDisconnect: s.closedFromClientDisconnect,
-		closedFromServerTimeout:    s.closedFromServerTimeout,
-		closedFromStatementTimeout: s.closedFromStatementTimeout,
+		maxOpenConnectionsGauge:  s.maxOpenConnectionsGauge,
+		openConnectionsGauge:     s.openConnectionsGauge,
+		inUseConnectionsGauge:    s.inUseConnectionsGauge,
+		idleConnectionsGauge:     s.idleConnectionsGauge,
+		waitCountCounter:         s.waitCountCounter,
+		waitDurationCounter:      s.waitDurationCounter,
+		maxIdleClosedCounter:     s.maxIdleClosedCounter,
+		maxIdleTimeClosedCounter: s.maxIdleTimeClosedCounter,
+		maxLifetimeClosedCounter: s.maxLifetimeClosedCounter,
+		abendCounter:             s.abendCounter,
 	}
 }
 
@@ -410,21 +369,52 @@ func getQueryType(ctx context.Context, query squirrel.Sqlizer) QueryType {
 	return UndefinedQueryType
 }
 
-func (s *SessionWithMetrics) applyDisconnectMetrics(err error) error {
-	if err == nil {
-		return nil
+func (s *SessionWithMetrics) handleErrorEvent(dbErr error, callerContext context.Context) {
+	if dbErr == nil || s.NoRows(dbErr) {
+		return
 	}
 
-	switch err {
-	case ErrCancelled:
-		s.closedFromClientDisconnect.Inc()
-	case ErrStatementTimeout:
-		s.closedFromStatementTimeout.Inc()
-	case ErrTimeout:
-		s.closedFromServerTimeout.Inc()
+	abendOrigin := "libpq"
+	abendType := "error"
+	abendCondition := ""
+	var abendDbErrorCode pq.ErrorCode
+
+	if err, ok := dbErr.(*pq.Error); ok {
+		// libpq only provides the pg.Error if the context was clear of errors
+		abendDbErrorCode = err.Code
+		abendOrigin = "db"
+		abendCondition = abendDbErrorCode.Name()
 	}
 
-	return err
+	switch {
+	// check the context first, if was canceled or timed out, then the libpq will only return the
+	// context error, no pg.Error, and no further condition
+	case callerContext.Err() == context.Canceled:
+		abendOrigin = "client_context"
+		abendType = "cancel"
+	case callerContext.Err() == context.DeadlineExceeded:
+		abendOrigin = "horizon_context"
+		abendType = "timeout"
+	default:
+		// since context is clear, check for any specfic overrides based on pg.Error from the db
+		switch abendDbErrorCode {
+		case "57014":
+			// https://www.postgresql.org/docs/12/errcodes-appendix.html
+			// 57014, query_canceled
+			// since the only functional cancels come from horizon context, which are
+			// trapped above, we are left with just statement timeouts as the reason for this.
+			abendType = "timeout"
+		case "":
+			// if here, context is clear and there's no pg.Error either, just use error string as-is
+			abendCondition = dbErr.Error()
+		}
+	}
+
+	s.abendCounter.With(prometheus.Labels{
+		"origin":    abendOrigin,
+		"condition": abendCondition,
+		"type":      abendType,
+	}).Inc()
 }
 
 func (s *SessionWithMetrics) Get(ctx context.Context, dest interface{}, query squirrel.Sqlizer) (err error) {
@@ -445,8 +435,7 @@ func (s *SessionWithMetrics) Get(ctx context.Context, dest interface{}, query sq
 		}).Inc()
 	}()
 
-	err = s.SessionInterface.Get(ctx, dest, query)
-	return s.applyDisconnectMetrics(err)
+	return s.SessionInterface.Get(ctx, dest, query)
 }
 
 func (s *SessionWithMetrics) GetRaw(ctx context.Context, dest interface{}, query string, args ...interface{}) (err error) {
@@ -471,8 +460,7 @@ func (s *SessionWithMetrics) Select(ctx context.Context, dest interface{}, query
 		}).Inc()
 	}()
 
-	err = s.SessionInterface.Select(ctx, dest, query)
-	return s.applyDisconnectMetrics(err)
+	return s.SessionInterface.Select(ctx, dest, query)
 }
 
 func (s *SessionWithMetrics) SelectRaw(ctx context.Context, dest interface{}, query string, args ...interface{}) (err error) {
@@ -480,8 +468,7 @@ func (s *SessionWithMetrics) SelectRaw(ctx context.Context, dest interface{}, qu
 }
 
 func (s *SessionWithMetrics) Query(ctx context.Context, query squirrel.Sqlizer) (*sqlx.Rows, error) {
-	result, err := s.SessionInterface.Query(ctx, query)
-	return result, s.applyDisconnectMetrics(err)
+	return s.SessionInterface.Query(ctx, query)
 }
 
 func (s *SessionWithMetrics) QueryRaw(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error) {
@@ -506,8 +493,7 @@ func (s *SessionWithMetrics) Exec(ctx context.Context, query squirrel.Sqlizer) (
 		}).Inc()
 	}()
 
-	result, err = s.SessionInterface.Exec(ctx, query)
-	return result, s.applyDisconnectMetrics(err)
+	return s.SessionInterface.Exec(ctx, query)
 }
 
 func (s *SessionWithMetrics) ExecRaw(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
