@@ -39,8 +39,8 @@ func TestContextTimeoutDuringSql(t *testing.T) {
 	}()
 
 	require.Eventually(t, func() bool { wg.Wait(); return true }, 5*time.Second, time.Second)
-	// note, condition is populated with the db error, since a trip to server was made with sql running at time of cancel
-	assertAbendMetrics(reg, "horizon_context", "query_canceled", "timeout", assert)
+	// note, condition is populated with the db error, since a trip to server was made with sql running at time of deadline exceeded
+	assertAbendMetrics(reg, "horizon_context", "57014", "timeout", assert)
 }
 
 func TestContextTimeoutBeforeSql(t *testing.T) {
@@ -63,8 +63,8 @@ func TestContextTimeoutBeforeSql(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	err := sess.GetRaw(ctx, &count, "SELECT pg_sleep(5) FROM people")
 	assert.ErrorIs(err, ErrTimeout, "any db server operation should return error immediately if context already timed out")
-	// note, the condition is empty, the sql never made it to db, libpq short-circuited it based on ctx
-	assertAbendMetrics(reg, "horizon_context", "", "timeout", assert)
+	// note, the condition is empty, the sql never made it to db, libpq short-circuited it based on ctx already deadlined
+	assertAbendMetrics(reg, "horizon_context", "n/a", "timeout", assert)
 }
 
 func TestContextCancelledBeforeSql(t *testing.T) {
@@ -87,8 +87,8 @@ func TestContextCancelledBeforeSql(t *testing.T) {
 	cancel()
 	err := sess.GetRaw(ctx, &count, "SELECT pg_sleep(2), COUNT(*) FROM people")
 	assert.ErrorIs(err, ErrCancelled, "any db server operation should return error immediately if user already cancel")
-	// note, the condition is empty, the sql never made it to db, libpq short-circuited it based on ctx
-	assertAbendMetrics(reg, "client_context", "", "cancel", assert)
+	// note, the condition is empty, the sql never made it to db, libpq short-circuited it based on ctx already canceled
+	assertAbendMetrics(reg, "client_context", "n/a", "cancel", assert)
 }
 
 func TestContextCancelDuringSql(t *testing.T) {
@@ -120,8 +120,8 @@ func TestContextCancelDuringSql(t *testing.T) {
 	cancel()
 
 	require.Eventually(t, func() bool { wg.Wait(); return true }, 5*time.Second, time.Second)
-	// note, condition is populated with the db error, since a trip to server was made with sql running at time of cancel
-	assertAbendMetrics(reg, "client_context", "query_canceled", "cancel", assert)
+	// note, condition is populated with the db error, since a trip to server was made with sql running at time of ctx cancel
+	assertAbendMetrics(reg, "client_context", "57014", "cancel", assert)
 }
 
 func TestStatementTimeout(t *testing.T) {
@@ -139,7 +139,8 @@ func TestStatementTimeout(t *testing.T) {
 	var count int
 	err = sess.GetRaw(context.Background(), &count, "SELECT pg_sleep(2) FROM people")
 	assert.ErrorIs(err, ErrStatementTimeout)
-	assertAbendMetrics(reg, "db", "query_canceled", "timeout", assert)
+	// if the metric is source=db and condition=57014, then it's a statement timeout on the server
+	assertAbendMetrics(reg, "db", "57014", "timeout", assert)
 }
 
 func TestSession(t *testing.T) {
@@ -248,7 +249,7 @@ func TestIdleTransactionTimeout(t *testing.T) {
 	var count int
 	err = sess.GetRaw(context.Background(), &count, "SELECT COUNT(*) FROM people")
 	assert.ErrorIs(err, ErrBadConnection)
-	assertAbendMetrics(reg, "libpq", "driver: bad connection", "error", assert)
+	assertAbendMetrics(reg, "libpq", "n/a", "error", assert)
 }
 
 func TestSessionRollbackAfterContextCanceled(t *testing.T) {
@@ -262,7 +263,7 @@ func TestSessionRollbackAfterContextCanceled(t *testing.T) {
 	defer sess.Close()
 
 	assert.ErrorIs(sess.Rollback(), ErrAlreadyRolledback)
-	assertAbendMetrics(reg, "libpq", "sql: transaction has already been committed or rolled back", "error", assert)
+	assertAbendMetrics(reg, "libpq", "n/a", "error", assert)
 }
 
 func TestSessionCommitAfterContextCanceled(t *testing.T) {
@@ -276,7 +277,7 @@ func TestSessionCommitAfterContextCanceled(t *testing.T) {
 	defer sess.Close()
 
 	assert.ErrorIs(sess.Commit(), ErrAlreadyRolledback)
-	assertAbendMetrics(reg, "libpq", "sql: transaction has already been committed or rolled back", "error", assert)
+	assertAbendMetrics(reg, "libpq", "n/a", "error", assert)
 }
 
 func assertZeroAbendMetrics(reg *prometheus.Registry, assert *assert.Assertions) {

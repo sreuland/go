@@ -124,8 +124,8 @@ type Session struct {
 }
 
 // dbErr - the Postgres error
-// callerContext   - the caller's context
-type ErrorHandlerFunc func(dbErr error, callerContext context.Context)
+// ctx   - the caller's context
+type ErrorHandlerFunc func(dbErr error, ctx context.Context)
 type SessionInterface interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) error
 	Begin(ctx context.Context) error

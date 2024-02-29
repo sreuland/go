@@ -240,7 +240,7 @@ func (s *Session) AddErrorHandler(handler ErrorHandlerFunc) {
 
 // handleError does housekeeping on errors from db.
 // dbErr - the libpq client error
-// ctx   - the caller's context
+// ctx -   the calling context
 //
 // tries to replace dbErr with horizon package error, returns a new error if the err is known.
 // invokes any additional error handlers that may have been
@@ -257,28 +257,37 @@ func (s *Session) handleError(dbErr error, ctx context.Context) error {
 	var abendDbErrorCode pq.ErrorCode
 	var pqErr *pq.Error
 
-	// libpq will only wrap a pg server error if context was not cancel/timeout first
-	// and was able to send request to server
+	// if libpql sends to server, and then any server side error is reported,
+	// libpq passes back only an pq.ErrorCode from method call
+	// even if the caller context generates a cancel/deadline error during the server trip,
+	// libpq will only return an instance of pq.ErrorCode as a non-wrapped error
 	if go_errors.As(dbErr, &pqErr) {
 		abendDbErrorCode = pqErr.Code
 	}
 
 	switch {
-	case ctx.Err() == context.Canceled:
-		return ErrCancelled
-	case ctx.Err() == context.DeadlineExceeded:
-		// when horizon's context times out(it's set to app connection-timeout), it triggers pg to emit "pq: canceling statement due to user request"
-		// so, in order of precedence, check the ctx deadline first to classify this as a timeout, not a cancel
-		return ErrTimeout
-	case abendDbErrorCode.Name() == "query_canceled":
-		// https://www.postgresql.org/docs/12/errcodes-appendix.html, query_canceled
-		return ErrStatementTimeout
 	case strings.Contains(dbErr.Error(), "pq: canceling statement due to conflict with recovery"):
 		return ErrConflictWithRecovery
 	case strings.Contains(dbErr.Error(), "driver: bad connection"):
 		return ErrBadConnection
 	case strings.Contains(dbErr.Error(), "transaction has already been committed or rolled back"):
 		return ErrAlreadyRolledback
+	case go_errors.Is(ctx.Err(), context.Canceled):
+		// when horizon's context is cancelled by it's upstream api client,
+		// it will propagate to here and libpq will emit a wrapped err that has the cancel err
+		return ErrCancelled
+	case go_errors.Is(ctx.Err(), context.DeadlineExceeded):
+		// when horizon's context times out(it's set to app connection-timeout),
+		// it will trigger libpq to emit a wrapped err that has the deadline err
+		return ErrTimeout
+	case abendDbErrorCode == "57014":
+		// https://www.postgresql.org/docs/12/errcodes-appendix.html, query_canceled
+		// this code can be generated for multiple cases,
+		// by libpq sending a signal to server when it experiences a context cancel/deadline
+		// or it could happen based on just server statement_timeout setting
+		// since we check the context cancel/deadline err state first, getting here means
+		// this can only be from a statement timeout
+		return ErrStatementTimeout
 	default:
 		return nil
 	}

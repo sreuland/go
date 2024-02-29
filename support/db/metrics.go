@@ -369,47 +369,43 @@ func getQueryType(ctx context.Context, query squirrel.Sqlizer) QueryType {
 	return UndefinedQueryType
 }
 
-func (s *SessionWithMetrics) handleErrorEvent(dbErr error, callerContext context.Context) {
+// derive the db 'abend_total' metric from the err returned by libpq sdk
+//
+// dbErr - the error returned by any libpq method call
+// ctx - the caller's context used on libpb method call
+func (s *SessionWithMetrics) handleErrorEvent(dbErr error, ctx context.Context) {
 	if dbErr == nil || s.NoRows(dbErr) {
 		return
 	}
 
+	// default the metric to based just on top level libpq error
 	abendOrigin := "libpq"
 	abendType := "error"
-	abendCondition := ""
-	var abendDbErrorCode pq.ErrorCode
+	abendCondition := "n/a"
+	var pgDbErrorCode string
 	var pqErr *pq.Error
 
+	// apply db server error info if it exists
+	// libpq only provides a pg.Error if a server trip was made, otherwise it may not be present
 	if errors.As(dbErr, &pqErr) {
-		// libpq only provides a pg.Error if a server trip was made, otherwise it may not be present
-		// the error could just be context or libpq err
-		abendDbErrorCode = pqErr.Code
+		pgDbErrorCode = string(pqErr.Code)
 		abendOrigin = "db"
-		abendCondition = abendDbErrorCode.Name()
+		abendCondition = pgDbErrorCode
 	}
 
+	// apply remaining overrides to metric, when these specific points exist
 	switch {
-	// check the context first, if was canceled or timed out,
-	// then it gets precedence on determining the type and origin
-	case callerContext.Err() == context.Canceled:
+	case errors.Is(ctx.Err(), context.Canceled):
 		abendOrigin = "client_context"
 		abendType = "cancel"
-	case callerContext.Err() == context.DeadlineExceeded:
+	case errors.Is(ctx.Err(), context.DeadlineExceeded):
 		abendOrigin = "horizon_context"
 		abendType = "timeout"
-	default:
-		// since context is clear, check for any specfic overrides for type based on pg.Error from the db
-		switch abendDbErrorCode {
-		case "57014":
-			// https://www.postgresql.org/docs/12/errcodes-appendix.html
-			// 57014, query_canceled
-			// since the only functional cancels come from horizon client's context, which are
-			// trapped above in context introspection, we are left with just possibility of statement timeouts as the reason for this.
-			abendType = "timeout"
-		case "":
-			// if here, context is clear and there's no pg.Error either, just use the error string as-is
-			abendCondition = dbErr.Error()
-		}
+	case pgDbErrorCode == "57014":
+		// if getting here, no context deadline happened, but
+		// the db reported query_canceled, which leaves only the possibility of
+		// db-side statement timeout was triggered
+		abendType = "timeout"
 	}
 
 	s.abendCounter.With(prometheus.Labels{
