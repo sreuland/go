@@ -3,12 +3,12 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -378,11 +378,12 @@ func (s *SessionWithMetrics) handleErrorEvent(dbErr error, callerContext context
 	abendType := "error"
 	abendCondition := ""
 	var abendDbErrorCode pq.ErrorCode
+	var pqErr *pq.Error
 
-	if err, ok := dbErr.(*pq.Error); ok {
+	if errors.As(dbErr, &pqErr) {
 		// libpq only provides a pg.Error if a server trip was made, otherwise it may not be present
 		// the error could just be context or libpq err
-		abendDbErrorCode = err.Code
+		abendDbErrorCode = pqErr.Code
 		abendOrigin = "db"
 		abendCondition = abendDbErrorCode.Name()
 	}
@@ -435,8 +436,8 @@ func (s *SessionWithMetrics) Get(ctx context.Context, dest interface{}, query sq
 			"route":      contextRoute(ctx),
 		}).Inc()
 	}()
-
-	return s.SessionInterface.Get(ctx, dest, query)
+	err = s.SessionInterface.Get(ctx, dest, query)
+	return err
 }
 
 func (s *SessionWithMetrics) GetRaw(ctx context.Context, dest interface{}, query string, args ...interface{}) (err error) {
@@ -461,19 +462,12 @@ func (s *SessionWithMetrics) Select(ctx context.Context, dest interface{}, query
 		}).Inc()
 	}()
 
-	return s.SessionInterface.Select(ctx, dest, query)
+	err = s.SessionInterface.Select(ctx, dest, query)
+	return err
 }
 
 func (s *SessionWithMetrics) SelectRaw(ctx context.Context, dest interface{}, query string, args ...interface{}) (err error) {
 	return s.Select(ctx, dest, squirrel.Expr(query, args...))
-}
-
-func (s *SessionWithMetrics) Query(ctx context.Context, query squirrel.Sqlizer) (*sqlx.Rows, error) {
-	return s.SessionInterface.Query(ctx, query)
-}
-
-func (s *SessionWithMetrics) QueryRaw(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error) {
-	return s.Query(ctx, squirrel.Expr(query, args...))
 }
 
 func (s *SessionWithMetrics) Exec(ctx context.Context, query squirrel.Sqlizer) (result sql.Result, err error) {
@@ -494,7 +488,8 @@ func (s *SessionWithMetrics) Exec(ctx context.Context, query squirrel.Sqlizer) (
 		}).Inc()
 	}()
 
-	return s.SessionInterface.Exec(ctx, query)
+	result, err = s.SessionInterface.Exec(ctx, query)
+	return result, err
 }
 
 func (s *SessionWithMetrics) ExecRaw(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {

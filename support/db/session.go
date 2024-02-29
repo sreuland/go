@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	go_errors "errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -254,10 +255,12 @@ func (s *Session) handleError(dbErr error, ctx context.Context) error {
 	}
 
 	var abendDbErrorCode pq.ErrorCode
+	var pqErr *pq.Error
 
-	// libpq will only return pg server error if context did not cancel/timeout
-	if err, ok := dbErr.(*pq.Error); ok {
-		abendDbErrorCode = err.Code
+	// libpq will only wrap a pg server error if context was not cancel/timeout first
+	// and was able to send request to server
+	if go_errors.As(dbErr, &pqErr) {
+		abendDbErrorCode = pqErr.Code
 	}
 
 	switch {
