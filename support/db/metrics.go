@@ -380,15 +380,16 @@ func (s *SessionWithMetrics) handleErrorEvent(dbErr error, callerContext context
 	var abendDbErrorCode pq.ErrorCode
 
 	if err, ok := dbErr.(*pq.Error); ok {
-		// libpq only provides the pg.Error if the context was clear of errors
+		// libpq only provides a pg.Error if a server trip was made, otherwise it may not be present
+		// the error could just be context or libpq err
 		abendDbErrorCode = err.Code
 		abendOrigin = "db"
 		abendCondition = abendDbErrorCode.Name()
 	}
 
 	switch {
-	// check the context first, if was canceled or timed out, then the libpq will only return the
-	// context error, no pg.Error, and no further condition
+	// check the context first, if was canceled or timed out,
+	// then it gets precedence on determining the type and origin
 	case callerContext.Err() == context.Canceled:
 		abendOrigin = "client_context"
 		abendType = "cancel"
@@ -396,16 +397,16 @@ func (s *SessionWithMetrics) handleErrorEvent(dbErr error, callerContext context
 		abendOrigin = "horizon_context"
 		abendType = "timeout"
 	default:
-		// since context is clear, check for any specfic overrides based on pg.Error from the db
+		// since context is clear, check for any specfic overrides for type based on pg.Error from the db
 		switch abendDbErrorCode {
 		case "57014":
 			// https://www.postgresql.org/docs/12/errcodes-appendix.html
 			// 57014, query_canceled
-			// since the only functional cancels come from horizon context, which are
-			// trapped above, we are left with just statement timeouts as the reason for this.
+			// since the only functional cancels come from horizon client's context, which are
+			// trapped above in context introspection, we are left with just possibility of statement timeouts as the reason for this.
 			abendType = "timeout"
 		case "":
-			// if here, context is clear and there's no pg.Error either, just use error string as-is
+			// if here, context is clear and there's no pg.Error either, just use the error string as-is
 			abendCondition = dbErr.Error()
 		}
 	}
