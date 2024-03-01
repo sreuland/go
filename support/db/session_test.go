@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	//"github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/assert"
@@ -250,6 +252,25 @@ func TestIdleTransactionTimeout(t *testing.T) {
 	err = sess.GetRaw(context.Background(), &count, "SELECT COUNT(*) FROM people")
 	assert.ErrorIs(err, ErrBadConnection)
 	assertAbendMetrics(reg, "libpq", "n/a", "error", assert)
+}
+
+func TestDbServerErrorInMetrics(t *testing.T) {
+	assert := assert.New(t)
+	db := dbtest.Postgres(t).Load(testSchema)
+	defer db.Close()
+
+	sessRaw := &Session{DB: db.Open()}
+	reg := prometheus.NewRegistry()
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+
+	defer sess.Close()
+	var pqErr *pq.Error
+
+	// generate a server side sql state error
+	_, err := sess.ExecRaw(context.Background(), "oops, invalid sql")
+	assert.ErrorAs(err, &pqErr)
+	// should find the same sql state error in the metric condition label
+	assertAbendMetrics(reg, "db", "42601", "error", assert)
 }
 
 func TestSessionRollbackAfterContextCanceled(t *testing.T) {
