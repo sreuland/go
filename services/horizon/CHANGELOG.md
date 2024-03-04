@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this
 file. This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+### Breaking Changes
+- The Horizon API Transaction resource field `result_meta_xdr` is now nullable and Horizon API will set it to `null` when Horizon has been configured with `SKIP_TXMETA=true`, otherwise if Horizon is configured with `SKIP_TXMETA=false` which is default, then the API Transaction field `result_meta_xdr` will remain as-is, being the base64 encoded xdr [5228](https://github.com/stellar/go/pull/5228).
+
 ## 2.28.3
 
 ### Fixed
