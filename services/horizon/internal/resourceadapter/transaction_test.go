@@ -53,6 +53,7 @@ func TestPopulateTransactionSuccessfulWhenSkipMeta(t *testing.T) {
 	ctx, _ := test.ContextWithLogBuffer()
 
 	SetResourceAdapter(ResourceAdapter{SkipTxmeta: true})
+	defer SetResourceAdapter(ResourceAdapter{SkipTxmeta: false})
 	var (
 		dest Transaction
 		row  history.Transaction
