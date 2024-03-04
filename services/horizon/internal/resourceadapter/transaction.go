@@ -43,7 +43,11 @@ func PopulateTransaction(
 	dest.OperationCount = row.OperationCount
 	dest.EnvelopeXdr = row.TxEnvelope
 	dest.ResultXdr = row.TxResult
-	dest.ResultMetaXdr = row.TxMeta
+	if GetResourceAdapter().SkipTxmeta {
+		dest.ResultMetaXdr = nil
+	} else {
+		dest.ResultMetaXdr = &row.TxMeta
+	}
 	dest.FeeMetaXdr = row.TxFeeMeta
 	dest.MemoType = row.MemoType
 	dest.Memo = row.Memo.String

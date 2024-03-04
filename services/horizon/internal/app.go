@@ -23,6 +23,7 @@ import (
 	"github.com/stellar/go/services/horizon/internal/operationfeestats"
 	"github.com/stellar/go/services/horizon/internal/paths"
 	"github.com/stellar/go/services/horizon/internal/reap"
+	"github.com/stellar/go/services/horizon/internal/resourceadapter"
 	"github.com/stellar/go/services/horizon/internal/txsub"
 	"github.com/stellar/go/support/app"
 	"github.com/stellar/go/support/db"
@@ -73,6 +74,8 @@ func NewApp(config Config) (*App, error) {
 		ticks:          time.NewTicker(tickerMaxFrequency),
 		done:           make(chan struct{}),
 	}
+
+	resourceadapter.SetResourceAdapter(resourceadapter.ResourceAdapter{SkipTxmeta: config.SkipTxmeta})
 
 	if err := a.init(); err != nil {
 		return nil, err
