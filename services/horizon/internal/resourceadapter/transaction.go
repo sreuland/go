@@ -23,6 +23,7 @@ func PopulateTransaction(
 	transactionHash string,
 	dest *protocol.Transaction,
 	row history.Transaction,
+	skipTxMeta bool,
 ) error {
 	dest.ID = transactionHash
 	dest.PT = row.PagingToken()
@@ -43,7 +44,7 @@ func PopulateTransaction(
 	dest.OperationCount = row.OperationCount
 	dest.EnvelopeXdr = row.TxEnvelope
 	dest.ResultXdr = row.TxResult
-	if GetResourceAdapter().SkipTxmeta {
+	if skipTxMeta {
 		dest.ResultMetaXdr = nil
 	} else {
 		dest.ResultMetaXdr = &row.TxMeta
