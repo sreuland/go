@@ -254,7 +254,7 @@ func (s *Session) handleError(dbErr error, ctx context.Context) error {
 		handler(dbErr, ctx)
 	}
 
-	var abendDbErrorCode pq.ErrorCode
+	var dbErrorCode pq.ErrorCode
 	var pqErr *pq.Error
 
 	// if libpql sends to server, and then any server side error is reported,
@@ -262,7 +262,7 @@ func (s *Session) handleError(dbErr error, ctx context.Context) error {
 	// even if the caller context generates a cancel/deadline error during the server trip,
 	// libpq will only return an instance of pq.ErrorCode as a non-wrapped error
 	if go_errors.As(dbErr, &pqErr) {
-		abendDbErrorCode = pqErr.Code
+		dbErrorCode = pqErr.Code
 	}
 
 	switch {
@@ -280,7 +280,7 @@ func (s *Session) handleError(dbErr error, ctx context.Context) error {
 		// when horizon's context times out(it's set to app connection-timeout),
 		// it will trigger libpq to emit a wrapped err that has the deadline err
 		return ErrTimeout
-	case abendDbErrorCode == "57014":
+	case dbErrorCode == "57014":
 		// https://www.postgresql.org/docs/12/errcodes-appendix.html, query_canceled
 		// this code can be generated for multiple cases,
 		// by libpq sending a signal to server when it experiences a context cancel/deadline

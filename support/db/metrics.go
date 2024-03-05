@@ -60,7 +60,7 @@ type SessionWithMetrics struct {
 	maxLifetimeClosedCounter prometheus.CounterFunc
 	roundTripProbe           *roundTripProbe
 	roundTripTimeSummary     prometheus.Summary
-	abendCounter             *prometheus.CounterVec
+	errorCounter             *prometheus.CounterVec
 }
 
 func RegisterMetrics(base *Session, namespace string, sub Subservice, registry *prometheus.Registry) SessionInterface {
@@ -231,17 +231,17 @@ func RegisterMetrics(base *Session, namespace string, sub Subservice, registry *
 	)
 	registry.MustRegister(s.maxLifetimeClosedCounter)
 
-	s.abendCounter = prometheus.NewCounterVec(
+	s.errorCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace:   namespace,
 			Subsystem:   "db",
-			Name:        "abend_total",
-			Help:        "total number of abends, details are captured in labels",
+			Name:        "error_total",
+			Help:        "total number of db related errors, details are captured in labels",
 			ConstLabels: prometheus.Labels{"subservice": string(sub)},
 		},
-		[]string{"origin", "condition", "type"},
+		[]string{"ctx_error", "db_error", "db_error_extra"},
 	)
-	registry.MustRegister(s.abendCounter)
+	registry.MustRegister(s.errorCounter)
 
 	s.roundTripTimeSummary = prometheus.NewSummary(
 		prometheus.SummaryOpts{
@@ -279,7 +279,7 @@ func (s *SessionWithMetrics) Close() error {
 	s.registry.Unregister(s.maxIdleClosedCounter)
 	s.registry.Unregister(s.maxIdleTimeClosedCounter)
 	s.registry.Unregister(s.maxLifetimeClosedCounter)
-	s.registry.Unregister(s.abendCounter)
+	s.registry.Unregister(s.errorCounter)
 	return s.SessionInterface.Close()
 }
 
@@ -326,7 +326,7 @@ func (s *SessionWithMetrics) Clone() SessionInterface {
 		maxIdleClosedCounter:     s.maxIdleClosedCounter,
 		maxIdleTimeClosedCounter: s.maxIdleTimeClosedCounter,
 		maxLifetimeClosedCounter: s.maxLifetimeClosedCounter,
-		abendCounter:             s.abendCounter,
+		errorCounter:             s.errorCounter,
 	}
 }
 
@@ -378,40 +378,41 @@ func (s *SessionWithMetrics) handleErrorEvent(dbErr error, ctx context.Context) 
 		return
 	}
 
-	// default the metric to based just on top level libpq error
-	abendOrigin := "libpq"
-	abendType := "error"
-	abendCondition := "n/a"
-	var pgDbErrorCode string
+	ctxError := "n/a"
+	dbError := "n/a"
+	errorExtra := "n/a"
 	var pqErr *pq.Error
 
-	// apply db server error info if it exists
-	// libpq only provides a pg.Error if a server trip was made, otherwise it may not be present
-	if errors.As(dbErr, &pqErr) {
-		pgDbErrorCode = string(pqErr.Code)
-		abendOrigin = "db"
-		abendCondition = pgDbErrorCode
+	switch {
+	case errors.As(dbErr, &pqErr):
+		dbError = string(pqErr.Code)
+		switch pqErr.Message {
+		case "canceling statement due to user request":
+			errorExtra = "user_request"
+		case "canceling statement due to statement timeout":
+			errorExtra = "statement_timeout"
+		}
+	case strings.Contains(dbErr.Error(), "driver: bad connection"):
+		dbError = "driver_bad_connection"
+	case strings.Contains(dbErr.Error(), "sql: transaction has already been committed or rolled back"):
+		dbError = "tx_already_rollback"
+	case errors.Is(dbErr, context.Canceled):
+		dbError = "canceled"
+	case errors.Is(dbErr, context.DeadlineExceeded):
+		dbError = "deadline_exceeded"
 	}
 
-	// apply remaining overrides to metric, when these specific points exist
 	switch {
 	case errors.Is(ctx.Err(), context.Canceled):
-		abendOrigin = "client_context"
-		abendType = "cancel"
+		ctxError = "canceled"
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
-		abendOrigin = "horizon_context"
-		abendType = "timeout"
-	case pgDbErrorCode == "57014":
-		// if getting here, no context deadline happened, but
-		// the db reported query_canceled, which leaves only the possibility of
-		// db-side statement timeout was triggered
-		abendType = "timeout"
+		ctxError = "deadline_exceeded"
 	}
 
-	s.abendCounter.With(prometheus.Labels{
-		"origin":    abendOrigin,
-		"condition": abendCondition,
-		"type":      abendType,
+	s.errorCounter.With(prometheus.Labels{
+		"ctx_error":      ctxError,
+		"db_error":       dbError,
+		"db_error_extra": errorExtra,
 	}).Inc()
 }
 
