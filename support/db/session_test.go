@@ -288,7 +288,7 @@ func TestIdleTransactionTimeoutAndContextTimeout(t *testing.T) {
 	assertDbErrorMetrics(reg, "deadline_exceeded", "deadline_exceeded", "n/a", assert)
 }
 
-func TestDbServerErrorInMetrics(t *testing.T) {
+func TestDbServerErrorCodeInMetrics(t *testing.T) {
 	assert := assert.New(t)
 	db := dbtest.Postgres(t).Load(testSchema)
 	defer db.Close()
@@ -303,6 +303,25 @@ func TestDbServerErrorInMetrics(t *testing.T) {
 	_, err := sess.ExecRaw(context.Background(), "oops, invalid sql")
 	assert.ErrorAs(err, &pqErr)
 	assertDbErrorMetrics(reg, "n/a", "42601", "n/a", assert)
+}
+
+func TestDbOtherErrorInMetrics(t *testing.T) {
+	assert := assert.New(t)
+	db := dbtest.Postgres(t).Load(testSchema)
+	defer db.Close()
+
+	conn := db.Open()
+	conn.Close()
+	sessRaw := &Session{DB: conn}
+	reg := prometheus.NewRegistry()
+	sess := RegisterMetrics(sessRaw, "test", "subtest", reg)
+
+	defer sess.Close()
+
+	var count int
+	err := sess.GetRaw(context.Background(), &count, "SELECT COUNT(*) FROM people")
+	assert.ErrorContains(err, "sql: database is closed")
+	assertDbErrorMetrics(reg, "n/a", "other", "n/a", assert)
 }
 
 func TestSessionAfterRollback(t *testing.T) {

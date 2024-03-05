@@ -369,7 +369,7 @@ func getQueryType(ctx context.Context, query squirrel.Sqlizer) QueryType {
 	return UndefinedQueryType
 }
 
-// derive the db 'abend_total' metric from the err returned by libpq sdk
+// derive the db 'error_total' metric from the err returned by libpq
 //
 // dbErr - the error returned by any libpq method call
 // ctx - the caller's context used on libpb method call
@@ -379,7 +379,7 @@ func (s *SessionWithMetrics) handleErrorEvent(dbErr error, ctx context.Context) 
 	}
 
 	ctxError := "n/a"
-	dbError := "n/a"
+	dbError := "other"
 	errorExtra := "n/a"
 	var pqErr *pq.Error
 
