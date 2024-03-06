@@ -916,6 +916,11 @@ func TestSubmitTransactionRequest(t *testing.T) {
 		return httpmock.NewStringResponse(http.StatusOK, strings.Replace(txDetailResponse, "<result_meta_xdr>", "", 1)), nil
 	})
 
+	hmock.On(
+		"GET",
+		"https://localhost/accounts/GACTJ4ZFCDZMD2UFR4R7MZOWYBCF6HBP65YKCUT37MUQFPJLDLJ3N5D2/data/config.memo_required",
+	).ReturnString(404, notFoundResponse)
+
 	theTx, err := client.SubmitTransaction(tx)
 	assert.NoError(t, err)
 	assert.Empty(t, theTx.ResultMetaXdr)
