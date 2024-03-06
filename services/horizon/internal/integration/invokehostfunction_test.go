@@ -213,7 +213,7 @@ func TestContractInvokeHostFunctionInvokeStatelessContractFn(t *testing.T) {
 	invokeResult := xdr.Uint64(9)
 	expectedScVal := xdr.ScVal{Type: xdr.ScValTypeScvU64, U64: &invokeResult}
 	var transactionMeta xdr.TransactionMeta
-	assert.NoError(t, xdr.SafeUnmarshalBase64(*tx.ResultMetaXdr, &transactionMeta))
+	assert.NoError(t, xdr.SafeUnmarshalBase64(tx.ResultMetaXdr, &transactionMeta))
 	assert.True(t, expectedScVal.Equals(transactionMeta.V3.SorobanMeta.ReturnValue))
 
 	clientInvokeOp, err := itest.Client().Operations(horizonclient.OperationRequest{
@@ -309,7 +309,7 @@ func TestContractInvokeHostFunctionInvokeStatefulContractFn(t *testing.T) {
 	invokeResult := xdr.Uint32(1)
 	expectedScVal := xdr.ScVal{Type: xdr.ScValTypeScvU32, U32: &invokeResult}
 	var transactionMeta xdr.TransactionMeta
-	assert.NoError(t, xdr.SafeUnmarshalBase64(*clientTx.ResultMetaXdr, &transactionMeta))
+	assert.NoError(t, xdr.SafeUnmarshalBase64(clientTx.ResultMetaXdr, &transactionMeta))
 	assert.True(t, expectedScVal.Equals(transactionMeta.V3.SorobanMeta.ReturnValue))
 
 	clientInvokeOp, err := itest.Client().Operations(horizonclient.OperationRequest{

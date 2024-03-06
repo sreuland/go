@@ -45,9 +45,9 @@ func PopulateTransaction(
 	dest.EnvelopeXdr = row.TxEnvelope
 	dest.ResultXdr = row.TxResult
 	if skipTxMeta {
-		dest.ResultMetaXdr = nil
+		dest.ResultMetaXdr = ""
 	} else {
-		dest.ResultMetaXdr = &row.TxMeta
+		dest.ResultMetaXdr = row.TxMeta
 	}
 	dest.FeeMetaXdr = row.TxFeeMeta
 	dest.MemoType = row.MemoType

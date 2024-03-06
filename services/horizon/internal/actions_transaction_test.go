@@ -378,7 +378,7 @@ func TestPostFeeBumpTransaction(t *testing.T) {
 	ht.Assert.NoError(err)
 
 	ht.Assert.Equal(fixture.Transaction.TxResult, response.ResultXdr)
-	ht.Assert.Equal(fixture.Transaction.TxMeta, *response.ResultMetaXdr)
+	ht.Assert.Equal(fixture.Transaction.TxMeta, response.ResultMetaXdr)
 	ht.Assert.Equal(fixture.Transaction.TransactionHash, response.Hash)
 	ht.Assert.Equal(fixture.Transaction.TxEnvelope, response.EnvelopeXdr)
 	ht.Assert.Equal(fixture.Transaction.LedgerSequence, response.Ledger)
@@ -392,7 +392,7 @@ func TestPostFeeBumpTransaction(t *testing.T) {
 	ht.Assert.NoError(err)
 
 	ht.Assert.Equal(fixture.Transaction.TxResult, response.ResultXdr)
-	ht.Assert.Equal(fixture.Transaction.TxMeta, *response.ResultMetaXdr)
+	ht.Assert.Equal(fixture.Transaction.TxMeta, response.ResultMetaXdr)
 	ht.Assert.Equal(fixture.InnerHash, response.Hash)
 	ht.Assert.Equal(fixture.Transaction.TxEnvelope, response.EnvelopeXdr)
 	ht.Assert.Equal(fixture.Transaction.LedgerSequence, response.Ledger)

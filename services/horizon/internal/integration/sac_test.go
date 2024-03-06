@@ -1401,7 +1401,7 @@ func assertInvokeHostFnSucceeds(itest *integration.Test, signer *keypair.Full, o
 	require.NoError(itest.CurrentTest(), err)
 
 	var txMetaResult xdr.TransactionMeta
-	err = xdr.SafeUnmarshalBase64(*clientTx.ResultMetaXdr, &txMetaResult)
+	err = xdr.SafeUnmarshalBase64(clientTx.ResultMetaXdr, &txMetaResult)
 	require.NoError(itest.CurrentTest(), err)
 
 	opResults, ok := txResult.OperationResults()

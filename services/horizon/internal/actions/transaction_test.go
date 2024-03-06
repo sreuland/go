@@ -144,7 +144,7 @@ func checkOuterHashResponse(
 	tt.Assert.Equal(fixture.Transaction.TransactionHash, transactionResponse.Hash)
 	tt.Assert.Equal(fixture.Transaction.TxEnvelope, transactionResponse.EnvelopeXdr)
 	tt.Assert.Equal(fixture.Transaction.TxFeeMeta, transactionResponse.FeeMetaXdr)
-	tt.Assert.Equal(fixture.Transaction.TxMeta, *transactionResponse.ResultMetaXdr)
+	tt.Assert.Equal(fixture.Transaction.TxMeta, transactionResponse.ResultMetaXdr)
 	tt.Assert.Equal(fixture.Transaction.TxResult, transactionResponse.ResultXdr)
 }
 

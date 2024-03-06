@@ -98,7 +98,7 @@ func TestPopulateOperation_WithTransaction(t *testing.T) {
 	assert.True(t, dest.Transaction.Successful)
 	assert.Equal(t, int64(100), dest.Transaction.FeeCharged)
 	assert.Equal(t, int64(10000), dest.Transaction.MaxFee)
-	assert.Nil(t, dest.Transaction.ResultMetaXdr)
+	assert.Empty(t, dest.Transaction.ResultMetaXdr)
 }
 
 func TestPopulateOperation_AllowTrust(t *testing.T) {
