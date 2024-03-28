@@ -19,22 +19,21 @@ func NewResumableManager(dataStore DataStore, exporterConfig ExporterConfig, net
 	return &resumableManagerService{exporterConfig: exporterConfig, dataStore: dataStore, networkManager: networkManager, network: network}
 }
 
-// find the nearest "LedgersPerFile" starting boundary ledger number relative to requested start which
-// does NOT exist on datastore yet.
+// Find the nearest "LedgersPerFile" starting boundary ledger number relative to requested start which
+// does not exist on datastore yet.
 //
 // start - start search from this ledger
-// end - stop search at this ledger
+// end   - stop search at this ledger.
 //
-//	if 0, meaning unbounded, this will substitute an effective end value of the
-//	most recent archived ledger number.
+// If end=0, meaning unbounded, this will substitute an effective end value of the
+// most recent archived ledger number.
 //
-// return - non-zero:
+// return - the next bounded start ledger position
 //
-//	             It was able to identify the nearest "LedgersPerFile" starting boundary ledger number
-//		            which is absent on datastore given start and end.
-//	             If data store has all files up to end, then this returns the next "LedgersPerFile" starting boundary ledger
-//	         zero:
-//	             not able to identify next boundary ledger.
+// Will be non-zero If able to identify the nearest "LedgersPerFile" starting boundary ledger number
+// which is absent on datastore given start and end.
+// If data store has all files up to end, then returns the next "LedgersPerFile" starting boundary ledger
+// If not able to identify next boundary ledger due to any type of error, returns 0.
 func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, end uint32) uint32 {
 	if ctx.Err() != nil {
 		return 0
