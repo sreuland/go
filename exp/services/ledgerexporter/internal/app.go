@@ -3,7 +3,6 @@ package ledgerexporter
 import (
 	"context"
 	_ "embed"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -25,24 +24,46 @@ type App struct {
 	dataStore     DataStore
 	exportManager ExportManager
 	uploader      Uploader
+	flags         Flags
 }
 
-func NewApp() *App {
+func NewApp(flags Flags) *App {
 	logger.SetLevel(log.DebugLevel)
-
-	config := Config{}
-	err := config.LoadConfig()
-	logFatalIf(err, "Could not load configuration")
-
-	app := &App{config: config}
+	app := &App{flags: flags}
 	return app
 }
 
-func (a *App) init(ctx context.Context) {
-	a.dataStore = mustNewDataStore(ctx, &a.config)
-	a.ledgerBackend = mustNewLedgerBackend(ctx, a.config)
-	a.exportManager = NewExportManager(a.config.ExporterConfig, a.ledgerBackend)
+func (a *App) init(ctx context.Context) error {
+	var config *Config
+	var err error
+
+	if config, err = NewConfig(ctx, NetworkManagerService, a.flags); err != nil {
+		return errors.Wrap(err, "Could not load configuration")
+	}
+	a.config = *config
+
+	if a.dataStore, err = NewDataStore(ctx, config.DataStoreConfig, config.Network, config.ExporterConfig); err != nil {
+		return errors.Wrap(err, "Could not connect to destination data store")
+	}
+
 	a.uploader = NewUploader(a.dataStore, a.exportManager.GetMetaArchiveChannel())
+
+	resumableManager := NewResumableManager(a.dataStore, a.config.ExporterConfig, NetworkManagerService, config.Network)
+	if resumableStartLedger := resumableManager.FindFirstLedgerGapInRange(ctx, config.StartLedger, config.EndLedger); resumableStartLedger > 0 {
+		// resumable is a best effort attempt, if response is 0 that means no resume point was obtainable.
+		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has more recent data, will resume at later start ledger of %d", config.StartLedger, config.EndLedger, resumableStartLedger)
+		config.StartLedger = resumableStartLedger
+	}
+
+	logger.Infof("Final computed ledger range for backend retrieval, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)
+
+	if a.ledgerBackend, err = newLedgerBackend(ctx, a.config); err != nil {
+		return err
+	}
+	if a.exportManager, err = NewExportManager(a.config.ExporterConfig, a.ledgerBackend); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *App) close() {
@@ -58,7 +79,9 @@ func (a *App) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	a.init(ctx)
+	if err := a.init(ctx); err != nil {
+		logger.WithError(err).Fatal("Stopping ledger-exporter")
+	}
 	defer a.close()
 
 	var wg sync.WaitGroup
@@ -97,20 +120,19 @@ func (a *App) Run() {
 	logger.Info("Shutting down ledger-exporter")
 }
 
-func mustNewDataStore(ctx context.Context, config *Config) DataStore {
-	dataStore, err := NewDataStore(ctx, fmt.Sprintf("%s/%s", config.DestinationURL, config.Network))
-	logFatalIf(err, "Could not connect to destination data store")
-	return dataStore
-}
-
-// mustNewLedgerBackend Creates and initializes captive core ledger backend
+// newLedgerBackend Creates and initializes captive core ledger backend
 // Currently, only supports captive-core as ledger backend
-func mustNewLedgerBackend(ctx context.Context, config Config) ledgerbackend.LedgerBackend {
-	captiveConfig := config.GenerateCaptiveCoreConfig()
+func newLedgerBackend(ctx context.Context, config Config) (ledgerbackend.LedgerBackend, error) {
+	captiveConfig, err := config.GenerateCaptiveCoreConfig()
+	if err != nil {
+		return nil, err
+	}
 
 	// Create a new captive core backend
 	backend, err := ledgerbackend.NewCaptive(captiveConfig)
-	logFatalIf(err, "Failed to create captive-core instance")
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create captive-core instance")
+	}
 
 	var ledgerRange ledgerbackend.Range
 	if config.EndLedger == 0 {
@@ -119,13 +141,8 @@ func mustNewLedgerBackend(ctx context.Context, config Config) ledgerbackend.Ledg
 		ledgerRange = ledgerbackend.BoundedRange(config.StartLedger, config.EndLedger)
 	}
 
-	err = backend.PrepareRange(ctx, ledgerRange)
-	logFatalIf(err, "Could not prepare captive core ledger backend")
-	return backend
-}
-
-func logFatalIf(err error, message string, args ...interface{}) {
-	if err != nil {
-		logger.WithError(err).Fatalf(message, args...)
+	if err = backend.PrepareRange(ctx, ledgerRange); err != nil {
+		return nil, errors.Wrap(err, "Could not prepare captive core ledger backend")
 	}
+	return backend, nil
 }
