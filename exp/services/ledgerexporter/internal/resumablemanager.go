@@ -100,7 +100,7 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 	if nearestAbsentLedger > 0 {
 		nearestAbsentBoundaryLedger := rm.exporterConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
 		logger.Infof("Resumability found next absent object start key of %d between ledgers %d and %d", nearestAbsentBoundaryLedger, start, end)
-        return nearestAbsentBoundaryLedger
+		return nearestAbsentBoundaryLedger
 	}
 
 	// data store had all ledgers for requested range, return the next boundary start
