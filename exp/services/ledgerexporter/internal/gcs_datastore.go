@@ -25,7 +25,7 @@ type GCSDataStore struct {
 }
 
 func NewGCSDataStore(ctx context.Context, params map[string]string, network string) (DataStore, error) {
-	destinationURL, ok := params["destinationURL"]
+	destinationURL, ok := params["destination_url"]
 	if !ok {
 		return nil, errors.Errorf("Invalid GCS config, no destination URL")
 	}

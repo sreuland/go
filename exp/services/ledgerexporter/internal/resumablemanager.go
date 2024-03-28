@@ -52,6 +52,8 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 			logger.WithError(latestErr).Infof("Resumability of requested export ledger range start=%d, end=%d, was not able to get latest ledger from network %v", start, end, rm.network)
 			return 0
 		}
+		logger.Infof("Resumability resovled unbounded to latest ledger =%d for network=%v", end, rm.network)
+
 		if start > end {
 			// requested to start at a point beyond the latest network, resume not applicable.
 			return 0
@@ -62,6 +64,8 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 	binarySearchStop := end
 	nearestAbsentLedger := uint32(0)
 	lookupCache := map[string]bool{}
+
+	logger.Infof("Resumability searching datastore for next absent object key between ledgers %d and %d", start, end)
 
 	for binarySearchStart <= binarySearchStop {
 		if ctx.Err() != nil {
@@ -94,10 +98,13 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 	}
 
 	if nearestAbsentLedger > 0 {
-		// return the boundary start for the ledger that search confirmed missing on data store
-		return rm.exporterConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
+		nearestAbsentBoundaryLedger := rm.exporterConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
+		logger.Infof("Resumability found next absent object start key of %d between ledgers %d and %d", nearestAbsentBoundaryLedger, start, end)
+        return nearestAbsentBoundaryLedger
 	}
 
 	// data store had all ledgers for requested range, return the next boundary start
+	logger.Infof("Resumability found no absent object start keys between ledgers %d and %d", start, end)
+
 	return rm.exporterConfig.GetSequenceNumberEndBoundary(end) + 1
 }

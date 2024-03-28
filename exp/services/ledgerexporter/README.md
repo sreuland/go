@@ -33,12 +33,6 @@ Exports ledgers continuously starting from --start. In this mode, the end ledger
 ledgerexporter --start <start_ledger> --config-file <config_file_path>
 ```
 
-
-Starts exporting from a specified number of ledgers before the latest ledger sequence number on the network.
-```bash
-ledgerexporter --from-last <number_of_ledgers> --config-file <config_file_path>
-```
-
 ### Configuration (toml):
 
 ```toml

@@ -14,12 +14,18 @@ $(if $(STELLAR_CORE_VERSION), --build-arg STELLAR_CORE_VERSION=$(STELLAR_CORE_VE
 	-t $(DOCKER_IMAGE):$(VERSION) \
 	-t $(DOCKER_IMAGE):latest .
 
-docker-test:
+docker-clean:
+	$(SUDO) docker stop fake-gcs-server || true
+	$(SUDO) docker rm fake-gcs-server || true
+	$(SUDO) rm -rf ${PWD}/storage || true
+	$(SUDO) docker network rm test-network || true
+    
+docker-test: docker-clean
 	# Create temp storage dir
-	$(SUDO) mkdir -p ${PWD}/storage/exporter-test
+	$(SUDO) mkdir -p ${PWD}/storage/exporter-test 
 
 	# Create test network for docker
-	$(SUDO) docker network create test-network
+	$(SUDO) docker network create test-network 
 
 	# Run the fake GCS server
 	$(SUDO) docker run -d --name fake-gcs-server -p 4443:4443 \
@@ -33,11 +39,8 @@ docker-test:
 		 -e END=2000 \
 		 -e STORAGE_EMULATOR_HOST=http://fake-gcs-server:4443 \
 		 $(DOCKER_IMAGE):$(VERSION)
-
-	$(SUDO) docker stop fake-gcs-server
-	$(SUDO) docker rm fake-gcs-server
-	$(SUDO) rm -rf ${PWD}/storage
-	$(SUDO) docker network rm test-network
+		 
+	$(MAKE) docker-clean
 
 docker-push:
 	$(SUDO) docker push $(DOCKER_IMAGE):$(VERSION)

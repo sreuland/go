@@ -56,8 +56,6 @@ func (a *App) init(ctx context.Context) error {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	a.uploader = NewUploader(a.dataStore, a.exportManager.GetMetaArchiveChannel())
-
 	resumableManager := NewResumableManager(a.dataStore, a.config.ExporterConfig, NetworkManagerService, config.Network)
 	resumableStartLedger := resumableManager.FindStartBoundary(ctx, config.StartLedger, config.EndLedger)
 	if config.EndLedger > 0 && resumableStartLedger > config.EndLedger {
@@ -78,6 +76,8 @@ func (a *App) init(ctx context.Context) error {
 	if a.exportManager, err = NewExportManager(a.config.ExporterConfig, a.ledgerBackend); err != nil {
 		return err
 	}
+	a.uploader = NewUploader(a.dataStore, a.exportManager.GetMetaArchiveChannel())
+
 	return nil
 }
 
