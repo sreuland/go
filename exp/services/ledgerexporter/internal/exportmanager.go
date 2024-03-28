@@ -22,6 +22,10 @@ func (ec ExporterConfig) GetSequenceNumberStartBoundary(ledgerSeq uint32) uint32
 	return (ledgerSeq / ec.LedgersPerFile) * ec.LedgersPerFile
 }
 
+func (ec ExporterConfig) GetSequenceNumberEndBoundary(ledgerSeq uint32) uint32 {
+	return ec.GetSequenceNumberStartBoundary(ledgerSeq) + ec.LedgersPerFile - 1
+}
+
 // GetObjectKeyFromSequenceNumber generates the object key name from the ledger sequence number based on configuration.
 func (ec ExporterConfig) GetObjectKeyFromSequenceNumber(ledgerSeq uint32) string {
 	var objectKey string
@@ -34,7 +38,7 @@ func (ec ExporterConfig) GetObjectKeyFromSequenceNumber(ledgerSeq uint32) string
 	}
 
 	fileStart := ec.GetSequenceNumberStartBoundary(ledgerSeq)
-	fileEnd := fileStart + ec.LedgersPerFile - 1
+	fileEnd := ec.GetSequenceNumberEndBoundary(ledgerSeq)
 	objectKey += fmt.Sprintf("%d", fileStart)
 
 	// Multiple ledgers per file

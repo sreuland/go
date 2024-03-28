@@ -3,6 +3,7 @@ package ledgerexporter
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,6 +18,15 @@ import (
 var (
 	logger = log.New().WithField("service", "ledger-exporter")
 )
+
+type DataAlreadyExported struct {
+	Start uint32
+	End   uint32
+}
+
+func (m *DataAlreadyExported) Error() string {
+	return fmt.Sprintf("For export ledger range start=%d, end=%d, the remote storage has all the data, there is no need to continue export", m.Start, m.End)
+}
 
 type App struct {
 	config        Config
@@ -49,13 +59,18 @@ func (a *App) init(ctx context.Context) error {
 	a.uploader = NewUploader(a.dataStore, a.exportManager.GetMetaArchiveChannel())
 
 	resumableManager := NewResumableManager(a.dataStore, a.config.ExporterConfig, NetworkManagerService, config.Network)
-	if resumableStartLedger := resumableManager.FindFirstLedgerGapInRange(ctx, config.StartLedger, config.EndLedger); resumableStartLedger > 0 {
+	resumableStartLedger := resumableManager.FindStartBoundary(ctx, config.StartLedger, config.EndLedger)
+	if config.EndLedger > 0 && resumableStartLedger > config.EndLedger {
+		return &DataAlreadyExported{Start: config.StartLedger, End: config.EndLedger}
+	}
+
+	if resumableStartLedger > 0 {
 		// resumable is a best effort attempt, if response is 0 that means no resume point was obtainable.
-		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has more recent data, will resume at later start ledger of %d", config.StartLedger, config.EndLedger, resumableStartLedger)
+		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", config.StartLedger, config.EndLedger, resumableStartLedger)
 		config.StartLedger = resumableStartLedger
 	}
 
-	logger.Infof("Final computed ledger range for backend retrieval, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)
+	logger.Infof("Final computed ledger range for backend retrieval and export, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)
 
 	if a.ledgerBackend, err = newLedgerBackend(ctx, a.config); err != nil {
 		return err
@@ -80,7 +95,14 @@ func (a *App) Run() {
 	defer cancel()
 
 	if err := a.init(ctx); err != nil {
-		logger.WithError(err).Fatal("Stopping ledger-exporter")
+		switch err.(type) {
+		case *DataAlreadyExported:
+			logger.Info(err.Error())
+			logger.Info("Shutting down ledger-exporter")
+			return
+		default:
+			logger.WithError(err).Fatal("Stopping ledger-exporter")
+		}
 	}
 	defer a.close()
 

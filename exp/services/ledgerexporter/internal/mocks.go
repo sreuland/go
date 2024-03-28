@@ -75,7 +75,7 @@ type MockResumableManager struct {
 	mock.Mock
 }
 
-func (m *MockResumableManager) FindFirstLedgerGapInRange(ctx context.Context, start, end uint32) uint32 {
+func (m *MockResumableManager) FindStartBoundary(ctx context.Context, start, end uint32) uint32 {
 	a := m.Called(ctx, start, end)
 	return a.Get(0).(uint32)
 }

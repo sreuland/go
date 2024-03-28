@@ -5,7 +5,7 @@ import (
 )
 
 type ResumableManager interface {
-	FindFirstLedgerGapInRange(ctx context.Context, start, end uint32) uint32
+	FindStartBoundary(ctx context.Context, start, end uint32) uint32
 }
 
 type resumableManagerService struct {
@@ -23,12 +23,19 @@ func NewResumableManager(dataStore DataStore, exporterConfig ExporterConfig, net
 // does NOT exist on datastore yet.
 //
 // start - start search from this ledger
-// stop - stop search at this ledger
-// return - non-zero if it was able to identify the nearest "LedgersPerFile" starting boundary ledger number
+// end - stop search at this ledger
 //
-//	which is absent on datastore. It may be equal to start or great than start.
-//	Returns 0 if not able to identify next boundary ledger.
-func (rm resumableManagerService) FindFirstLedgerGapInRange(ctx context.Context, start, end uint32) uint32 {
+//	if 0, meaning unbounded, this will substitute an effective end value of the
+//	most recent archived ledger number.
+//
+// return - non-zero:
+//
+//	             It was able to identify the nearest "LedgersPerFile" starting boundary ledger number
+//		            which is absent on datastore given start and end.
+//	             If data store has all files up to end, then this returns the next "LedgersPerFile" starting boundary ledger
+//	         zero:
+//	             not able to identify next boundary ledger.
+func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, end uint32) uint32 {
 	if ctx.Err() != nil {
 		return 0
 	}
@@ -38,12 +45,16 @@ func (rm resumableManagerService) FindFirstLedgerGapInRange(ctx context.Context,
 		return 0
 	}
 
-	// streaming mode for end, get current ledger to use for a sane/bounded range on resume check
+	// streaming mode for end, get current ledger to use for a sane bounded range during resumability check
 	if end < 1 {
 		var latestErr error
 		end, latestErr = rm.networkManager.GetLatestLedgerSequenceFromHistoryArchives(ctx, rm.network)
 		if latestErr != nil {
-			logger.WithError(latestErr).Infof("For resuming of export ledger range start=%d, end=%d, was not able to get latest ledger from network %v", start, end, rm.network)
+			logger.WithError(latestErr).Infof("Resumability of requested export ledger range start=%d, end=%d, was not able to get latest ledger from network %v", start, end, rm.network)
+			return 0
+		}
+		if start > end {
+			// requested to start at a point beyond the latest network, resume not applicable.
 			return 0
 		}
 	}
@@ -82,5 +93,12 @@ func (rm resumableManagerService) FindFirstLedgerGapInRange(ctx context.Context,
 			binarySearchStop = binarySearchMiddle - 1
 		}
 	}
-	return rm.exporterConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
+
+	if nearestAbsentLedger > 0 {
+		// return the boundary start for the ledger that search confirmed missing on data store
+		return rm.exporterConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
+	}
+
+	// data store had all ledgers for requested range, return the next boundary start
+	return rm.exporterConfig.GetSequenceNumberEndBoundary(end) + 1
 }

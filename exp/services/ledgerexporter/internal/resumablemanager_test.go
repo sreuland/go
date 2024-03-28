@@ -21,7 +21,7 @@ func TestResumability(t *testing.T) {
 			name:           "End ledger same as start, data store has it",
 			startLedger:    4,
 			endLedger:      4,
-			resumeResponse: 0,
+			resumeResponse: 10,
 			exporterConfig: ExporterConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -65,7 +65,7 @@ func TestResumability(t *testing.T) {
 			name:           "Data store is beyond start and end ledger",
 			startLedger:    255,
 			endLedger:      275,
-			resumeResponse: 0,
+			resumeResponse: 280,
 			exporterConfig: ExporterConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -107,9 +107,9 @@ func TestResumability(t *testing.T) {
 		},
 		{
 			name:           "No end ledger provided, data store is beyond start",
-			startLedger:    255,
+			startLedger:    345,
 			endLedger:      0,
-			resumeResponse: 270,
+			resumeResponse: 350,
 			exporterConfig: ExporterConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -117,25 +117,37 @@ func TestResumability(t *testing.T) {
 			networkName: "test3",
 		},
 		{
-			name:           "No end ledger provided, start is beyond network latest",
+			name:           "No end ledger provided, data store is beyond start and network latest",
 			startLedger:    405,
 			endLedger:      0,
-			resumeResponse: 0,
+			resumeResponse: 460,
 			exporterConfig: ExporterConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test4",
 		},
+		{
+			name:           "No end ledger provided, start is beyond network latest",
+			startLedger:    505,
+			endLedger:      0,
+			resumeResponse: 0,
+			exporterConfig: ExporterConfig{
+				FilesPerPartition: uint32(1),
+				LedgersPerFile:    uint32(10),
+			},
+			networkName: "test5",
+		},
 	}
 
 	ctx := context.Background()
 
 	mockNetworkManager := &MockNetworkManager{}
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test").Return(uint32(500), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test").Return(uint32(1000), nil)
 	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test2").Return(uint32(180), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test3").Return(uint32(300), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test4").Return(uint32(400), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test3").Return(uint32(380), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test4").Return(uint32(450), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test5").Return(uint32(500), nil)
 
 	mockDataStore := &MockDataStore{}
 
@@ -150,12 +162,10 @@ func TestResumability(t *testing.T) {
 	mockDataStore.On("Exists", ctx, "40-49.xdr.gz").Return(false, nil).Once()
 
 	//"Data store is beyond non boundary aligned start ledger"
-	mockDataStore.On("Exists", ctx, "60-69.xdr.gz").Return(true, nil).Once()
 	mockDataStore.On("Exists", ctx, "70-79.xdr.gz").Return(true, nil).Once()
 	mockDataStore.On("Exists", ctx, "80-89.xdr.gz").Return(false, nil).Once()
 
 	//"Data store is beyond start and end ledger"
-	mockDataStore.On("Exists", ctx, "250-259.xdr.gz").Return(true, nil).Once()
 	mockDataStore.On("Exists", ctx, "260-269.xdr.gz").Return(true, nil).Once()
 	mockDataStore.On("Exists", ctx, "270-279.xdr.gz").Return(true, nil).Once()
 
@@ -170,14 +180,23 @@ func TestResumability(t *testing.T) {
 	mockDataStore.On("Exists", ctx, "140-149.xdr.gz").Return(false, nil).Once()
 
 	//"No end ledger provided, data store is beyond start" uses latest from network="test3"
-	mockDataStore.On("Exists", ctx, "270-279.xdr.gz").Return(false, nil).Once()
-	mockDataStore.On("Exists", ctx, "260-269.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "360-369.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "350-359.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "340-349.xdr.gz").Return(true, nil).Once()
+
+	//"No end ledger provided, data store is beyond start and network latest" uses latest from network="test4"
+	mockDataStore.On("Exists", ctx, "420-429.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "430-439.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "440-449.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "450-459.xdr.gz").Return(true, nil).Once()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resumableManager := NewResumableManager(mockDataStore, tt.exporterConfig, mockNetworkManager, tt.networkName)
-			response := resumableManager.FindFirstLedgerGapInRange(ctx, tt.startLedger, tt.endLedger)
+			response := resumableManager.FindStartBoundary(ctx, tt.startLedger, tt.endLedger)
 			require.Equal(t, tt.resumeResponse, response)
 		})
 	}
+
+	mockDataStore.AssertExpectations(t)
 }
