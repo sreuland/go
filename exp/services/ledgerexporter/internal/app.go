@@ -52,20 +52,20 @@ func (a *App) init(ctx context.Context) error {
 	}
 	a.config = *config
 
-	if a.dataStore, err = NewDataStore(ctx, config.DataStoreConfig, config.Network, config.ExporterConfig); err != nil {
+	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network, a.config.ExporterConfig); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	resumableManager := NewResumableManager(a.dataStore, a.config.ExporterConfig, NetworkManagerService, config.Network)
-	resumableStartLedger := resumableManager.FindStartBoundary(ctx, config.StartLedger, config.EndLedger)
-	if config.EndLedger > 0 && resumableStartLedger > config.EndLedger {
-		return &DataAlreadyExported{Start: config.StartLedger, End: config.EndLedger}
+	resumableManager := NewResumableManager(a.dataStore, a.config.ExporterConfig, NetworkManagerService, a.config.Network)
+	resumableStartLedger := resumableManager.FindStartBoundary(ctx, a.config.StartLedger, a.config.EndLedger)
+	if a.config.EndLedger > 0 && resumableStartLedger > a.config.EndLedger {
+		return &DataAlreadyExported{Start: a.config.StartLedger, End: a.config.EndLedger}
 	}
 
 	if resumableStartLedger > 0 {
 		// resumable is a best effort attempt, if response is 0 that means no resume point was obtainable.
 		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", config.StartLedger, config.EndLedger, resumableStartLedger)
-		config.StartLedger = resumableStartLedger
+		a.config.StartLedger = resumableStartLedger
 	}
 
 	logger.Infof("Final computed ledger range for backend retrieval and export, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)

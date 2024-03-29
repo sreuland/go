@@ -83,7 +83,7 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 			var datastoreErr error
 			middleFoundOnStore, datastoreErr = rm.dataStore.Exists(ctx, objectKeyMiddle)
 			if datastoreErr != nil {
-				logger.WithError(datastoreErr).Infof("For resuming of export ledger range start=%d, end=%d, was not able to check if objec key %v exists on data store", start, end, objectKeyMiddle)
+				logger.WithError(datastoreErr).Infof("While searching datastore for resumability within export ledger range start=%d, end=%d, was not able to check if object key %v exists on data store", start, end, objectKeyMiddle)
 				return 0
 			}
 			lookupCache[objectKeyMiddle] = middleFoundOnStore

@@ -126,6 +126,11 @@ func (b *GCSDataStore) Size(ctx context.Context, pth string) (int64, error) {
 // Exists checks if a file exists in the GCS bucket.
 func (b *GCSDataStore) Exists(ctx context.Context, pth string) (bool, error) {
 	_, err := b.Size(ctx, pth)
+
+	if err == os.ErrNotExist {
+		return false, nil
+	}
+
 	return err == nil, err
 }
 
