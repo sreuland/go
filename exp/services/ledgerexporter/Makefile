@@ -25,7 +25,7 @@ docker-test: docker-clean
 	$(SUDO) mkdir -p ${PWD}/storage/exporter-test 
 
 	# Create test network for docker
-	$(SUDO) docker network create test-network 
+	$(SUDO) docker network create test-network
 
 	# Run the fake GCS server
 	$(SUDO) docker run -d --name fake-gcs-server -p 4443:4443 \
