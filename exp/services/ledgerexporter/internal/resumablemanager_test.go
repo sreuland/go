@@ -10,129 +10,141 @@ import (
 func TestResumability(t *testing.T) {
 
 	tests := []struct {
-		name           string
-		startLedger    uint32
-		endLedger      uint32
-		exporterConfig ExporterConfig
-		resumeResponse uint32
-		networkName    string
+		name                 string
+		startLedger          uint32
+		endLedger            uint32
+		exporterConfig       LedgerBatchConfig
+		resumableStartLedger uint32
+		dataStoreComplete    bool
+		networkName          string
 	}{
 		{
-			name:           "End ledger same as start, data store has it",
-			startLedger:    4,
-			endLedger:      4,
-			resumeResponse: 10,
-			exporterConfig: ExporterConfig{
+			name:                 "End ledger same as start, data store has it",
+			startLedger:          4,
+			endLedger:            4,
+			resumableStartLedger: 0,
+			dataStoreComplete:    true,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "End ledger same as start, data store does not have it",
-			startLedger:    14,
-			endLedger:      14,
-			resumeResponse: 10,
-			exporterConfig: ExporterConfig{
+			name:                 "End ledger same as start, data store does not have it",
+			startLedger:          14,
+			endLedger:            14,
+			resumableStartLedger: 10,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "Data store is beyond boundary aligned start ledger",
-			startLedger:    20,
-			endLedger:      50,
-			resumeResponse: 40,
-			exporterConfig: ExporterConfig{
+			name:                 "Data store is beyond boundary aligned start ledger",
+			startLedger:          20,
+			endLedger:            50,
+			resumableStartLedger: 40,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "Data store is beyond non boundary aligned start ledger",
-			startLedger:    55,
-			endLedger:      85,
-			resumeResponse: 80,
-			exporterConfig: ExporterConfig{
+			name:                 "Data store is beyond non boundary aligned start ledger",
+			startLedger:          55,
+			endLedger:            85,
+			resumableStartLedger: 80,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "Data store is beyond start and end ledger",
-			startLedger:    255,
-			endLedger:      275,
-			resumeResponse: 280,
-			exporterConfig: ExporterConfig{
+			name:                 "Data store is beyond start and end ledger",
+			startLedger:          255,
+			endLedger:            275,
+			resumableStartLedger: 0,
+			dataStoreComplete:    true,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "Data store is not beyond start ledger",
-			startLedger:    95,
-			endLedger:      125,
-			resumeResponse: 90,
-			exporterConfig: ExporterConfig{
+			name:                 "Data store is not beyond start ledger",
+			startLedger:          95,
+			endLedger:            125,
+			resumableStartLedger: 90,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "No start ledger provided",
-			startLedger:    0,
-			endLedger:      10,
-			resumeResponse: 0,
-			exporterConfig: ExporterConfig{
+			name:                 "No start ledger provided",
+			startLedger:          0,
+			endLedger:            10,
+			resumableStartLedger: 0,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test",
 		},
 		{
-			name:           "No end ledger provided, data store not beyond start",
-			startLedger:    145,
-			endLedger:      0,
-			resumeResponse: 140,
-			exporterConfig: ExporterConfig{
+			name:                 "No end ledger provided, data store not beyond start",
+			startLedger:          145,
+			endLedger:            0,
+			resumableStartLedger: 140,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test2",
 		},
 		{
-			name:           "No end ledger provided, data store is beyond start",
-			startLedger:    345,
-			endLedger:      0,
-			resumeResponse: 350,
-			exporterConfig: ExporterConfig{
+			name:                 "No end ledger provided, data store is beyond start",
+			startLedger:          345,
+			endLedger:            0,
+			resumableStartLedger: 350,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test3",
 		},
 		{
-			name:           "No end ledger provided, data store is beyond start and network latest",
-			startLedger:    405,
-			endLedger:      0,
-			resumeResponse: 460,
-			exporterConfig: ExporterConfig{
+			name:                 "No end ledger provided, data store is beyond start and up to network latest",
+			startLedger:          405,
+			endLedger:            0,
+			resumableStartLedger: 450,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test4",
 		},
 		{
-			name:           "No end ledger provided, start is beyond network latest",
-			startLedger:    505,
-			endLedger:      0,
-			resumeResponse: 0,
-			exporterConfig: ExporterConfig{
+			name:                 "No end ledger provided, start is beyond network latest",
+			startLedger:          505,
+			endLedger:            0,
+			resumableStartLedger: 0,
+			dataStoreComplete:    false,
+			exporterConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -184,7 +196,7 @@ func TestResumability(t *testing.T) {
 	mockDataStore.On("Exists", ctx, "350-359.xdr.gz").Return(false, nil).Once()
 	mockDataStore.On("Exists", ctx, "340-349.xdr.gz").Return(true, nil).Once()
 
-	//"No end ledger provided, data store is beyond start and network latest" uses latest from network="test4"
+	//"No end ledger provided, data store is beyond start and up to network latest" uses latest from network="test4"
 	mockDataStore.On("Exists", ctx, "420-429.xdr.gz").Return(true, nil).Once()
 	mockDataStore.On("Exists", ctx, "430-439.xdr.gz").Return(true, nil).Once()
 	mockDataStore.On("Exists", ctx, "440-449.xdr.gz").Return(true, nil).Once()
@@ -193,8 +205,9 @@ func TestResumability(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resumableManager := NewResumableManager(mockDataStore, tt.exporterConfig, mockNetworkManager, tt.networkName)
-			response := resumableManager.FindStartBoundary(ctx, tt.startLedger, tt.endLedger)
-			require.Equal(t, tt.resumeResponse, response)
+			resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, tt.startLedger, tt.endLedger)
+			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)
+			require.Equal(t, tt.dataStoreComplete, dataStoreComplete)
 		})
 	}
 

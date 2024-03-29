@@ -18,7 +18,7 @@ type DataStore interface {
 }
 
 // NewDataStore factory, it creates a new DataStore based on the config type
-func NewDataStore(ctx context.Context, datastoreConfig DataStoreConfig, network string, exporterConfig ExporterConfig) (DataStore, error) {
+func NewDataStore(ctx context.Context, datastoreConfig DataStoreConfig, network string, exporterConfig LedgerBatchConfig) (DataStore, error) {
 	switch datastoreConfig.Type {
 	case "GCS":
 		return NewGCSDataStore(ctx, datastoreConfig.Params, network)

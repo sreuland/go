@@ -38,12 +38,10 @@ type DataStoreConfig struct {
 type Config struct {
 	Network           string            `toml:"network"`
 	DataStoreConfig   DataStoreConfig   `toml:"datastore_config"`
-	ExporterConfig    ExporterConfig    `toml:"exporter_config"`
+	LedgerBatchConfig LedgerBatchConfig `toml:"exporter_config"`
 	StellarCoreConfig StellarCoreConfig `toml:"stellar_core_config"`
-
-	//From command-line
-	StartLedger uint32 `toml:"start"`
-	EndLedger   uint32 `toml:"end"`
+	StartLedger       uint32            `toml:"start"`
+	EndLedger         uint32            `toml:"end"`
 }
 
 func NewConfig(ctx context.Context, networkManager NetworkManager, flags Flags) (*Config, error) {
@@ -101,7 +99,7 @@ func (config *Config) adjustLedgerRange() {
 	// Check if either the start or end ledger does not fall on the "LedgersPerFile" boundary
 	// and adjust the start and end ledger accordingly.
 	// Align the start ledger to the nearest "LedgersPerFile" boundary.
-	config.StartLedger = config.ExporterConfig.GetSequenceNumberStartBoundary(config.StartLedger)
+	config.StartLedger = config.LedgerBatchConfig.GetSequenceNumberStartBoundary(config.StartLedger)
 
 	// Ensure that the adjusted start ledger is at least 2.
 	config.StartLedger = ordered.Max(2, config.StartLedger)
@@ -109,8 +107,8 @@ func (config *Config) adjustLedgerRange() {
 	// Align the end ledger (for bounded cases) to the nearest "LedgersPerFile" boundary.
 	if config.EndLedger != 0 {
 		// Add an extra batch only if "LedgersPerFile" is greater than 1 and the end ledger doesn't fall on the boundary.
-		if config.ExporterConfig.LedgersPerFile > 1 && config.EndLedger%config.ExporterConfig.LedgersPerFile != 0 {
-			config.EndLedger = (config.EndLedger/config.ExporterConfig.LedgersPerFile + 1) * config.ExporterConfig.LedgersPerFile
+		if config.LedgerBatchConfig.LedgersPerFile > 1 && config.EndLedger%config.LedgerBatchConfig.LedgersPerFile != 0 {
+			config.EndLedger = (config.EndLedger/config.LedgerBatchConfig.LedgersPerFile + 1) * config.LedgerBatchConfig.LedgersPerFile
 		}
 	}
 

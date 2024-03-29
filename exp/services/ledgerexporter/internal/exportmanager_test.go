@@ -36,13 +36,13 @@ func (s *ExportManagerSuite) TearDownTest() {
 }
 
 func (s *ExportManagerSuite) TestInvalidExportConfig() {
-	config := ExporterConfig{LedgersPerFile: 0, FilesPerPartition: 10}
+	config := LedgerBatchConfig{LedgersPerFile: 0, FilesPerPartition: 10}
 	_, err := NewExportManager(config, &s.mockBackend)
 	require.Error(s.T(), err)
 }
 
 func (s *ExportManagerSuite) TestRun() {
-	config := ExporterConfig{LedgersPerFile: 64, FilesPerPartition: 10}
+	config := LedgerBatchConfig{LedgersPerFile: 64, FilesPerPartition: 10}
 	exporter, err := NewExportManager(config, &s.mockBackend)
 	require.NoError(s.T(), err)
 
@@ -75,7 +75,7 @@ func (s *ExportManagerSuite) TestRun() {
 }
 
 func (s *ExportManagerSuite) TestRunContextCancel() {
-	config := ExporterConfig{LedgersPerFile: 1, FilesPerPartition: 1}
+	config := LedgerBatchConfig{LedgersPerFile: 1, FilesPerPartition: 1}
 	exporter, err := NewExportManager(config, &s.mockBackend)
 	require.NoError(s.T(), err)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -101,7 +101,7 @@ func (s *ExportManagerSuite) TestRunContextCancel() {
 }
 
 func (s *ExportManagerSuite) TestRunWithCanceledContext() {
-	config := ExporterConfig{LedgersPerFile: 1, FilesPerPartition: 10}
+	config := LedgerBatchConfig{LedgersPerFile: 1, FilesPerPartition: 10}
 	exporter, err := NewExportManager(config, &s.mockBackend)
 	require.NoError(s.T(), err)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -131,7 +131,7 @@ func (s *ExportManagerSuite) TestGetObjectKeyFromSequenceNumber() {
 
 	for _, tc := range testCases {
 		s.T().Run(fmt.Sprintf("LedgerSeq-%d-LedgersPerFile-%d", tc.ledgerSeq, tc.ledgersPerFile), func(t *testing.T) {
-			config := ExporterConfig{FilesPerPartition: tc.filesPerPartition, LedgersPerFile: tc.ledgersPerFile}
+			config := LedgerBatchConfig{FilesPerPartition: tc.filesPerPartition, LedgersPerFile: tc.ledgersPerFile}
 			key := config.GetObjectKeyFromSequenceNumber(tc.ledgerSeq)
 			require.Equal(t, tc.expectedKey, key)
 		})
@@ -139,7 +139,7 @@ func (s *ExportManagerSuite) TestGetObjectKeyFromSequenceNumber() {
 }
 
 func (s *ExportManagerSuite) TestAddLedgerCloseMeta() {
-	config := ExporterConfig{LedgersPerFile: 1, FilesPerPartition: 10}
+	config := LedgerBatchConfig{LedgersPerFile: 1, FilesPerPartition: 10}
 	exporter, err := NewExportManager(config, &s.mockBackend)
 	require.NoError(s.T(), err)
 	objectCh := exporter.GetMetaArchiveChannel()
@@ -169,7 +169,7 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMeta() {
 }
 
 func (s *ExportManagerSuite) TestAddLedgerCloseMetaContextCancel() {
-	config := ExporterConfig{LedgersPerFile: 1, FilesPerPartition: 10}
+	config := LedgerBatchConfig{LedgersPerFile: 1, FilesPerPartition: 10}
 	exporter, err := NewExportManager(config, &s.mockBackend)
 	require.NoError(s.T(), err)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -184,7 +184,7 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMetaContextCancel() {
 }
 
 func (s *ExportManagerSuite) TestAddLedgerCloseMetaKeyMismatch() {
-	config := ExporterConfig{LedgersPerFile: 10, FilesPerPartition: 1}
+	config := LedgerBatchConfig{LedgersPerFile: 10, FilesPerPartition: 1}
 	exporter, err := NewExportManager(config, &s.mockBackend)
 	require.NoError(s.T(), err)
 

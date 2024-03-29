@@ -19,12 +19,21 @@ var (
 	logger = log.New().WithField("service", "ledger-exporter")
 )
 
-type DataAlreadyExported struct {
+type DataAlreadyExported error
+
+func NewDataAlreadyExported(Start uint32, End uint32) DataAlreadyExported {
+	return &dataAlreadyExported{
+		Start: Start,
+		End:   End,
+	}
+}
+
+type dataAlreadyExported struct {
 	Start uint32
 	End   uint32
 }
 
-func (m *DataAlreadyExported) Error() string {
+func (m dataAlreadyExported) Error() string {
 	return fmt.Sprintf("For export ledger range start=%d, end=%d, the remote storage has all the data, there is no need to continue export", m.Start, m.End)
 }
 
@@ -52,14 +61,14 @@ func (a *App) init(ctx context.Context) error {
 	}
 	a.config = *config
 
-	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network, a.config.ExporterConfig); err != nil {
+	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network, a.config.LedgerBatchConfig); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	resumableManager := NewResumableManager(a.dataStore, a.config.ExporterConfig, NetworkManagerService, a.config.Network)
-	resumableStartLedger := resumableManager.FindStartBoundary(ctx, a.config.StartLedger, a.config.EndLedger)
-	if a.config.EndLedger > 0 && resumableStartLedger > a.config.EndLedger {
-		return &DataAlreadyExported{Start: a.config.StartLedger, End: a.config.EndLedger}
+	resumableManager := NewResumableManager(a.dataStore, a.config.LedgerBatchConfig, NetworkManagerService, a.config.Network)
+	resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, a.config.StartLedger, a.config.EndLedger)
+	if dataStoreComplete {
+		return NewDataAlreadyExported(a.config.StartLedger, a.config.EndLedger)
 	}
 
 	if resumableStartLedger > 0 {
@@ -73,7 +82,7 @@ func (a *App) init(ctx context.Context) error {
 	if a.ledgerBackend, err = newLedgerBackend(ctx, a.config); err != nil {
 		return err
 	}
-	if a.exportManager, err = NewExportManager(a.config.ExporterConfig, a.ledgerBackend); err != nil {
+	if a.exportManager, err = NewExportManager(a.config.LedgerBatchConfig, a.ledgerBackend); err != nil {
 		return err
 	}
 	a.uploader = NewUploader(a.dataStore, a.exportManager.GetMetaArchiveChannel())
@@ -95,14 +104,13 @@ func (a *App) Run() {
 	defer cancel()
 
 	if err := a.init(ctx); err != nil {
-		switch err.(type) {
-		case *DataAlreadyExported:
+		var dataAlreadyExported *DataAlreadyExported
+		if errors.As(err, dataAlreadyExported) {
 			logger.Info(err.Error())
 			logger.Info("Shutting down ledger-exporter")
 			return
-		default:
-			logger.WithError(err).Fatal("Stopping ledger-exporter")
 		}
+		logger.WithError(err).Fatal("Stopping ledger-exporter")
 	}
 	defer a.close()
 

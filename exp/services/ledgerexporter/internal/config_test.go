@@ -16,8 +16,8 @@ func TestNewConfig(t *testing.T) {
 	config, err := NewConfig(ctx, mockNetworkManager, Flags{StartLedger: 1, EndLedger: 2, ConfigFilePath: "test/test.toml"})
 	require.NoError(t, err)
 	require.Equal(t, config.DataStoreConfig.Type, "ABC")
-	require.Equal(t, config.ExporterConfig.FilesPerPartition, uint32(1))
-	require.Equal(t, config.ExporterConfig.LedgersPerFile, uint32(3))
+	require.Equal(t, config.LedgerBatchConfig.FilesPerPartition, uint32(1))
+	require.Equal(t, config.LedgerBatchConfig.LedgersPerFile, uint32(3))
 	url, ok := config.DataStoreConfig.Params["destination_url"]
 	require.True(t, ok)
 	require.Equal(t, url, "gcs://your-bucket-name")
@@ -27,7 +27,7 @@ func TestValidateStartAndEndLedger(t *testing.T) {
 	const latestNetworkLedger = uint32(20000)
 
 	config := &Config{
-		ExporterConfig: ExporterConfig{
+		LedgerBatchConfig: LedgerBatchConfig{
 			LedgersPerFile: 1,
 		},
 		Network: "test",
@@ -111,33 +111,33 @@ func TestAdjustedLedgerRangeBoundedMode(t *testing.T) {
 	}{
 		{
 			name:     "Min start ledger 2",
-			config:   &Config{StartLedger: 0, EndLedger: 10, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
-			expected: &Config{StartLedger: 2, EndLedger: 10, ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
+			config:   &Config{StartLedger: 0, EndLedger: 10, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
+			expected: &Config{StartLedger: 2, EndLedger: 10, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
 		},
 		{
 			name:     "No change, 1 ledger per file",
-			config:   &Config{StartLedger: 2, EndLedger: 2, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
-			expected: &Config{StartLedger: 2, EndLedger: 2, ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
+			config:   &Config{StartLedger: 2, EndLedger: 2, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
+			expected: &Config{StartLedger: 2, EndLedger: 2, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
 		},
 		{
 			name:     "Min start ledger2, round up end ledger, 10 ledgers per file",
-			config:   &Config{StartLedger: 0, EndLedger: 1, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 10}},
-			expected: &Config{StartLedger: 2, EndLedger: 10, ExporterConfig: ExporterConfig{LedgersPerFile: 10}},
+			config:   &Config{StartLedger: 0, EndLedger: 1, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10}},
+			expected: &Config{StartLedger: 2, EndLedger: 10, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10}},
 		},
 		{
 			name:     "Round down start ledger and round up end ledger, 15 ledgers per file ",
-			config:   &Config{StartLedger: 4, EndLedger: 10, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 15}},
-			expected: &Config{StartLedger: 2, EndLedger: 15, ExporterConfig: ExporterConfig{LedgersPerFile: 15}},
+			config:   &Config{StartLedger: 4, EndLedger: 10, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 15}},
+			expected: &Config{StartLedger: 2, EndLedger: 15, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 15}},
 		},
 		{
 			name:     "Round down start ledger and round up end ledger, 64 ledgers per file ",
-			config:   &Config{StartLedger: 400, EndLedger: 500, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
-			expected: &Config{StartLedger: 384, EndLedger: 512, ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
+			config:   &Config{StartLedger: 400, EndLedger: 500, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
+			expected: &Config{StartLedger: 384, EndLedger: 512, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
 		},
 		{
 			name:     "No change, 64 ledger per file",
-			config:   &Config{StartLedger: 64, EndLedger: 128, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
-			expected: &Config{StartLedger: 64, EndLedger: 128, ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
+			config:   &Config{StartLedger: 64, EndLedger: 128, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
+			expected: &Config{StartLedger: 64, EndLedger: 128, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
 		},
 	}
 
@@ -163,28 +163,28 @@ func TestAdjustedLedgerRangeUnBoundedMode(t *testing.T) {
 	}{
 		{
 			name:     "Min start ledger 2",
-			config:   &Config{StartLedger: 0, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
-			expected: &Config{StartLedger: 2, ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
+			config:   &Config{StartLedger: 0, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
+			expected: &Config{StartLedger: 2, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
 		},
 		{
 			name:     "No change, 1 ledger per file",
-			config:   &Config{StartLedger: 2, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
-			expected: &Config{StartLedger: 2, ExporterConfig: ExporterConfig{LedgersPerFile: 1}},
+			config:   &Config{StartLedger: 2, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
+			expected: &Config{StartLedger: 2, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 1}},
 		},
 		{
 			name:     "Round down start ledger, 15 ledgers per file ",
-			config:   &Config{StartLedger: 4, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 15}},
-			expected: &Config{StartLedger: 2, ExporterConfig: ExporterConfig{LedgersPerFile: 15}},
+			config:   &Config{StartLedger: 4, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 15}},
+			expected: &Config{StartLedger: 2, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 15}},
 		},
 		{
 			name:     "Round down start ledger, 64 ledgers per file ",
-			config:   &Config{StartLedger: 400, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
-			expected: &Config{StartLedger: 384, ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
+			config:   &Config{StartLedger: 400, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
+			expected: &Config{StartLedger: 384, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
 		},
 		{
 			name:     "No change, 64 ledger per file",
-			config:   &Config{StartLedger: 64, Network: "test", ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
-			expected: &Config{StartLedger: 64, ExporterConfig: ExporterConfig{LedgersPerFile: 64}},
+			config:   &Config{StartLedger: 64, Network: "test", LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
+			expected: &Config{StartLedger: 64, LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 64}},
 		},
 	}
 

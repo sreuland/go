@@ -8,6 +8,6 @@ import (
 )
 
 func TestInvalidStore(t *testing.T) {
-	_, err := NewDataStore(context.Background(), DataStoreConfig{Type: "unknown"}, "test", ExporterConfig{})
+	_, err := NewDataStore(context.Background(), DataStoreConfig{Type: "unknown"}, "test", LedgerBatchConfig{})
 	require.Error(t, err)
 }

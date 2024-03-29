@@ -71,17 +71,7 @@ func (m *MockNetworkManager) GetLatestLedgerSequenceFromHistoryArchives(ctx cont
 	return a.Get(0).(uint32), a.Error(1)
 }
 
-type MockResumableManager struct {
-	mock.Mock
-}
-
-func (m *MockResumableManager) FindStartBoundary(ctx context.Context, start, end uint32) uint32 {
-	a := m.Called(ctx, start, end)
-	return a.Get(0).(uint32)
-}
-
 // ensure that the MockClient implements ClientInterface
 var _ DataStore = &MockDataStore{}
 var _ ExportManager = &MockExportManager{}
 var _ NetworkManager = &MockNetworkManager{}
-var _ ResumableManager = &MockResumableManager{}
