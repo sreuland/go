@@ -14,6 +14,9 @@ type LedgerBatchConfig struct {
 }
 
 func (ec LedgerBatchConfig) GetSequenceNumberStartBoundary(ledgerSeq uint32) uint32 {
+	if ec.LedgersPerFile == 0 {
+		return 0
+	}
 	return (ledgerSeq / ec.LedgersPerFile) * ec.LedgersPerFile
 }
 

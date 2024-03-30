@@ -19,21 +19,19 @@ var (
 	logger = log.New().WithField("service", "ledger-exporter")
 )
 
-type DataAlreadyExported error
-
-func NewDataAlreadyExported(Start uint32, End uint32) DataAlreadyExported {
-	return &dataAlreadyExported{
+func NewDataAlreadyExported(Start uint32, End uint32) *DataAlreadyExported {
+	return &DataAlreadyExported{
 		Start: Start,
 		End:   End,
 	}
 }
 
-type dataAlreadyExported struct {
+type DataAlreadyExported struct {
 	Start uint32
 	End   uint32
 }
 
-func (m dataAlreadyExported) Error() string {
+func (m DataAlreadyExported) Error() string {
 	return fmt.Sprintf("For export ledger range start=%d, end=%d, the remote storage has all the data, there is no need to continue export", m.Start, m.End)
 }
 
@@ -61,7 +59,7 @@ func (a *App) init(ctx context.Context) error {
 	}
 	a.config = *config
 
-	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network, a.config.LedgerBatchConfig); err != nil {
+	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
@@ -104,8 +102,8 @@ func (a *App) Run() {
 	defer cancel()
 
 	if err := a.init(ctx); err != nil {
-		var dataAlreadyExported *DataAlreadyExported
-		if errors.As(err, dataAlreadyExported) {
+		var dataAlreadyExported DataAlreadyExported
+		if errors.As(err, &dataAlreadyExported) {
 			logger.Info(err.Error())
 			logger.Info("Shutting down ledger-exporter")
 			return

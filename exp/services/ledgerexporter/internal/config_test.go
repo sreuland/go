@@ -18,9 +18,9 @@ func TestNewConfig(t *testing.T) {
 	require.Equal(t, config.DataStoreConfig.Type, "ABC")
 	require.Equal(t, config.LedgerBatchConfig.FilesPerPartition, uint32(1))
 	require.Equal(t, config.LedgerBatchConfig.LedgersPerFile, uint32(3))
-	url, ok := config.DataStoreConfig.Params["destination_url"]
+	url, ok := config.DataStoreConfig.Params["destination_bucket_path"]
 	require.True(t, ok)
-	require.Equal(t, url, "gcs://your-bucket-name")
+	require.Equal(t, url, "your-bucket-name/subpath")
 }
 
 func TestValidateStartAndEndLedger(t *testing.T) {

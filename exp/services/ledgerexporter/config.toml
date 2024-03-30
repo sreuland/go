@@ -4,9 +4,12 @@ network = "testnet"
 type = "GCS"
 
 [datastore_config.params]
-destination_url = "gcs://exporter-test/ledgers"
+destination_bucket_path = "exporter-test/ledgers"
 
 [exporter_config]
   ledgers_per_file = 1
   files_per_partition = 64000
+
+[stellar_core_config]
+  stellar_core_binary_path = "/usr/local/bin/stellar-core"
 

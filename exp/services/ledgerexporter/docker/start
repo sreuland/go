@@ -23,7 +23,7 @@ network = "${NETWORK}"
 type = "GCS"
 
 [datastore_config.params]
-destination_url = "${ARCHIVE_TARGET}"
+destination_bucket_path = "${ARCHIVE_TARGET}"
 
 [exporter_config]
   ledgers_per_file = $ledgers_per_file

@@ -42,7 +42,7 @@ network = "testnet"  # Options: `testnet` or `pubnet`
 type = "GCS"
 
 [datastore_config.params]
-destination_url = "gcs://your-bucket-name"
+destination_bucket_path = "your-bucket-name/<optional_subpaths>"
 
 [exporter_config]
 ledgers_per_file = 64

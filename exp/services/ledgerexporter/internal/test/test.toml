@@ -4,7 +4,7 @@ network = "test"
 type = "ABC"
 
 [datastore_config.params]
-destination_url = "gcs://your-bucket-name"
+destination_bucket_path = "your-bucket-name/subpath"
 
 [exporter_config]
 ledgers_per_file = 3

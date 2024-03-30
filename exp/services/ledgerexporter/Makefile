@@ -34,7 +34,7 @@ docker-test: docker-clean
 	# Run the ledger-exporter
 	$(SUDO) docker run --platform linux/amd64 -t --network test-network\
 		 -e NETWORK=pubnet \
-		 -e ARCHIVE_TARGET=gcs://exporter-test \
+		 -e ARCHIVE_TARGET=exporter-test/test-subpath \
 		 -e START=1000 \
 		 -e END=2000 \
 		 -e STORAGE_EMULATOR_HOST=http://fake-gcs-server:4443 \

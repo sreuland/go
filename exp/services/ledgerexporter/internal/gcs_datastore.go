@@ -25,24 +25,21 @@ type GCSDataStore struct {
 }
 
 func NewGCSDataStore(ctx context.Context, params map[string]string, network string) (DataStore, error) {
-	destinationURL, ok := params["destination_url"]
+	destinationBucketPath, ok := params["destination_bucket_path"]
 	if !ok {
-		return nil, errors.Errorf("Invalid GCS config, no destination URL")
+		return nil, errors.Errorf("Invalid GCS config, no destination_bucket_path")
 	}
 
-	gcsNetworkURL := fmt.Sprintf("%s/%s", destinationURL, network)
-	parsed, err := url.Parse(gcsNetworkURL)
+	// append the gcs:// scheme to enable usage of the url package reliably to
+	// get parse bucket name which is first path segment as URL.Host
+	gcsBucketURL := fmt.Sprintf("gcs://%s/%s", destinationBucketPath, network)
+	parsed, err := url.Parse(gcsBucketURL)
 	if err != nil {
 		return nil, err
 	}
 
-	pth := parsed.Path
-	if parsed.Scheme != "gcs" {
-		return nil, errors.Errorf("Invalid destination URL %v. Expected GCS URL ", gcsNetworkURL)
-	}
-
 	// Inside gcs, all paths start _without_ the leading /
-	pth = strings.TrimPrefix(pth, "/")
+	pth := strings.TrimPrefix(parsed.Path, "/")
 	bucketName := parsed.Host
 	prefix := pth
 
