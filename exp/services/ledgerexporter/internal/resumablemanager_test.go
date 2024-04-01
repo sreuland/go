@@ -13,7 +13,7 @@ func TestResumability(t *testing.T) {
 		name                 string
 		startLedger          uint32
 		endLedger            uint32
-		exporterConfig       LedgerBatchConfig
+		ledgerBatchConfig    LedgerBatchConfig
 		resumableStartLedger uint32
 		dataStoreComplete    bool
 		networkName          string
@@ -24,7 +24,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            4,
 			resumableStartLedger: 0,
 			dataStoreComplete:    true,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -36,7 +36,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            14,
 			resumableStartLedger: 10,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -48,7 +48,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            50,
 			resumableStartLedger: 40,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -60,7 +60,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            85,
 			resumableStartLedger: 80,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -72,7 +72,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            275,
 			resumableStartLedger: 0,
 			dataStoreComplete:    true,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -84,7 +84,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            125,
 			resumableStartLedger: 90,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -96,7 +96,7 @@ func TestResumability(t *testing.T) {
 			endLedger:            10,
 			resumableStartLedger: 0,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -104,11 +104,11 @@ func TestResumability(t *testing.T) {
 		},
 		{
 			name:                 "No end ledger provided, data store not beyond start",
-			startLedger:          145,
+			startLedger:          1145,
 			endLedger:            0,
-			resumableStartLedger: 140,
+			resumableStartLedger: 1140,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -116,35 +116,35 @@ func TestResumability(t *testing.T) {
 		},
 		{
 			name:                 "No end ledger provided, data store is beyond start",
-			startLedger:          345,
+			startLedger:          2145,
 			endLedger:            0,
-			resumableStartLedger: 350,
+			resumableStartLedger: 2250,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test3",
 		},
 		{
-			name:                 "No end ledger provided, data store is beyond start and up to network latest",
-			startLedger:          405,
+			name:                 "No end ledger provided, data store is beyond start and archive network latest, and partially into checkpoint frequency padding",
+			startLedger:          3145,
 			endLedger:            0,
-			resumableStartLedger: 450,
+			resumableStartLedger: 4070,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
 			networkName: "test4",
 		},
 		{
-			name:                 "No end ledger provided, start is beyond network latest",
-			startLedger:          505,
+			name:                 "No end ledger provided, start is beyond archive network latest and checkpoint frequency padding",
+			startLedger:          5129,
 			endLedger:            0,
 			resumableStartLedger: 0,
 			dataStoreComplete:    false,
-			exporterConfig: LedgerBatchConfig{
+			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -156,10 +156,10 @@ func TestResumability(t *testing.T) {
 
 	mockNetworkManager := &MockNetworkManager{}
 	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test").Return(uint32(1000), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test2").Return(uint32(180), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test3").Return(uint32(380), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test4").Return(uint32(450), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test5").Return(uint32(500), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test2").Return(uint32(2000), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test3").Return(uint32(3000), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test4").Return(uint32(4000), nil)
+	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test5").Return(uint32(5000), nil)
 
 	mockDataStore := &MockDataStore{}
 
@@ -187,24 +187,36 @@ func TestResumability(t *testing.T) {
 	mockDataStore.On("Exists", ctx, "90-99.xdr.gz").Return(false, nil).Once()
 
 	//"No end ledger provided, data store not beyond start" uses latest from network="test2"
-	mockDataStore.On("Exists", ctx, "160-169.xdr.gz").Return(false, nil).Once()
-	mockDataStore.On("Exists", ctx, "150-159.xdr.gz").Return(false, nil).Once()
-	mockDataStore.On("Exists", ctx, "140-149.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1630-1639.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1390-1399.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1260-1269.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1200-1209.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1170-1179.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1150-1159.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1140-1149.xdr.gz").Return(false, nil).Once()
 
 	//"No end ledger provided, data store is beyond start" uses latest from network="test3"
-	mockDataStore.On("Exists", ctx, "360-369.xdr.gz").Return(false, nil).Once()
-	mockDataStore.On("Exists", ctx, "350-359.xdr.gz").Return(false, nil).Once()
-	mockDataStore.On("Exists", ctx, "340-349.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "2630-2639.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "2390-2399.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "2260-2269.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "2250-2259.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "2240-2249.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "2230-2239.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "2200-2209.xdr.gz").Return(true, nil).Once()
 
-	//"No end ledger provided, data store is beyond start and up to network latest" uses latest from network="test4"
-	mockDataStore.On("Exists", ctx, "420-429.xdr.gz").Return(true, nil).Once()
-	mockDataStore.On("Exists", ctx, "430-439.xdr.gz").Return(true, nil).Once()
-	mockDataStore.On("Exists", ctx, "440-449.xdr.gz").Return(true, nil).Once()
-	mockDataStore.On("Exists", ctx, "450-459.xdr.gz").Return(true, nil).Once()
+	//"No end ledger provided, data store is beyond start and archive network latest, and partially into checkpoint frequency padding" uses latest from network="test4"
+	mockDataStore.On("Exists", ctx, "3630-3639.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "3880-3889.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "4000-4009.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "4060-4069.xdr.gz").Return(true, nil).Once()
+	mockDataStore.On("Exists", ctx, "4090-4099.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "4080-4089.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "4070-4079.xdr.gz").Return(false, nil).Once()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resumableManager := NewResumableManager(mockDataStore, tt.exporterConfig, mockNetworkManager, tt.networkName)
+			config := &Config{LedgerBatchConfig: tt.ledgerBatchConfig, Network: tt.networkName}
+			resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
 			resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, tt.startLedger, tt.endLedger)
 			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)
 			require.Equal(t, tt.dataStoreComplete, dataStoreComplete)

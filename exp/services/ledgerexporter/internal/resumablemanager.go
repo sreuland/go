@@ -9,14 +9,19 @@ type ResumableManager interface {
 }
 
 type resumableManagerService struct {
-	exporterConfig LedgerBatchConfig
-	dataStore      DataStore
-	networkManager NetworkManager
-	network        string
+	ledgerBatchConfig   LedgerBatchConfig
+	dataStore           DataStore
+	networkManager      NetworkManager
+	network             string
+	checkpointFrequency uint32
 }
 
-func NewResumableManager(dataStore DataStore, exporterConfig LedgerBatchConfig, networkManager NetworkManager, network string) ResumableManager {
-	return &resumableManagerService{exporterConfig: exporterConfig, dataStore: dataStore, networkManager: networkManager, network: network}
+func NewResumableManager(dataStore DataStore, config *Config, networkManager NetworkManager) ResumableManager {
+	return &resumableManagerService{ledgerBatchConfig: config.LedgerBatchConfig,
+		dataStore:           dataStore,
+		networkManager:      networkManager,
+		network:             config.Network,
+		checkpointFrequency: config.GetCheckPointFrequency()}
 }
 
 // Find the nearest "LedgersPerFile" starting boundary ledger number relative to requested start which
@@ -39,7 +44,10 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 		return 0, false
 	}
 
-	// streaming mode for end, get current ledger to use for a sane bounded range during resumability check
+	// streaming mode for end, get latest network ledger to use for a sane bounded range during resumability check
+	// this will assume a padding of network latest = network latest + 2 checkpoint_frequency,
+	// since the latest network will be some number of ledgers past the last archive checkpoint
+	// this lets the search be a little more greedy on finding a potential empty object key towards the end of range on data store.
 	networkLatest := uint32(0)
 	if end < 1 {
 		var latestErr error
@@ -48,7 +56,9 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 			logger.WithError(latestErr).Infof("Resumability of requested export ledger range start=%d, end=%d, was not able to get latest ledger from network %v", start, end, rm.network)
 			return 0, false
 		}
-		logger.Infof("Resumability resovled unbounded to latest ledger =%d for network=%v", networkLatest, rm.network)
+		logger.Infof("Resumability acquired latest archived network ledger =%d + for network=%v", networkLatest, rm.network)
+		networkLatest = networkLatest + (rm.checkpointFrequency * 2)
+		logger.Infof("Resumability computed effective latest network ledger including padding of checkpoint frequency to be %d + for network=%v", networkLatest, rm.network)
 
 		if start > networkLatest {
 			// requested to start at a point beyond the latest network, resume not applicable.
@@ -72,7 +82,7 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 		}
 
 		binarySearchMiddle := (binarySearchStop-binarySearchStart)/2 + binarySearchStart
-		objectKeyMiddle := rm.exporterConfig.GetObjectKeyFromSequenceNumber(binarySearchMiddle)
+		objectKeyMiddle := rm.ledgerBatchConfig.GetObjectKeyFromSequenceNumber(binarySearchMiddle)
 
 		// there may be small occurrence of repeated queries on same object key once
 		// search narrows down to a range that fits within the ledgers per file
@@ -98,14 +108,14 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 
 	//
 	if nearestAbsentLedger > 0 {
-		nearestAbsentBoundaryLedger := rm.exporterConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
+		nearestAbsentBoundaryLedger := rm.ledgerBatchConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
 		logger.Infof("Resumability found next absent object start key of %d between ledgers %d and %d", nearestAbsentBoundaryLedger, start, end)
 		return nearestAbsentBoundaryLedger, false
 	}
 
 	// unbounded, and datastore had up to latest network, return the start for youngest ledger on data store
 	if networkLatest > 0 {
-		return rm.exporterConfig.GetSequenceNumberStartBoundary(networkLatest), false
+		return rm.ledgerBatchConfig.GetSequenceNumberStartBoundary(networkLatest), false
 	}
 
 	// data store had all ledgers for requested range, no resumability needed.

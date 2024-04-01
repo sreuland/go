@@ -63,7 +63,7 @@ func (a *App) init(ctx context.Context) error {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	resumableManager := NewResumableManager(a.dataStore, a.config.LedgerBatchConfig, NetworkManagerService, a.config.Network)
+	resumableManager := NewResumableManager(a.dataStore, &a.config, NetworkManagerService)
 	resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, a.config.StartLedger, a.config.EndLedger)
 	if dataStoreComplete {
 		return NewDataAlreadyExported(a.config.StartLedger, a.config.EndLedger)

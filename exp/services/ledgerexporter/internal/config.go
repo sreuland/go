@@ -115,6 +115,10 @@ func (config *Config) adjustLedgerRange() {
 	logger.Infof("Computed effective export boundary ledger range: start=%d, end=%d", config.StartLedger, config.EndLedger)
 }
 
+func (config *Config) GetCheckPointFrequency() uint32 {
+	return historyarchive.DefaultCheckpointFrequency
+}
+
 func (config *Config) GenerateCaptiveCoreConfig() (ledgerbackend.CaptiveCoreConfig, error) {
 	coreConfig := &config.StellarCoreConfig
 
@@ -158,7 +162,7 @@ func (config *Config) GenerateCaptiveCoreConfig() (ledgerbackend.CaptiveCoreConf
 		BinaryPath:          coreConfig.StellarCoreBinaryPath,
 		NetworkPassphrase:   params.NetworkPassphrase,
 		HistoryArchiveURLs:  params.HistoryArchiveURLs,
-		CheckpointFrequency: historyarchive.DefaultCheckpointFrequency,
+		CheckpointFrequency: config.GetCheckPointFrequency(),
 		Log:                 logger.WithField("subservice", "stellar-core"),
 		Toml:                captiveCoreToml,
 		UserAgent:           "ledger-exporter",
