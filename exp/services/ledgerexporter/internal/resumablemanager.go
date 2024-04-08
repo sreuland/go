@@ -2,6 +2,7 @@ package ledgerexporter
 
 import (
 	"context"
+	"sort"
 )
 
 type ResumableManager interface {
@@ -71,44 +72,14 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 		binarySearchStop = networkLatest
 	}
 	binarySearchStart := start
-	nearestAbsentLedger := uint32(0)
-	lookupCache := map[string]bool{}
 
 	logger.Infof("Resumability searching datastore for next absent object key between ledgers %d and %d", start, end)
 
-	for binarySearchStart <= binarySearchStop {
-		if ctx.Err() != nil {
-			return 0, false
-		}
-
-		binarySearchMiddle := (binarySearchStop-binarySearchStart)/2 + binarySearchStart
-		objectKeyMiddle := rm.ledgerBatchConfig.GetObjectKeyFromSequenceNumber(binarySearchMiddle)
-
-		// there may be small occurrence of repeated queries on same object key once
-		// search narrows down to a range that fits within the ledgers per file
-		// worst case being 'log of ledgers_per_file' queries.
-		middleFoundOnStore, foundInCache := lookupCache[objectKeyMiddle]
-		if !foundInCache {
-			var datastoreErr error
-			middleFoundOnStore, datastoreErr = rm.dataStore.Exists(ctx, objectKeyMiddle)
-			if datastoreErr != nil {
-				logger.WithError(datastoreErr).Infof("While searching datastore for resumability within export ledger range start=%d, end=%d, was not able to check if object key %v exists on data store", start, end, objectKeyMiddle)
-				return 0, false
-			}
-			lookupCache[objectKeyMiddle] = middleFoundOnStore
-		}
-
-		if middleFoundOnStore {
-			binarySearchStart = binarySearchMiddle + 1
-		} else {
-			nearestAbsentLedger = binarySearchMiddle
-			binarySearchStop = binarySearchMiddle - 1
-		}
-	}
-
-	//
-	if nearestAbsentLedger > 0 {
-		nearestAbsentBoundaryLedger := rm.ledgerBatchConfig.GetSequenceNumberStartBoundary(nearestAbsentLedger)
+	rangeSize := max(int(binarySearchStop-binarySearchStart), 1)
+	lowestAbsentIndex := sort.Search(rangeSize, binarySearchCallbackFn(&rm, ctx, binarySearchStart, binarySearchStop))
+	if lowestAbsentIndex < int(rangeSize) {
+		nearestAbsentLedgerSequence := binarySearchStart + uint32(lowestAbsentIndex)
+		nearestAbsentBoundaryLedger := rm.ledgerBatchConfig.GetSequenceNumberStartBoundary(nearestAbsentLedgerSequence)
 		logger.Infof("Resumability found next absent object start key of %d between ledgers %d and %d", nearestAbsentBoundaryLedger, start, end)
 		return nearestAbsentBoundaryLedger, false
 	}
@@ -121,4 +92,27 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 	// data store had all ledgers for requested range, no resumability needed.
 	logger.Infof("Resumability found no absent object start keys between ledgers %d and %d", start, end)
 	return 0, true
+}
+
+func binarySearchCallbackFn(rm *resumableManagerService, ctx context.Context, start, end uint32) func(ledgerSequence int) bool {
+	lookupCache := map[string]bool{}
+
+	return func(binarySearchIndex int) bool {
+		objectKeyMiddle := rm.ledgerBatchConfig.GetObjectKeyFromSequenceNumber(start + uint32(binarySearchIndex))
+
+		// there may be small occurrence of repeated queries on same object key once
+		// search narrows down to a range that fits within the ledgers per file
+		// worst case being 'log of ledgers_per_file' queries.
+		middleFoundOnStore, foundInCache := lookupCache[objectKeyMiddle]
+		if !foundInCache {
+			var datastoreErr error
+			middleFoundOnStore, datastoreErr = rm.dataStore.Exists(ctx, objectKeyMiddle)
+			if datastoreErr != nil {
+				logger.WithError(datastoreErr).Infof("While searching datastore for resumability within export ledger range start=%d, end=%d, was not able to check if object key %v exists on data store", start, end, objectKeyMiddle)
+				return false
+			}
+			lookupCache[objectKeyMiddle] = middleFoundOnStore
+		}
+		return !middleFoundOnStore
+	}
 }

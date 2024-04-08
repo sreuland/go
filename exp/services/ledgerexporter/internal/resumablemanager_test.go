@@ -191,6 +191,7 @@ func TestResumability(t *testing.T) {
 	mockDataStore.On("Exists", ctx, "1390-1399.xdr.gz").Return(false, nil).Once()
 	mockDataStore.On("Exists", ctx, "1260-1269.xdr.gz").Return(false, nil).Once()
 	mockDataStore.On("Exists", ctx, "1200-1209.xdr.gz").Return(false, nil).Once()
+	mockDataStore.On("Exists", ctx, "1160-1169.xdr.gz").Return(false, nil).Once()
 	mockDataStore.On("Exists", ctx, "1170-1179.xdr.gz").Return(false, nil).Once()
 	mockDataStore.On("Exists", ctx, "1150-1159.xdr.gz").Return(false, nil).Once()
 	mockDataStore.On("Exists", ctx, "1140-1149.xdr.gz").Return(false, nil).Once()
