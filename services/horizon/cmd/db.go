@@ -224,6 +224,10 @@ var dbReapCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		defer func() {
+			app.Shutdown()
+			app.CloseDB()
+		}()
 		ctx := context.Background()
 		app.UpdateHorizonLedgerState(ctx)
 		return app.DeleteUnretainedHistory(ctx)

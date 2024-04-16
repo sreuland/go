@@ -156,9 +156,15 @@ func (a *App) Close() {
 
 func (a *App) waitForDone() {
 	<-a.done
-	webShutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	a.webServer.Shutdown(webShutdownCtx)
+	a.Shutdown()
+}
+
+func (a *App) Shutdown() {
+	if a.webServer != nil {
+		webShutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		a.webServer.Shutdown(webShutdownCtx)
+	}
 	a.cancel()
 	if a.ingester != nil {
 		a.ingester.Shutdown()

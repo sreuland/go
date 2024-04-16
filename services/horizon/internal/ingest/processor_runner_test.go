@@ -261,11 +261,12 @@ func TestProcessorRunnerBuildTransactionProcessor(t *testing.T) {
 	assert.IsType(t, &processors.LiquidityPoolsTransactionProcessor{}, processor.processors[8])
 }
 
-func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
+func TestProcessorRunnerWithReingestionEnabled(t *testing.T) {
 	ctx := context.Background()
 
 	config := Config{
 		NetworkPassphrase: network.PublicNetworkPassphrase,
+		ReingestEnabled:   true,
 	}
 
 	q := &mockDBQ{}
@@ -283,13 +284,8 @@ func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
 		},
 	}
 
-	mockTransactionsFilteredTmpBatchInsertBuilder := &history.MockTransactionsBatchInsertBuilder{}
-	defer mock.AssertExpectationsForObjects(t, mockTransactionsFilteredTmpBatchInsertBuilder)
-	mockTransactionsFilteredTmpBatchInsertBuilder.On("Exec", ctx, mockSession).Return(nil).Once()
-	q.MockQTransactions.On("NewTransactionFilteredTmpBatchInsertBuilder").
-		Return(mockTransactionsFilteredTmpBatchInsertBuilder)
-	q.On("DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64")).
-		Return(int64(0), nil)
+	q.MockQTransactions.AssertNotCalled(t, "NewTransactionFilteredTmpBatchInsertBuilder")
+	q.AssertNotCalled(t, "DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64"))
 
 	defer mock.AssertExpectationsForObjects(t, mockTxProcessorBatchBuilders(q, mockSession, ctx)...)
 	defer mock.AssertExpectationsForObjects(t, mockChangeProcessorBatchBuilders(q, ctx, true)...)
@@ -354,6 +350,7 @@ func TestProcessorRunnerRunAllProcessorsOnLedger(t *testing.T) {
 	// Batches
 	defer mock.AssertExpectationsForObjects(t, mockTxProcessorBatchBuilders(q, mockSession, ctx)...)
 	defer mock.AssertExpectationsForObjects(t, mockChangeProcessorBatchBuilders(q, ctx, true)...)
+	defer mock.AssertExpectationsForObjects(t, mockFilteredOutProcessorsForNoRules(q, mockSession, ctx)...)
 
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
@@ -436,6 +433,7 @@ func TestProcessorRunnerRunTransactionsProcessorsOnLedgers(t *testing.T) {
 
 	// Batches
 	defer mock.AssertExpectationsForObjects(t, mockTxProcessorBatchBuilders(q, mockSession, ctx)...)
+	defer mock.AssertExpectationsForObjects(t, mockFilteredOutProcessorsForNoRules(q, mockSession, ctx)...)
 
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
@@ -658,5 +656,20 @@ func mockChangeProcessorBatchBuilders(q *mockDBQ, ctx context.Context, mockExec 
 		mockOfferBatchInsertBuilder,
 		mockAccountDataBatchInsertBuilder,
 		mockTrustLinesBatchInsertBuilder,
+	}
+}
+
+func mockFilteredOutProcessorsForNoRules(q *mockDBQ, mockSession *db.MockSession, ctx context.Context) []interface{} {
+	mockTransactionsFilteredTmpBatchInsertBuilder := &history.MockTransactionsBatchInsertBuilder{}
+	// since no filter rules are used on tests in this suite, we do not need to mock the "Add" call
+	// the "Exec" call gets run by flush all the time
+	mockTransactionsFilteredTmpBatchInsertBuilder.On("Exec", ctx, mockSession).Return(nil).Once()
+	q.MockQTransactions.On("NewTransactionFilteredTmpBatchInsertBuilder").
+		Return(mockTransactionsFilteredTmpBatchInsertBuilder)
+	q.On("DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64")).
+		Return(int64(0), nil)
+
+	return []interface{}{
+		mockTransactionsFilteredTmpBatchInsertBuilder,
 	}
 }
