@@ -96,7 +96,6 @@ type Config struct {
 	EnableReapLookupTables       bool
 	EnableExtendedLogLedgerStats bool
 
-	ReingestEnabled             bool
 	MaxReingestRetries          int
 	ReingestRetryBackoffSeconds int
 

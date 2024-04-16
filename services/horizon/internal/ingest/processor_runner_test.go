@@ -261,70 +261,6 @@ func TestProcessorRunnerBuildTransactionProcessor(t *testing.T) {
 	assert.IsType(t, &processors.LiquidityPoolsTransactionProcessor{}, processor.processors[8])
 }
 
-func TestProcessorRunnerWithReingestionEnabled(t *testing.T) {
-	ctx := context.Background()
-
-	config := Config{
-		NetworkPassphrase: network.PublicNetworkPassphrase,
-		ReingestEnabled:   true,
-	}
-
-	q := &mockDBQ{}
-	mockSession := &db.MockSession{}
-	defer mock.AssertExpectationsForObjects(t, q)
-
-	ledger := xdr.LedgerCloseMeta{
-		V0: &xdr.LedgerCloseMetaV0{
-			LedgerHeader: xdr.LedgerHeaderHistoryEntry{
-				Header: xdr.LedgerHeader{
-					BucketListHash: xdr.Hash([32]byte{0, 1, 2}),
-					LedgerSeq:      23,
-				},
-			},
-		},
-	}
-
-	q.MockQTransactions.AssertNotCalled(t, "NewTransactionFilteredTmpBatchInsertBuilder")
-	q.AssertNotCalled(t, "DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64"))
-
-	defer mock.AssertExpectationsForObjects(t, mockTxProcessorBatchBuilders(q, mockSession, ctx)...)
-	defer mock.AssertExpectationsForObjects(t, mockChangeProcessorBatchBuilders(q, ctx, true)...)
-
-	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
-	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
-	mockBatchInsertBuilder.On(
-		"Add",
-		ledger.V0.LedgerHeader, 0, 0, 0, 0, CurrentVersion).Return(nil)
-	mockBatchInsertBuilder.On(
-		"Exec",
-		ctx,
-		mockSession,
-	).Return(nil)
-	defer mock.AssertExpectationsForObjects(t, mockBatchInsertBuilder)
-
-	q.MockQAssetStats.On("RemoveContractAssetBalances", ctx, []xdr.Hash(nil)).
-		Return(nil).Once()
-	q.MockQAssetStats.On("UpdateContractAssetBalanceAmounts", ctx, []xdr.Hash{}, []string{}).
-		Return(nil).Once()
-	q.MockQAssetStats.On("InsertContractAssetBalances", ctx, []history.ContractAssetBalance(nil)).
-		Return(nil).Once()
-	q.MockQAssetStats.On("UpdateContractAssetBalanceExpirations", ctx, []xdr.Hash{}, []uint32{}).
-		Return(nil).Once()
-	q.MockQAssetStats.On("GetContractAssetBalancesExpiringAt", ctx, uint32(22)).
-		Return([]history.ContractAssetBalance{}, nil).Once()
-
-	runner := ProcessorRunner{
-		ctx:      ctx,
-		config:   config,
-		historyQ: q,
-		session:  mockSession,
-		filters:  &MockFilters{},
-	}
-
-	_, err := runner.RunAllProcessorsOnLedger(ledger)
-	assert.NoError(t, err)
-}
-
 func TestProcessorRunnerRunAllProcessorsOnLedger(t *testing.T) {
 	ctx := context.Background()
 
@@ -431,9 +367,12 @@ func TestProcessorRunnerRunTransactionsProcessorsOnLedgers(t *testing.T) {
 		},
 	}
 
+	// filtered out processor should not be created
+	q.MockQTransactions.AssertNotCalled(t, "NewTransactionFilteredTmpBatchInsertBuilder")
+	q.AssertNotCalled(t, "DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64"))
+
 	// Batches
 	defer mock.AssertExpectationsForObjects(t, mockTxProcessorBatchBuilders(q, mockSession, ctx)...)
-	defer mock.AssertExpectationsForObjects(t, mockFilteredOutProcessorsForNoRules(q, mockSession, ctx)...)
 
 	mockBatchInsertBuilder := &history.MockLedgersBatchInsertBuilder{}
 	q.MockQLedgers.On("NewLedgerBatchInsertBuilder").Return(mockBatchInsertBuilder)
