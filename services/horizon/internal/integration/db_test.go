@@ -677,9 +677,11 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	lastTx, err = itest.Client().TransactionDetail(whiteListTxResp.Hash)
 	tt.NoError(err)
 
+	// tell the horizon web server to shutdown
 	webApp.Close()
 
-	xx := tt.Eventually(func() bool {
+	// wait for horizon to finish shutdown
+	tt.Eventually(func() bool {
 		select {
 		case <-webAppDone:
 			return true
@@ -687,8 +689,6 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 			return false
 		}
 	}, 30*time.Second, time.Second)
-
-	tt.True(xx)
 }
 
 func getCoreConfigFile(itest *integration.Test) string {
