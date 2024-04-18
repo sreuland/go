@@ -554,6 +554,26 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	itest, _ := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
+	archive, err := historyarchive.Connect(
+		itest.GetHorizonIngestConfig().HistoryArchiveURLs[0],
+		historyarchive.ArchiveOptions{
+			NetworkPassphrase:   itest.GetHorizonIngestConfig().NetworkPassphrase,
+			CheckpointFrequency: itest.GetHorizonIngestConfig().CheckpointFrequency,
+		})
+	tt.NoError(err)
+
+	// make sure one full checkpoint has elapsed before making ledger entries
+	// as test can't reap before first checkpoint in general later in test
+	publishedFirstCheckpoint := func() bool {
+		has, requestErr := archive.GetRootHAS()
+		if requestErr != nil {
+			t.Logf("request to fetch checkpoint failed: %v", requestErr)
+			return false
+		}
+		return has.CurrentLedger > 1
+	}
+	tt.Eventually(publishedFirstCheckpoint, 10*time.Second, time.Second)
+
 	fullKeys, accounts := itest.CreateAccounts(2, "10000")
 	whitelistedAccount := accounts[0]
 	whitelistedAccountKey := fullKeys[0]
@@ -573,7 +593,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 		Whitelist: []string{whitelistedAccount.GetAccountID()},
 		Enabled:   &enabled,
 	}
-	err := itest.AdminClient().SetIngestionAccountFilter(expectedAccountFilter)
+	err = itest.AdminClient().SetIngestionAccountFilter(expectedAccountFilter)
 	tt.NoError(err)
 
 	accountFilter, err := itest.AdminClient().GetIngestionAccountFilter()
@@ -610,20 +630,10 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	reachedLedger := uint32(lastTx.Ledger)
 
 	t.Logf("reached ledger is %v", reachedLedger)
-	// cap reachedLedger to the nearest checkpoint ledger because reingest range
-	// cannot ingest past the most recent checkpoint ledger when using captive
-	// core
-	archive, err := historyarchive.Connect(
-		itest.GetHorizonIngestConfig().HistoryArchiveURLs[0],
-		historyarchive.ArchiveOptions{
-			NetworkPassphrase:   itest.GetHorizonIngestConfig().NetworkPassphrase,
-			CheckpointFrequency: itest.GetHorizonIngestConfig().CheckpointFrequency,
-		})
-	tt.NoError(err)
 
-	// make sure a full checkpoint has elapsed otherwise there will be nothing to reingest
+	// make sure a checkpoint has elapsed to lock in the chagnes made on network for reingest later
 	var latestCheckpoint uint32
-	publishedFirstCheckpoint := func() bool {
+	publishedNextCheckpoint := func() bool {
 		has, requestErr := archive.GetRootHAS()
 		if requestErr != nil {
 			t.Logf("request to fetch checkpoint failed: %v", requestErr)
@@ -632,7 +642,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 		latestCheckpoint = has.CurrentLedger
 		return latestCheckpoint > reachedLedger
 	}
-	tt.Eventually(publishedFirstCheckpoint, 10*time.Second, time.Second)
+	tt.Eventually(publishedNextCheckpoint, 10*time.Second, time.Second)
 
 	// to test reingestion, stop horizon web and captive core,
 	// it was used to create ledger entries for test.
@@ -650,7 +660,6 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reingest",
 		"range",
-		"--parallel-workers=1",
 		"1",
 		fmt.Sprintf("%d", reachedLedger),
 	))
