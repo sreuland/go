@@ -678,12 +678,15 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 		close(webAppDone)
 	}()
 
-	// Make sure that a non-whitelisted account, the transaction is not stored
+	// wait until the web server is up before continuing to test requests
+	itest.WaitForHorizon()
+
+	// Make sure that a tx from non-whitelisted account is not stored after reingestion
 	_, err = itest.Client().TransactionDetail(nonWhiteListTxResp.Hash)
 	tt.True(horizonclient.IsNotFoundError(err))
 
-	// Make sure that a whitelisted account, the transaction is stored
-	lastTx, err = itest.Client().TransactionDetail(whiteListTxResp.Hash)
+	// Make sure that a tx from whitelisted account is stored after reingestion
+	_, err = itest.Client().TransactionDetail(whiteListTxResp.Hash)
 	tt.NoError(err)
 
 	// tell the horizon web server to shutdown
