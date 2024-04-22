@@ -39,9 +39,8 @@ func NewGCSDataStore(ctx context.Context, params map[string]string, network stri
 	}
 
 	// Inside gcs, all paths start _without_ the leading /
-	pth := strings.TrimPrefix(parsed.Path, "/")
+	prefix := strings.TrimPrefix(parsed.Path, "/")
 	bucketName := parsed.Host
-	prefix := pth
 
 	logger.Infof("creating GCS client for bucket: %s, prefix: %s", bucketName, prefix)
 
