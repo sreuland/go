@@ -67,10 +67,7 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 		}
 	}
 
-	binarySearchStop := end
-	if networkLatest > 0 {
-		binarySearchStop = networkLatest
-	}
+	binarySearchStop := max(end, networkLatest)
 	binarySearchStart := start
 
 	logger.Infof("Resumability searching datastore for next absent object key between ledgers %d and %d", start, end)
