@@ -54,7 +54,7 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 		var latestErr error
 		networkLatest, latestErr = rm.networkManager.GetLatestLedgerSequenceFromHistoryArchives(ctx, rm.network)
 		if latestErr != nil {
-			logger.WithError(latestErr).Infof("Resumability of requested export ledger range start=%d, end=%d, was not able to get latest ledger from network %v", start, end, rm.network)
+			logger.WithError(latestErr).Errorf("Resumability of requested export ledger range start=%d, end=%d, was not able to get latest ledger from network %v", start, end, rm.network)
 			return 0, false
 		}
 		logger.Infof("Resumability acquired latest archived network ledger =%d + for network=%v", networkLatest, rm.network)
