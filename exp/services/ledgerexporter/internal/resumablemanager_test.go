@@ -7,6 +7,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestResumabilityDisabled(t *testing.T) {
+	config := &Config{LedgerBatchConfig: LedgerBatchConfig{
+		FilesPerPartition: uint32(1),
+		LedgersPerFile:    uint32(10),
+	}, Network: "testnet", Resume: false}
+
+	mockDataStore := &MockDataStore{}
+	mockNetworkManager := &MockNetworkManager{}
+	ctx := context.Background()
+
+	resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
+	resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, 1, 10)
+	require.Equal(t, uint32(0), resumableStartLedger)
+	require.Equal(t, false, dataStoreComplete)
+}
+
 func TestResumability(t *testing.T) {
 
 	tests := []struct {
@@ -216,7 +232,7 @@ func TestResumability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := &Config{LedgerBatchConfig: tt.ledgerBatchConfig, Network: tt.networkName}
+			config := &Config{LedgerBatchConfig: tt.ledgerBatchConfig, Network: tt.networkName, Resume: true}
 			resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
 			resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, tt.startLedger, tt.endLedger)
 			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)

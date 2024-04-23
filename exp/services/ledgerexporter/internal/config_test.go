@@ -13,14 +13,20 @@ func TestNewConfig(t *testing.T) {
 	mockNetworkManager := &MockNetworkManager{}
 	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test").Return(uint32(100), nil)
 
-	config, err := NewConfig(ctx, mockNetworkManager, Flags{StartLedger: 1, EndLedger: 2, ConfigFilePath: "test/test.toml"})
+	config, err := NewConfig(ctx, mockNetworkManager, Flags{StartLedger: 1, EndLedger: 2, ConfigFilePath: "test/test.toml", Resume: true})
 	require.NoError(t, err)
 	require.Equal(t, config.DataStoreConfig.Type, "ABC")
 	require.Equal(t, config.LedgerBatchConfig.FilesPerPartition, uint32(1))
 	require.Equal(t, config.LedgerBatchConfig.LedgersPerFile, uint32(3))
+	require.True(t, config.Resume)
 	url, ok := config.DataStoreConfig.Params["destination_bucket_path"]
 	require.True(t, ok)
 	require.Equal(t, url, "your-bucket-name/subpath")
+
+	// resume by default disabled
+	config, err = NewConfig(ctx, mockNetworkManager, Flags{StartLedger: 1, EndLedger: 2, ConfigFilePath: "test/test.toml"})
+	require.NoError(t, err)
+	require.False(t, config.Resume)
 }
 
 func TestValidateStartAndEndLedger(t *testing.T) {

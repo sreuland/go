@@ -6,6 +6,20 @@ import (
 )
 
 type ResumableManager interface {
+	// Find the nearest "LedgersPerFile" starting boundary ledger number relative to requested start which
+	// does not exist on datastore yet.
+	//
+	// start - start search from this ledger
+	// end   - stop search at this ledger.
+	//
+	// If end=0, meaning unbounded, this will substitute an effective end value of the
+	// most recent archived ledger number.
+	//
+	// return:
+	// resumableLedger - if > 0, will be the next ledger that is not populated on data store.
+	// dataStoreComplete - if true, there was no gaps on data store for bounded range requested
+	//
+	// if resumableLedger is 0 and dataStoreComplete is false, no resumability was possible.
 	FindStartBoundary(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool)
 }
 
@@ -15,6 +29,7 @@ type resumableManagerService struct {
 	networkManager      NetworkManager
 	network             string
 	checkpointFrequency uint32
+	enabled             bool
 }
 
 func NewResumableManager(dataStore DataStore, config *Config, networkManager NetworkManager) ResumableManager {
@@ -22,26 +37,13 @@ func NewResumableManager(dataStore DataStore, config *Config, networkManager Net
 		dataStore:           dataStore,
 		networkManager:      networkManager,
 		network:             config.Network,
+		enabled:             config.Resume,
 		checkpointFrequency: config.GetCheckPointFrequency()}
 }
 
-// Find the nearest "LedgersPerFile" starting boundary ledger number relative to requested start which
-// does not exist on datastore yet.
-//
-// start - start search from this ledger
-// end   - stop search at this ledger.
-//
-// If end=0, meaning unbounded, this will substitute an effective end value of the
-// most recent archived ledger number.
-//
-// return:
-// resumableLedger - if > 0, will be the next ledger that is not populated on data store.
-// dataStoreComplete - if true, there was no gaps on data store for bounded range requested
-//
-// if resumableLedger is 0 and dataStoreComplete is false, no resumability was possible.
 func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool) {
-	// streaming mode for start, no historical point to resume from
-	if start < 1 {
+	// start < 1 means streaming mode, no historical point to resume from
+	if start < 1 || !rm.enabled {
 		return 0, false
 	}
 

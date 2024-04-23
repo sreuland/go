@@ -21,6 +21,7 @@ type Flags struct {
 	StartLedger    uint
 	EndLedger      uint
 	ConfigFilePath string
+	Resume         bool
 }
 
 type StellarCoreConfig struct {
@@ -42,6 +43,7 @@ type Config struct {
 	StellarCoreConfig StellarCoreConfig `toml:"stellar_core_config"`
 	StartLedger       uint32            `toml:"start"`
 	EndLedger         uint32            `toml:"end"`
+	Resume            bool              `toml:"resume"`
 }
 
 func NewConfig(ctx context.Context, networkManager NetworkManager, flags Flags) (*Config, error) {
@@ -49,8 +51,9 @@ func NewConfig(ctx context.Context, networkManager NetworkManager, flags Flags) 
 
 	config.StartLedger = uint32(flags.StartLedger)
 	config.EndLedger = uint32(flags.EndLedger)
+	config.Resume = flags.Resume
 
-	logger.Infof("Requested ledger range start=%d, end=%d", config.StartLedger, config.EndLedger)
+	logger.Infof("Requested ledger range start=%d, end=%d, resume=%v", config.StartLedger, config.EndLedger, config.Resume)
 
 	// Load config TOML file
 	cfg, err := toml.LoadFile(flags.ConfigFilePath)

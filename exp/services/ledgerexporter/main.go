@@ -11,6 +11,7 @@ func main() {
 	flag.UintVar(&flags.StartLedger, "start", 0, "Starting ledger")
 	flag.UintVar(&flags.EndLedger, "end", 0, "Ending ledger (inclusive)")
 	flag.StringVar(&flags.ConfigFilePath, "config-file", "config.toml", "Path to the TOML config file")
+	flag.BoolVar(&flags.Resume, "resume", false, "Attempt to find a resumable starting point on remote data store")
 	flag.Parse()
 
 	app := exporter.NewApp(flags)
