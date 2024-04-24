@@ -62,6 +62,15 @@ func (m *MockExportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseM
 	return a.Error(0)
 }
 
+type MockResumableManager struct {
+	mock.Mock
+}
+
+func (m *MockResumableManager) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool) {
+	a := m.Called(ctx, start, end)
+	return a.Get(0).(uint32), a.Get(1).(bool)
+}
+
 type MockNetworkManager struct {
 	mock.Mock
 }

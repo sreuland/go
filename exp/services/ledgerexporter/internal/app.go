@@ -35,13 +35,33 @@ func (m DataAlreadyExported) Error() string {
 	return fmt.Sprintf("For export ledger range start=%d, end=%d, the remote storage has all the data, there is no need to continue export", m.Start, m.End)
 }
 
+func NewInvalidDataStore(LedgerSequence uint32, LedgersPerFile uint32) *InvalidDataStore {
+	return &InvalidDataStore{
+		LedgerSequence: LedgerSequence,
+		LedgersPerFile: LedgersPerFile,
+	}
+}
+
+type InvalidDataStore struct {
+	LedgerSequence uint32
+	LedgersPerFile uint32
+}
+
+func (m InvalidDataStore) Error() string {
+	return fmt.Sprintf("The remote data store has inconsistent data, "+
+		"a resumable starting ledger of %v was identified, "+
+		"but that is not aligned to expected ledgers-per-file of %v. use '--resume false' to bypass",
+		m.LedgerSequence, m.LedgersPerFile)
+}
+
 type App struct {
-	config        Config
-	ledgerBackend ledgerbackend.LedgerBackend
-	dataStore     DataStore
-	exportManager ExportManager
-	uploader      Uploader
-	flags         Flags
+	config           Config
+	ledgerBackend    ledgerbackend.LedgerBackend
+	dataStore        DataStore
+	exportManager    ExportManager
+	uploader         Uploader
+	flags            Flags
+	resumableManager ResumableManager
 }
 
 func NewApp(flags Flags) *App {
@@ -63,16 +83,9 @@ func (a *App) init(ctx context.Context) error {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	resumableManager := NewResumableManager(a.dataStore, &a.config, NetworkManagerService)
-	resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, a.config.StartLedger, a.config.EndLedger)
-	if dataStoreComplete {
-		return NewDataAlreadyExported(a.config.StartLedger, a.config.EndLedger)
-	}
-
-	if resumableStartLedger > 0 {
-		// resumable is a best effort attempt, if response is 0 that means no resume point was obtainable.
-		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", config.StartLedger, config.EndLedger, resumableStartLedger)
-		a.config.StartLedger = resumableStartLedger
+	a.resumableManager = NewResumableManager(a.dataStore, &a.config, NetworkManagerService)
+	if err := a.applyResume(ctx); err != nil {
+		return err
 	}
 
 	logger.Infof("Final computed ledger range for backend retrieval and export, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)
@@ -85,6 +98,24 @@ func (a *App) init(ctx context.Context) error {
 	}
 	a.uploader = NewUploader(a.dataStore, a.exportManager.GetMetaArchiveChannel())
 
+	return nil
+}
+
+func (a *App) applyResume(ctx context.Context) error {
+	resumableStartLedger, dataStoreComplete := a.resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
+	if dataStoreComplete {
+		return NewDataAlreadyExported(a.config.StartLedger, a.config.EndLedger)
+	}
+
+	// resumable is a best effort attempt, if response is 0 that means no resume is possible or enabled.
+	if resumableStartLedger > 0 {
+		// TODO - evaluate a more robust validation of remote data for ledgers-per-file consistency
+		if resumableStartLedger != a.config.LedgerBatchConfig.GetSequenceNumberStartBoundary(resumableStartLedger) {
+			return NewInvalidDataStore(resumableStartLedger, a.config.LedgerBatchConfig.LedgersPerFile)
+		}
+		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", a.config.StartLedger, a.config.EndLedger, resumableStartLedger)
+		a.config.StartLedger = resumableStartLedger
+	}
 	return nil
 }
 

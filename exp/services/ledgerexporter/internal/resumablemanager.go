@@ -6,7 +6,7 @@ import (
 )
 
 type ResumableManager interface {
-	// Find the nearest "LedgersPerFile" starting boundary ledger number relative to requested start which
+	// Find the nearest ledger number relative to requested start which
 	// does not exist on datastore yet.
 	//
 	// start - start search from this ledger
@@ -19,8 +19,8 @@ type ResumableManager interface {
 	// resumableLedger - if > 0, will be the next ledger that is not populated on data store.
 	// dataStoreComplete - if true, there was no gaps on data store for bounded range requested
 	//
-	// if resumableLedger is 0 and dataStoreComplete is false, no resumability was possible.
-	FindStartBoundary(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool)
+	// if resumableLedger is 0 and dataStoreComplete is false, no resumability was applicable.
+	FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool)
 }
 
 type resumableManagerService struct {
@@ -41,7 +41,7 @@ func NewResumableManager(dataStore DataStore, config *Config, networkManager Net
 		checkpointFrequency: config.GetCheckPointFrequency()}
 }
 
-func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool) {
+func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool) {
 	// start < 1 means streaming mode, no historical point to resume from
 	if start < 1 || !rm.enabled {
 		return 0, false
@@ -78,16 +78,20 @@ func (rm resumableManagerService) FindStartBoundary(ctx context.Context, start, 
 
 	rangeSize := max(int(binarySearchStop-binarySearchStart), 1)
 	lowestAbsentIndex := sort.Search(rangeSize, binarySearchCallbackFn(&rm, ctx, binarySearchStart, binarySearchStop))
-	if lowestAbsentIndex < int(rangeSize) {
-		nearestAbsentLedgerSequence := binarySearchStart + uint32(lowestAbsentIndex)
-		nearestAbsentBoundaryLedger := rm.ledgerBatchConfig.GetSequenceNumberStartBoundary(nearestAbsentLedgerSequence)
-		log.Infof("Resumability found next absent object start key of %d within requested export ledger range", nearestAbsentBoundaryLedger)
-		return nearestAbsentBoundaryLedger, false
+	if lowestAbsentIndex < 1 {
+		// data store had no data within search range
+		return 0, false
 	}
 
-	// unbounded, and datastore had up to latest network, return the start for youngest ledger on data store
+	if lowestAbsentIndex < int(rangeSize) {
+		nearestAbsentLedgerSequence := binarySearchStart + uint32(lowestAbsentIndex)
+		log.Infof("Resumability determined next absent object start key of %d for requested export ledger range", nearestAbsentLedgerSequence)
+		return nearestAbsentLedgerSequence, false
+	}
+
+	// unbounded, and datastore had up to latest network, return that as staring point.
 	if networkLatest > 0 {
-		return rm.ledgerBatchConfig.GetSequenceNumberStartBoundary(networkLatest), false
+		return networkLatest, false
 	}
 
 	// data store had all ledgers for requested range, no resumability needed.

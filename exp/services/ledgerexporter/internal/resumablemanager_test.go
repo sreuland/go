@@ -18,7 +18,7 @@ func TestResumabilityDisabled(t *testing.T) {
 	ctx := context.Background()
 
 	resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
-	resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, 1, 10)
+	resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, 1, 10)
 	require.Equal(t, uint32(0), resumableStartLedger)
 	require.Equal(t, false, dataStoreComplete)
 }
@@ -50,7 +50,7 @@ func TestResumability(t *testing.T) {
 			name:                 "End ledger same as start, data store does not have it",
 			startLedger:          14,
 			endLedger:            14,
-			resumableStartLedger: 10,
+			resumableStartLedger: 0,
 			dataStoreComplete:    false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
@@ -98,7 +98,7 @@ func TestResumability(t *testing.T) {
 			name:                 "Data store is not beyond start ledger",
 			startLedger:          95,
 			endLedger:            125,
-			resumableStartLedger: 90,
+			resumableStartLedger: 0,
 			dataStoreComplete:    false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
@@ -122,7 +122,7 @@ func TestResumability(t *testing.T) {
 			name:                 "No end ledger provided, data store not beyond start",
 			startLedger:          1145,
 			endLedger:            0,
-			resumableStartLedger: 1140,
+			resumableStartLedger: 0,
 			dataStoreComplete:    false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
@@ -234,7 +234,7 @@ func TestResumability(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &Config{LedgerBatchConfig: tt.ledgerBatchConfig, Network: tt.networkName, Resume: true}
 			resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
-			resumableStartLedger, dataStoreComplete := resumableManager.FindStartBoundary(ctx, tt.startLedger, tt.endLedger)
+			resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, tt.startLedger, tt.endLedger)
 			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)
 			require.Equal(t, tt.dataStoreComplete, dataStoreComplete)
 		})

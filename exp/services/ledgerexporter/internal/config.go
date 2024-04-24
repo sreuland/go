@@ -46,6 +46,15 @@ type Config struct {
 	Resume            bool              `toml:"resume"`
 }
 
+// This will generate the config based on commandline flags and toml
+// This also validates requested ledger range, and will automatically adjust it
+// to be ledgers-per-file boundary aligned
+//
+// ctx              - the caller context
+// networkManager   - access to network state variables
+// flags            - command line flags
+//
+// return           - the populated config block or an error if any range validation failed.
 func NewConfig(ctx context.Context, networkManager NetworkManager, flags Flags) (*Config, error) {
 	config := &Config{}
 
