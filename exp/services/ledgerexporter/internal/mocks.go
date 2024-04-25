@@ -83,4 +83,3 @@ func (m *MockNetworkManager) GetLatestLedgerSequenceFromHistoryArchives(ctx cont
 // ensure that the MockClient implements ClientInterface
 var _ DataStore = &MockDataStore{}
 var _ ExportManager = &MockExportManager{}
-var _ NetworkManager = &MockNetworkManager{}

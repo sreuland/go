@@ -8,11 +8,15 @@ import (
 
 func main() {
 	flags := exporter.Flags{}
-	flag.UintVar(&flags.StartLedger, "start", 0, "Starting ledger")
-	flag.UintVar(&flags.EndLedger, "end", 0, "Ending ledger (inclusive)")
+	startLedger := uint(0)
+	endLedger := uint(0)
+	flag.UintVar(&startLedger, "start", 0, "Starting ledger")
+	flag.UintVar(&endLedger, "end", 0, "Ending ledger (inclusive)")
 	flag.StringVar(&flags.ConfigFilePath, "config-file", "config.toml", "Path to the TOML config file")
 	flag.BoolVar(&flags.Resume, "resume", false, "Attempt to find a resumable starting point on remote data store")
 	flag.Parse()
+	flags.StartLedger = uint32(startLedger)
+	flags.EndLedger = uint32(endLedger)
 
 	app := exporter.NewApp(flags)
 	app.Run()

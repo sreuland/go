@@ -4,20 +4,25 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stellar/go/historyarchive"
 	"github.com/stretchr/testify/require"
 )
 
 func TestResumabilityDisabled(t *testing.T) {
-	config := &Config{LedgerBatchConfig: LedgerBatchConfig{
-		FilesPerPartition: uint32(1),
-		LedgersPerFile:    uint32(10),
-	}, Network: "testnet", Resume: false}
+	config := &Config{
+		LedgerBatchConfig: LedgerBatchConfig{
+			FilesPerPartition: uint32(1),
+			LedgersPerFile:    uint32(10),
+		},
+		Network: "testnet",
+		Resume:  false,
+	}
 
 	mockDataStore := &MockDataStore{}
-	mockNetworkManager := &MockNetworkManager{}
+	mockArchive := &historyarchive.MockArchive{}
 	ctx := context.Background()
 
-	resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
+	resumableManager := NewResumableManager(mockDataStore, config, mockArchive)
 	resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, 1, 10)
 	require.Equal(t, uint32(0), resumableStartLedger)
 	require.Equal(t, false, dataStoreComplete)
@@ -33,6 +38,7 @@ func TestResumability(t *testing.T) {
 		resumableStartLedger uint32
 		dataStoreComplete    bool
 		networkName          string
+		latestLedger         uint32
 	}{
 		{
 			name:                 "End ledger same as start, data store has it",
@@ -44,7 +50,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "End ledger same as start, data store does not have it",
@@ -56,7 +63,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "Data store is beyond boundary aligned start ledger",
@@ -68,7 +76,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "Data store is beyond non boundary aligned start ledger",
@@ -80,7 +89,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "Data store is beyond start and end ledger",
@@ -92,7 +102,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "Data store is not beyond start ledger",
@@ -104,7 +115,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "No start ledger provided",
@@ -116,7 +128,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
+			networkName:  "test",
+			latestLedger: uint32(1000),
 		},
 		{
 			name:                 "No end ledger provided, data store not beyond start",
@@ -128,7 +141,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test2",
+			networkName:  "test2",
+			latestLedger: uint32(2000),
 		},
 		{
 			name:                 "No end ledger provided, data store is beyond start",
@@ -140,7 +154,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test3",
+			networkName:  "test3",
+			latestLedger: uint32(3000),
 		},
 		{
 			name:                 "No end ledger provided, data store is beyond start and archive network latest, and partially into checkpoint frequency padding",
@@ -152,7 +167,8 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test4",
+			networkName:  "test4",
+			latestLedger: uint32(4000),
 		},
 		{
 			name:                 "No end ledger provided, start is beyond archive network latest and checkpoint frequency padding",
@@ -164,18 +180,12 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test5",
+			networkName:  "test5",
+			latestLedger: uint32(5000),
 		},
 	}
 
 	ctx := context.Background()
-
-	mockNetworkManager := &MockNetworkManager{}
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test").Return(uint32(1000), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test2").Return(uint32(2000), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test3").Return(uint32(3000), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test4").Return(uint32(4000), nil)
-	mockNetworkManager.On("GetLatestLedgerSequenceFromHistoryArchives", ctx, "test5").Return(uint32(5000), nil)
 
 	mockDataStore := &MockDataStore{}
 
@@ -232,8 +242,15 @@ func TestResumability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := &Config{LedgerBatchConfig: tt.ledgerBatchConfig, Network: tt.networkName, Resume: true}
-			resumableManager := NewResumableManager(mockDataStore, config, mockNetworkManager)
+			mockArchive := &historyarchive.MockArchive{}
+			mockArchive.On("GetRootHAS").Return(historyarchive.HistoryArchiveState{CurrentLedger: tt.latestLedger}, nil).Once()
+
+			config := &Config{
+				LedgerBatchConfig: tt.ledgerBatchConfig,
+				Network:           tt.networkName,
+				Resume:            true,
+			}
+			resumableManager := NewResumableManager(mockDataStore, config, mockArchive)
 			resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, tt.startLedger, tt.endLedger)
 			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)
 			require.Equal(t, tt.dataStoreComplete, dataStoreComplete)

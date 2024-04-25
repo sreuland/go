@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/stellar/go/historyarchive"
 	"github.com/stellar/go/ingest/ledgerbackend"
 	_ "github.com/stellar/go/network"
 	"github.com/stellar/go/support/log"
@@ -55,13 +56,12 @@ func (m InvalidDataStore) Error() string {
 }
 
 type App struct {
-	config           Config
-	ledgerBackend    ledgerbackend.LedgerBackend
-	dataStore        DataStore
-	exportManager    ExportManager
-	uploader         Uploader
-	flags            Flags
-	resumableManager ResumableManager
+	config        Config
+	ledgerBackend ledgerbackend.LedgerBackend
+	dataStore     DataStore
+	exportManager ExportManager
+	uploader      Uploader
+	flags         Flags
 }
 
 func NewApp(flags Flags) *App {
@@ -73,18 +73,24 @@ func NewApp(flags Flags) *App {
 func (a *App) init(ctx context.Context) error {
 	var config *Config
 	var err error
+	var archive historyarchive.ArchiveInterface
 
-	if config, err = NewConfig(ctx, NetworkManagerService, a.flags); err != nil {
+	if config, err = NewConfig(ctx, a.flags); err != nil {
 		return errors.Wrap(err, "Could not load configuration")
 	}
+
+	if archive, err = CreateHistoryArchiveFromNetworkName(ctx, config.Network); err != nil {
+		return err
+	}
+	config.ValidateAndSetLedgerRange(ctx, archive)
+
 	a.config = *config
 
 	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	a.resumableManager = NewResumableManager(a.dataStore, &a.config, NetworkManagerService)
-	if err := a.applyResume(ctx); err != nil {
+	if err := a.applyResumability(ctx, NewResumableManager(a.dataStore, &a.config, archive)); err != nil {
 		return err
 	}
 
@@ -101,8 +107,8 @@ func (a *App) init(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) applyResume(ctx context.Context) error {
-	resumableStartLedger, dataStoreComplete := a.resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
+func (a *App) applyResumability(ctx context.Context, resumableManager ResumableManager) error {
+	resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
 	if dataStoreComplete {
 		return NewDataAlreadyExported(a.config.StartLedger, a.config.EndLedger)
 	}
