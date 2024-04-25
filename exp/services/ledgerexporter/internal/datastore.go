@@ -11,7 +11,7 @@ import (
 type DataStore interface {
 	GetFile(ctx context.Context, path string) (io.ReadCloser, error)
 	PutFile(ctx context.Context, path string, in io.WriterTo) error
-	PutFileIfNotExists(ctx context.Context, path string, in io.WriterTo) error
+	PutFileIfNotExists(ctx context.Context, path string, in io.WriterTo) (bool, error)
 	Exists(ctx context.Context, path string) (bool, error)
 	Size(ctx context.Context, path string) (int64, error)
 	Close() error

@@ -13,7 +13,7 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04]
         go: ["1.21", "1.22"]
         pg: [12, 16]
-        protocol-version: [20]
+        protocol-version: [20, 21]
     runs-on: ${{ matrix.os }}
     services:
       postgres:
@@ -32,11 +32,12 @@ jobs:
     env:
       HORIZON_INTEGRATION_TESTS_ENABLED: true
       HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL: ${{ matrix.protocol-version }}
-      PROTOCOL_20_CORE_DEBIAN_PKG_VERSION: 20.2.0-1716.rc3.34d82fc00.focal
-      PROTOCOL_20_CORE_DOCKER_IMG: stellar/unsafe-stellar-core:20.2.0-1716.rc3.34d82fc00.focal
-      PROTOCOL_20_SOROBAN_RPC_DOCKER_IMG: stellar/soroban-rpc:20.3.0-rc1-52
-      PROTOCOL_19_CORE_DEBIAN_PKG_VERSION: 19.14.0-1500.5664eff4e.focal
-      PROTOCOL_19_CORE_DOCKER_IMG: stellar/stellar-core:19.14.0-1500.5664eff4e.focal
+      PROTOCOL_21_CORE_DEBIAN_PKG_VERSION: 21.0.0-1812.rc1.a10329cca.focal
+      PROTOCOL_21_CORE_DOCKER_IMG: stellar/unsafe-stellar-core:21.0.0-1812.rc1.a10329cca.focal
+      PROTOCOL_21_SOROBAN_RPC_DOCKER_IMG: stellar/soroban-rpc:21.0.0-rc2-73
+      PROTOCOL_20_CORE_DEBIAN_PKG_VERSION: 21.0.0-1812.rc1.a10329cca.focal
+      PROTOCOL_20_CORE_DOCKER_IMG: stellar/unsafe-stellar-core:21.0.0-1812.rc1.a10329cca.focal
+      PROTOCOL_20_SOROBAN_RPC_DOCKER_IMG: stellar/soroban-rpc:21.0.0-rc2-73
       PGHOST: localhost
       PGPORT: 5432
       PGUSER: postgres
@@ -76,9 +77,8 @@ jobs:
         run: |
           docker pull "$PROTOCOL_${{ matrix.protocol-version }}_SOROBAN_RPC_DOCKER_IMG"
           echo HORIZON_INTEGRATION_TESTS_SOROBAN_RPC_DOCKER_IMG="$PROTOCOL_${{ matrix.protocol-version }}_SOROBAN_RPC_DOCKER_IMG" >> $GITHUB_ENV
-          echo HORIZON_INTEGRATION_TESTS_ENABLE_SOROBAN_RPC=true >> $GITHUB_ENV
 
-      - name: Install and enable Captive Core
+      - name: Install core
         run: |
           # Workaround for https://github.com/actions/virtual-environments/issues/5245,
           # libc++1-8 won't be installed if another version is installed (but apt won't give you a helpul
@@ -90,9 +90,7 @@ jobs:
           sudo bash -c 'echo "deb https://apt.stellar.org focal unstable" > /etc/apt/sources.list.d/SDF-unstable.list'
           sudo apt-get update && sudo apt-get install -y stellar-core="$PROTOCOL_${{ matrix.protocol-version }}_CORE_DEBIAN_PKG_VERSION"
           echo "Using stellar core version $(stellar-core version)"
-          echo 'HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE=true' >> $GITHUB_ENV
           echo 'HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN=/usr/bin/stellar-core' >> $GITHUB_ENV
-          echo 'HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_USE_DB=true' >> $GITHUB_ENV
 
       - name: Build Horizon reproducible build
         run: |

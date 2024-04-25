@@ -2,43 +2,51 @@ package ledgerexporter
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/stellar/go/ingest/ledgerbackend"
 	"github.com/stellar/go/xdr"
 )
 
 // ExportManager manages the creation and handling of export objects.
 type ExportManager interface {
-	GetMetaArchiveChannel() chan *LedgerMetaArchive
 	Run(ctx context.Context, startLedger uint32, endLedger uint32) error
 	AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta xdr.LedgerCloseMeta) error
+	GetLatestLedgerMetric() *prometheus.GaugeVec
 }
-
 type exportManager struct {
 	config             LedgerBatchConfig
 	ledgerBackend      ledgerbackend.LedgerBackend
 	currentMetaArchive *LedgerMetaArchive
-	metaArchiveCh      chan *LedgerMetaArchive
+	queue              UploadQueue
+	latestLedgerMetric *prometheus.GaugeVec
 }
 
 // NewExportManager creates a new ExportManager with the provided configuration.
-func NewExportManager(config LedgerBatchConfig, backend ledgerbackend.LedgerBackend) (ExportManager, error) {
-
+func NewExportManager(config LedgerBatchConfig, backend ledgerbackend.LedgerBackend, queue UploadQueue, prometheusRegistry *prometheus.Registry) (ExportManager, error) {
 	if config.LedgersPerFile < 1 {
 		return nil, errors.Errorf("Invalid ledgers per file (%d): must be at least 1", config.LedgersPerFile)
 	}
 
+	latestLedgerMetric := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "ledger_exporter", Subsystem: "export_manager", Name: "latest_ledger",
+		Help: "sequence number of the latest ledger consumed by the export manager",
+	}, []string{"start_ledger", "end_ledger"})
+	prometheusRegistry.MustRegister(latestLedgerMetric)
+
 	return &exportManager{
-		config:        config,
-		ledgerBackend: backend,
-		metaArchiveCh: make(chan *LedgerMetaArchive, 1),
+		config:             config,
+		ledgerBackend:      backend,
+		queue:              queue,
+		latestLedgerMetric: latestLedgerMetric,
 	}, nil
 }
 
-// GetMetaArchiveChannel returns a channel that receives LedgerMetaArchive objects.
-func (e *exportManager) GetMetaArchiveChannel() chan *LedgerMetaArchive {
-	return e.metaArchiveCh
+func (e *exportManager) GetLatestLedgerMetric() *prometheus.GaugeVec {
+	return e.latestLedgerMetric
 }
 
 // AddLedgerCloseMeta adds ledger metadata to the current export object
@@ -65,19 +73,16 @@ func (e *exportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta 
 		e.currentMetaArchive = NewLedgerMetaArchive(objectKey, ledgerSeq, endSeq)
 	}
 
-	err := e.currentMetaArchive.AddLedger(ledgerCloseMeta)
-	if err != nil {
+	if err := e.currentMetaArchive.AddLedger(ledgerCloseMeta); err != nil {
 		return errors.Wrapf(err, "failed to add ledger %d", ledgerSeq)
 	}
 
 	if ledgerSeq >= e.currentMetaArchive.GetEndLedgerSequence() {
 		// Current archive is full, send it for upload
-		select {
-		case e.metaArchiveCh <- e.currentMetaArchive:
-			e.currentMetaArchive = nil
-		case <-ctx.Done():
-			return ctx.Err()
+		if err := e.queue.Enqueue(ctx, e.currentMetaArchive); err != nil {
+			return err
 		}
+		e.currentMetaArchive = nil
 	}
 	return nil
 }
@@ -87,9 +92,11 @@ func (e *exportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta 
 // The process continues until the ending ledger number is reached or a cancellation
 // signal is received.
 func (e *exportManager) Run(ctx context.Context, startLedger, endLedger uint32) error {
-
-	// Close the object channel
-	defer close(e.metaArchiveCh)
+	defer e.queue.Close()
+	labels := prometheus.Labels{
+		"start_ledger": strconv.FormatUint(uint64(startLedger), 10),
+		"end_ledger":   strconv.FormatUint(uint64(endLedger), 10),
+	}
 
 	for nextLedger := startLedger; endLedger < 1 || nextLedger <= endLedger; nextLedger++ {
 		select {
@@ -101,6 +108,7 @@ func (e *exportManager) Run(ctx context.Context, startLedger, endLedger uint32) 
 			if err != nil {
 				return errors.Wrapf(err, "failed to retrieve ledger %d from the ledger backend", nextLedger)
 			}
+			e.latestLedgerMetric.With(labels).Set(float64(nextLedger))
 			err = e.AddLedgerCloseMeta(ctx, ledgerCloseMeta)
 			if err != nil {
 				return errors.Wrapf(err, "failed to add ledgerCloseMeta for ledger %d", nextLedger)

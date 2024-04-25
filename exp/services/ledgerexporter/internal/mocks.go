@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/mock"
 )
@@ -33,9 +34,9 @@ func (m *MockDataStore) PutFile(ctx context.Context, path string, in io.WriterTo
 	return args.Error(0)
 }
 
-func (m *MockDataStore) PutFileIfNotExists(ctx context.Context, path string, in io.WriterTo) error {
+func (m *MockDataStore) PutFileIfNotExists(ctx context.Context, path string, in io.WriterTo) (bool, error) {
 	args := m.Called(ctx, path, in)
-	return args.Error(0)
+	return args.Get(0).(bool), args.Error(1)
 }
 
 func (m *MockDataStore) Close() error {
@@ -47,9 +48,9 @@ type MockExportManager struct {
 	mock.Mock
 }
 
-func (m *MockExportManager) GetMetaArchiveChannel() chan *LedgerMetaArchive {
+func (m *MockExportManager) GetLatestLedgerMetric() *prometheus.GaugeVec {
 	a := m.Called()
-	return a.Get(0).(chan *LedgerMetaArchive)
+	return a.Get(0).(*prometheus.GaugeVec)
 }
 
 func (m *MockExportManager) Run(ctx context.Context, startLedger uint32, endLedger uint32) error {

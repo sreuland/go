@@ -14,6 +14,8 @@ func main() {
 	flag.UintVar(&endLedger, "end", 0, "Ending ledger (inclusive)")
 	flag.StringVar(&flags.ConfigFilePath, "config-file", "config.toml", "Path to the TOML config file")
 	flag.BoolVar(&flags.Resume, "resume", false, "Attempt to find a resumable starting point on remote data store")
+	flag.UintVar(&flags.AdminPort, "admin-port", 0, "Admin HTTP port for prometheus metrics")
+
 	flag.Parse()
 	flags.StartLedger = uint32(startLedger)
 	flags.EndLedger = uint32(endLedger)

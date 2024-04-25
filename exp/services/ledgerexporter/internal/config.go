@@ -10,6 +10,7 @@ import (
 	"github.com/stellar/go/network"
 
 	"github.com/pelletier/go-toml"
+
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/support/ordered"
 	"github.com/stellar/go/support/storage"
@@ -23,6 +24,7 @@ type Flags struct {
 	EndLedger      uint32
 	ConfigFilePath string
 	Resume         bool
+	AdminPort      uint
 }
 
 type StellarCoreConfig struct {
@@ -38,13 +40,16 @@ type DataStoreConfig struct {
 }
 
 type Config struct {
+	AdminPort int `toml:"admin_port"`
+
 	Network           string            `toml:"network"`
 	DataStoreConfig   DataStoreConfig   `toml:"datastore_config"`
 	LedgerBatchConfig LedgerBatchConfig `toml:"exporter_config"`
 	StellarCoreConfig StellarCoreConfig `toml:"stellar_core_config"`
-	StartLedger       uint32
-	EndLedger         uint32
-	Resume            bool
+
+	StartLedger uint32
+	EndLedger   uint32
+	Resume      bool
 }
 
 func CreateHistoryArchiveFromNetworkName(ctx context.Context, networkName string) (historyarchive.ArchiveInterface, error) {
