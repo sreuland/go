@@ -26,26 +26,31 @@ type ResumableManager interface {
 }
 
 type resumableManagerService struct {
-	config    *Config
-	dataStore DataStore
-	archive   historyarchive.ArchiveInterface
+	network           string
+	ledgerBatchConfig LedgerBatchConfig
+	dataStore         DataStore
+	archive           historyarchive.ArchiveInterface
 }
 
-func NewResumableManager(dataStore DataStore, config *Config, archive historyarchive.ArchiveInterface) ResumableManager {
+func NewResumableManager(dataStore DataStore,
+	network string,
+	ledgerBatchConfig LedgerBatchConfig,
+	archive historyarchive.ArchiveInterface) ResumableManager {
 	return &resumableManagerService{
-		config:    config,
-		dataStore: dataStore,
-		archive:   archive,
+		ledgerBatchConfig: ledgerBatchConfig,
+		network:           network,
+		dataStore:         dataStore,
+		archive:           archive,
 	}
 }
 
 func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool) {
 	// start < 1 means streaming mode, no historical point to resume from
-	if start < 1 || !rm.config.Resume {
+	if start < 1 {
 		return 0, false
 	}
 
-	log := logger.WithField("start", start).WithField("end", end).WithField("network", rm.config.Network)
+	log := logger.WithField("start", start).WithField("end", end).WithField("network", rm.network)
 
 	// streaming mode for end, get latest network ledger to use for a sane bounded range during resumability check
 	// this will assume a padding of network latest = network latest + 2 checkpoint_frequency,
@@ -59,9 +64,9 @@ func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint
 			log.WithError(latestErr).Errorf("Resumability of requested export ledger range, was not able to get latest ledger from network")
 			return 0, false
 		}
-		logger.Infof("Resumability acquired latest archived network ledger =%d + for network=%v", networkLatest, rm.config.Network)
+		logger.Infof("Resumability acquired latest archived network ledger =%d + for network=%v", networkLatest, rm.network)
 		networkLatest = networkLatest + (getHistoryArchivesCheckPointFrequency() * 2)
-		logger.Infof("Resumability computed effective latest network ledger including padding of checkpoint frequency to be %d + for network=%v", networkLatest, rm.config.Network)
+		logger.Infof("Resumability computed effective latest network ledger including padding of checkpoint frequency to be %d + for network=%v", networkLatest, rm.network)
 
 		if start > networkLatest {
 			// requested to start at a point beyond the latest network, resume not applicable.
@@ -101,7 +106,7 @@ func binarySearchCallbackFn(rm *resumableManagerService, ctx context.Context, st
 	lookupCache := map[string]bool{}
 
 	return func(binarySearchIndex int) bool {
-		objectKeyMiddle := rm.config.LedgerBatchConfig.GetObjectKeyFromSequenceNumber(start + uint32(binarySearchIndex))
+		objectKeyMiddle := rm.ledgerBatchConfig.GetObjectKeyFromSequenceNumber(start + uint32(binarySearchIndex))
 
 		// there may be small occurrence of repeated queries on same object key once
 		// search narrows down to a range that fits within the ledgers per file

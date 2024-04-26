@@ -88,18 +88,19 @@ func (a *App) init(ctx context.Context) error {
 	if a.config, err = NewConfig(ctx, a.flags); err != nil {
 		return errors.Wrap(err, "Could not load configuration")
 	}
-	a.config.ValidateAndSetLedgerRange(ctx, archive)
-
 	if archive, err = createHistoryArchiveFromNetworkName(ctx, a.config.Network); err != nil {
 		return err
 	}
+	a.config.ValidateAndSetLedgerRange(ctx, archive)
 
 	if a.dataStore, err = NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
-
-	if err = a.applyResumability(ctx, NewResumableManager(a.dataStore, a.config, archive)); err != nil {
-		return err
+	if a.config.Resume {
+		if err = a.applyResumability(ctx,
+			NewResumableManager(a.dataStore, a.config.Network, a.config.LedgerBatchConfig, archive)); err != nil {
+			return err
+		}
 	}
 
 	logger.Infof("Final computed ledger range for backend retrieval and export, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)

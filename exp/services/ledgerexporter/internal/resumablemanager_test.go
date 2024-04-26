@@ -8,26 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResumabilityDisabled(t *testing.T) {
-	config := &Config{
-		LedgerBatchConfig: LedgerBatchConfig{
-			FilesPerPartition: uint32(1),
-			LedgersPerFile:    uint32(10),
-		},
-		Network: "testnet",
-		Resume:  false,
-	}
-
-	mockDataStore := &MockDataStore{}
-	mockArchive := &historyarchive.MockArchive{}
-	ctx := context.Background()
-
-	resumableManager := NewResumableManager(mockDataStore, config, mockArchive)
-	resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, 1, 10)
-	require.Equal(t, uint32(0), resumableStartLedger)
-	require.Equal(t, false, dataStoreComplete)
-}
-
 func TestResumability(t *testing.T) {
 
 	tests := []struct {
@@ -245,12 +225,7 @@ func TestResumability(t *testing.T) {
 			mockArchive := &historyarchive.MockArchive{}
 			mockArchive.On("GetRootHAS").Return(historyarchive.HistoryArchiveState{CurrentLedger: tt.latestLedger}, nil).Once()
 
-			config := &Config{
-				LedgerBatchConfig: tt.ledgerBatchConfig,
-				Network:           tt.networkName,
-				Resume:            true,
-			}
-			resumableManager := NewResumableManager(mockDataStore, config, mockArchive)
+			resumableManager := NewResumableManager(mockDataStore, tt.networkName, tt.ledgerBatchConfig, mockArchive)
 			resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, tt.startLedger, tt.endLedger)
 			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)
 			require.Equal(t, tt.dataStoreComplete, dataStoreComplete)

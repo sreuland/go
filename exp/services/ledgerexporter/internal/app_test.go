@@ -9,7 +9,7 @@ import (
 
 func TestApplyResumeDatastoreComplete(t *testing.T) {
 	ctx := context.Background()
-	app := NewApp(Flags{})
+	app := &App{}
 	app.config = &Config{StartLedger: 0, EndLedger: 9, Resume: true}
 	mockResumableManager := &MockResumableManager{}
 	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(0), true).Once()
@@ -17,11 +17,12 @@ func TestApplyResumeDatastoreComplete(t *testing.T) {
 	var alreadyExported *DataAlreadyExportedError
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.ErrorAs(t, err, &alreadyExported)
+	mockResumableManager.AssertExpectations(t)
 }
 
 func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 	ctx := context.Background()
-	app := NewApp(Flags{})
+	app := &App{}
 	app.config = &Config{
 		StartLedger:       0,
 		EndLedger:         9,
@@ -29,18 +30,19 @@ func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 		LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10, FilesPerPartition: 50},
 	}
 	mockResumableManager := &MockResumableManager{}
-	// the datastore has inconsistent data,
-	// last ledger found was not aligned to starting boundary based on LedgersPerFile: 10
+	// simulate the datastore has inconsistent data,
+	// with last ledger not aligned to starting boundary
 	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(6), false).Once()
 
 	var invalidStore *InvalidDataStoreError
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.ErrorAs(t, err, &invalidStore)
+	mockResumableManager.AssertExpectations(t)
 }
 
 func TestApplyResumeWithPartialRemoteDataPresent(t *testing.T) {
 	ctx := context.Background()
-	app := NewApp(Flags{})
+	app := &App{}
 	app.config = &Config{
 		StartLedger:       0,
 		EndLedger:         99,
@@ -54,11 +56,12 @@ func TestApplyResumeWithPartialRemoteDataPresent(t *testing.T) {
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.NoError(t, err)
 	require.Equal(t, app.config.StartLedger, uint32(50))
+	mockResumableManager.AssertExpectations(t)
 }
 
 func TestApplyResumeWithNoRemoteDataPresent(t *testing.T) {
 	ctx := context.Background()
-	app := NewApp(Flags{})
+	app := &App{}
 	app.config = &Config{
 		StartLedger:       0,
 		EndLedger:         99,
@@ -72,4 +75,5 @@ func TestApplyResumeWithNoRemoteDataPresent(t *testing.T) {
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.NoError(t, err)
 	require.Equal(t, app.config.StartLedger, uint32(0))
+	mockResumableManager.AssertExpectations(t)
 }
