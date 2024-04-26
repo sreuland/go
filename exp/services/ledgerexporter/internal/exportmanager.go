@@ -11,13 +11,7 @@ import (
 	"github.com/stellar/go/xdr"
 )
 
-// ExportManager manages the creation and handling of export objects.
-type ExportManager interface {
-	Run(ctx context.Context, startLedger uint32, endLedger uint32) error
-	AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta xdr.LedgerCloseMeta) error
-	GetLatestLedgerMetric() *prometheus.GaugeVec
-}
-type exportManager struct {
+type ExportManager struct {
 	config             LedgerBatchConfig
 	ledgerBackend      ledgerbackend.LedgerBackend
 	currentMetaArchive *LedgerMetaArchive
@@ -26,7 +20,7 @@ type exportManager struct {
 }
 
 // NewExportManager creates a new ExportManager with the provided configuration.
-func NewExportManager(config LedgerBatchConfig, backend ledgerbackend.LedgerBackend, queue UploadQueue, prometheusRegistry *prometheus.Registry) (ExportManager, error) {
+func NewExportManager(config LedgerBatchConfig, backend ledgerbackend.LedgerBackend, queue UploadQueue, prometheusRegistry *prometheus.Registry) (*ExportManager, error) {
 	if config.LedgersPerFile < 1 {
 		return nil, errors.Errorf("Invalid ledgers per file (%d): must be at least 1", config.LedgersPerFile)
 	}
@@ -37,7 +31,7 @@ func NewExportManager(config LedgerBatchConfig, backend ledgerbackend.LedgerBack
 	}, []string{"start_ledger", "end_ledger"})
 	prometheusRegistry.MustRegister(latestLedgerMetric)
 
-	return &exportManager{
+	return &ExportManager{
 		config:             config,
 		ledgerBackend:      backend,
 		queue:              queue,
@@ -45,12 +39,8 @@ func NewExportManager(config LedgerBatchConfig, backend ledgerbackend.LedgerBack
 	}, nil
 }
 
-func (e *exportManager) GetLatestLedgerMetric() *prometheus.GaugeVec {
-	return e.latestLedgerMetric
-}
-
 // AddLedgerCloseMeta adds ledger metadata to the current export object
-func (e *exportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta xdr.LedgerCloseMeta) error {
+func (e *ExportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta xdr.LedgerCloseMeta) error {
 	ledgerSeq := ledgerCloseMeta.LedgerSequence()
 
 	// Determine the object key for the given ledger sequence
@@ -91,7 +81,7 @@ func (e *exportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta 
 // from the backend, and processes the corresponding ledger close metadata.
 // The process continues until the ending ledger number is reached or a cancellation
 // signal is received.
-func (e *exportManager) Run(ctx context.Context, startLedger, endLedger uint32) error {
+func (e *ExportManager) Run(ctx context.Context, startLedger, endLedger uint32) error {
 	defer e.queue.Close()
 	labels := prometheus.Labels{
 		"start_ledger": strconv.FormatUint(uint64(startLedger), 10),

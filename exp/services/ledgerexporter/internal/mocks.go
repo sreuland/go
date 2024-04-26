@@ -4,8 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -44,25 +42,6 @@ func (m *MockDataStore) Close() error {
 	return args.Error(0)
 }
 
-type MockExportManager struct {
-	mock.Mock
-}
-
-func (m *MockExportManager) GetLatestLedgerMetric() *prometheus.GaugeVec {
-	a := m.Called()
-	return a.Get(0).(*prometheus.GaugeVec)
-}
-
-func (m *MockExportManager) Run(ctx context.Context, startLedger uint32, endLedger uint32) error {
-	a := m.Called(ctx, startLedger, endLedger)
-	return a.Error(0)
-}
-
-func (m *MockExportManager) AddLedgerCloseMeta(ctx context.Context, ledgerCloseMeta xdr.LedgerCloseMeta) error {
-	a := m.Called(ctx, ledgerCloseMeta)
-	return a.Error(0)
-}
-
 type MockResumableManager struct {
 	mock.Mock
 }
@@ -72,15 +51,6 @@ func (m *MockResumableManager) FindStart(ctx context.Context, start, end uint32)
 	return a.Get(0).(uint32), a.Get(1).(bool)
 }
 
-type MockNetworkManager struct {
-	mock.Mock
-}
-
-func (m *MockNetworkManager) GetLatestLedgerSequenceFromHistoryArchives(ctx context.Context, networkName string) (uint32, error) {
-	a := m.Called(ctx, networkName)
-	return a.Get(0).(uint32), a.Error(1)
-}
-
 // ensure that the MockClient implements ClientInterface
 var _ DataStore = &MockDataStore{}
-var _ ExportManager = &MockExportManager{}
+var _ ResumableManager = &MockResumableManager{}

@@ -68,8 +68,8 @@ func (s *ExportManagerSuite) TestRun() {
 	go func() {
 		defer wg.Done()
 		for {
-			v, ok, err := queue.Dequeue(s.ctx)
-			s.Assert().NoError(err)
+			v, ok, dqErr := queue.Dequeue(s.ctx)
+			s.Assert().NoError(dqErr)
 			if !ok {
 				break
 			}
@@ -86,7 +86,7 @@ func (s *ExportManagerSuite) TestRun() {
 	require.Equal(
 		s.T(),
 		float64(255),
-		getMetricValue(exporter.GetLatestLedgerMetric().With(
+		getMetricValue(exporter.latestLedgerMetric.With(
 			prometheus.Labels{
 				"start_ledger": "0",
 				"end_ledger":   "255",
@@ -113,8 +113,8 @@ func (s *ExportManagerSuite) TestRunContextCancel() {
 
 	go func() {
 		for i := 0; i < 127; i++ {
-			_, ok, err := queue.Dequeue(s.ctx)
-			s.Assert().NoError(err)
+			_, ok, dqErr := queue.Dequeue(s.ctx)
+			s.Assert().NoError(dqErr)
 			s.Assert().True(ok)
 		}
 	}()

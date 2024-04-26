@@ -64,7 +64,7 @@ type App struct {
 	config             *Config
 	ledgerBackend      ledgerbackend.LedgerBackend
 	dataStore          DataStore
-	exportManager      ExportManager
+	exportManager      *ExportManager
 	uploader           Uploader
 	flags              Flags
 	prometheusRegistry *prometheus.Registry
@@ -98,7 +98,7 @@ func (a *App) init(ctx context.Context) error {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 
-	if err := a.applyResumability(ctx, NewResumableManager(a.dataStore, a.config, archive)); err != nil {
+	if err = a.applyResumability(ctx, NewResumableManager(a.dataStore, a.config, archive)); err != nil {
 		return err
 	}
 
