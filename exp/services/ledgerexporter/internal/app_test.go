@@ -10,11 +10,11 @@ import (
 func TestApplyResumeDatastoreComplete(t *testing.T) {
 	ctx := context.Background()
 	app := NewApp(Flags{})
-	app.config = Config{StartLedger: 0, EndLedger: 9, Resume: true}
+	app.config = &Config{StartLedger: 0, EndLedger: 9, Resume: true}
 	mockResumableManager := &MockResumableManager{}
 	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(0), true).Once()
 
-	var alreadyExported *DataAlreadyExported
+	var alreadyExported *DataAlreadyExportedError
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.ErrorAs(t, err, &alreadyExported)
 }
@@ -22,7 +22,7 @@ func TestApplyResumeDatastoreComplete(t *testing.T) {
 func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 	ctx := context.Background()
 	app := NewApp(Flags{})
-	app.config = Config{
+	app.config = &Config{
 		StartLedger:       0,
 		EndLedger:         9,
 		Resume:            true,
@@ -33,7 +33,7 @@ func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 	// last ledger found was not aligned to starting boundary based on LedgersPerFile: 10
 	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(6), false).Once()
 
-	var invalidStore *InvalidDataStore
+	var invalidStore *InvalidDataStoreError
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.ErrorAs(t, err, &invalidStore)
 }
@@ -41,7 +41,7 @@ func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 func TestApplyResumeWithPartialRemoteDataPresent(t *testing.T) {
 	ctx := context.Background()
 	app := NewApp(Flags{})
-	app.config = Config{
+	app.config = &Config{
 		StartLedger:       0,
 		EndLedger:         99,
 		Resume:            true,
@@ -59,7 +59,7 @@ func TestApplyResumeWithPartialRemoteDataPresent(t *testing.T) {
 func TestApplyResumeWithNoRemoteDataPresent(t *testing.T) {
 	ctx := context.Background()
 	app := NewApp(Flags{})
-	app.config = Config{
+	app.config = &Config{
 		StartLedger:       0,
 		EndLedger:         99,
 		Resume:            true,

@@ -52,7 +52,7 @@ type Config struct {
 	Resume      bool
 }
 
-func CreateHistoryArchiveFromNetworkName(ctx context.Context, networkName string) (historyarchive.ArchiveInterface, error) {
+func createHistoryArchiveFromNetworkName(ctx context.Context, networkName string) (historyarchive.ArchiveInterface, error) {
 	var historyArchiveUrls []string
 	switch networkName {
 	case Pubnet:
@@ -71,7 +71,7 @@ func CreateHistoryArchiveFromNetworkName(ctx context.Context, networkName string
 	})
 }
 
-func GetLatestLedgerSequenceFromHistoryArchives(ctx context.Context, archive historyarchive.ArchiveInterface) (uint32, error) {
+func getLatestLedgerSequenceFromHistoryArchives(archive historyarchive.ArchiveInterface) (uint32, error) {
 	has, err := archive.GetRootHAS()
 	if err != nil {
 		logger.WithError(err).Warnf("Error getting root HAS from archives")
@@ -81,7 +81,8 @@ func GetLatestLedgerSequenceFromHistoryArchives(ctx context.Context, archive his
 	return has.CurrentLedger, nil
 }
 
-func GetHistoryArchivesCheckPointFrequency() uint32 {
+func getHistoryArchivesCheckPointFrequency() uint32 {
+	// this could evolve to use other sources for checkpoint freq
 	return historyarchive.DefaultCheckpointFrequency
 }
 
@@ -90,7 +91,7 @@ func GetHistoryArchivesCheckPointFrequency() uint32 {
 // ctx                   - the caller context
 // flags                 - command line flags
 //
-// return                - the populated config block or an error if any range validation failed.
+// return                - *Config or an error if any range validation failed.
 func NewConfig(ctx context.Context, flags Flags) (*Config, error) {
 	config := &Config{}
 
@@ -112,7 +113,7 @@ func NewConfig(ctx context.Context, flags Flags) (*Config, error) {
 // Validates requested ledger range, and will automatically adjust it
 // to be ledgers-per-file boundary aligned
 func (config *Config) ValidateAndSetLedgerRange(ctx context.Context, archive historyarchive.ArchiveInterface) error {
-	latestNetworkLedger, err := GetLatestLedgerSequenceFromHistoryArchives(ctx, archive)
+	latestNetworkLedger, err := getLatestLedgerSequenceFromHistoryArchives(archive)
 
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve the latest ledger sequence from history archives.")
@@ -181,7 +182,7 @@ func (config *Config) GenerateCaptiveCoreConfig() (ledgerbackend.CaptiveCoreConf
 		BinaryPath:          coreConfig.StellarCoreBinaryPath,
 		NetworkPassphrase:   params.NetworkPassphrase,
 		HistoryArchiveURLs:  params.HistoryArchiveURLs,
-		CheckpointFrequency: GetHistoryArchivesCheckPointFrequency(),
+		CheckpointFrequency: getHistoryArchivesCheckPointFrequency(),
 		Log:                 logger.WithField("subservice", "stellar-core"),
 		Toml:                captiveCoreToml,
 		UserAgent:           "ledger-exporter",
