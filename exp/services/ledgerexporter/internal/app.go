@@ -120,7 +120,10 @@ func (a *App) init(ctx context.Context) error {
 }
 
 func (a *App) applyResumability(ctx context.Context, resumableManager ResumableManager) error {
-	resumableStartLedger, dataStoreComplete := resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
+	resumableStartLedger, dataStoreComplete, err := resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
+	if err != nil {
+		return err
+	}
 	if dataStoreComplete {
 		return NewDataAlreadyExportedError(a.config.StartLedger, a.config.EndLedger)
 	}

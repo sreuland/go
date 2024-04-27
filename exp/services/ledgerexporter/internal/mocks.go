@@ -46,9 +46,9 @@ type MockResumableManager struct {
 	mock.Mock
 }
 
-func (m *MockResumableManager) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool) {
+func (m *MockResumableManager) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool, err error) {
 	a := m.Called(ctx, start, end)
-	return a.Get(0).(uint32), a.Get(1).(bool)
+	return a.Get(0).(uint32), a.Get(1).(bool), a.Error(2)
 }
 
 // ensure that the MockClient implements ClientInterface
