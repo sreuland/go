@@ -120,23 +120,22 @@ func (a *App) init(ctx context.Context) error {
 }
 
 func (a *App) applyResumability(ctx context.Context, resumableManager ResumableManager) error {
-	resumableStartLedger, dataStoreComplete, err := resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
+	absentLedger, ok, err := resumableManager.FindStart(ctx, a.config.StartLedger, a.config.EndLedger)
 	if err != nil {
 		return err
 	}
-	if dataStoreComplete {
+	if !ok {
 		return NewDataAlreadyExportedError(a.config.StartLedger, a.config.EndLedger)
 	}
 
-	// resumable is a best effort attempt, if response is 0 that means no resume is possible or enabled.
-	if resumableStartLedger > 0 {
-		// TODO - evaluate a more robust validation of remote data for ledgers-per-file consistency
-		if resumableStartLedger != a.config.LedgerBatchConfig.GetSequenceNumberStartBoundary(resumableStartLedger) {
-			return NewInvalidDataStoreError(resumableStartLedger, a.config.LedgerBatchConfig.LedgersPerFile)
-		}
-		logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", a.config.StartLedger, a.config.EndLedger, resumableStartLedger)
-		a.config.StartLedger = resumableStartLedger
+	// TODO - evaluate a more robust validation of remote data for ledgers-per-file consistency
+	// this assumes ValidateAndSetLedgerRange() has conditioned the a.config.StartLedger to be at least > 1
+	if absentLedger > 2 && absentLedger != a.config.LedgerBatchConfig.GetSequenceNumberStartBoundary(absentLedger) {
+		return NewInvalidDataStoreError(absentLedger, a.config.LedgerBatchConfig.LedgersPerFile)
 	}
+	logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", a.config.StartLedger, a.config.EndLedger, absentLedger)
+	a.config.StartLedger = absentLedger
+
 	return nil
 }
 

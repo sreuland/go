@@ -11,9 +11,9 @@ import (
 func TestApplyResumeHasStartError(t *testing.T) {
 	ctx := context.Background()
 	app := &App{}
-	app.config = &Config{StartLedger: 0, EndLedger: 9, Resume: true}
+	app.config = &Config{StartLedger: 10, EndLedger: 19, Resume: true}
 	mockResumableManager := &MockResumableManager{}
-	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(0), false, errors.New("start error")).Once()
+	mockResumableManager.On("FindStart", ctx, uint32(10), uint32(19)).Return(uint32(0), false, errors.New("start error")).Once()
 
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.ErrorContains(t, err, "start error")
@@ -23,9 +23,9 @@ func TestApplyResumeHasStartError(t *testing.T) {
 func TestApplyResumeDatastoreComplete(t *testing.T) {
 	ctx := context.Background()
 	app := &App{}
-	app.config = &Config{StartLedger: 0, EndLedger: 9, Resume: true}
+	app.config = &Config{StartLedger: 10, EndLedger: 19, Resume: true}
 	mockResumableManager := &MockResumableManager{}
-	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(0), true, nil).Once()
+	mockResumableManager.On("FindStart", ctx, uint32(10), uint32(19)).Return(uint32(0), false, nil).Once()
 
 	var alreadyExported *DataAlreadyExportedError
 	err := app.applyResumability(ctx, mockResumableManager)
@@ -37,7 +37,7 @@ func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 	ctx := context.Background()
 	app := &App{}
 	app.config = &Config{
-		StartLedger:       0,
+		StartLedger:       3,
 		EndLedger:         9,
 		Resume:            true,
 		LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10, FilesPerPartition: 50},
@@ -45,7 +45,7 @@ func TestApplyResumeInvalidDataStoreLedgersPerFileBoundary(t *testing.T) {
 	mockResumableManager := &MockResumableManager{}
 	// simulate the datastore has inconsistent data,
 	// with last ledger not aligned to starting boundary
-	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(9)).Return(uint32(6), false, nil).Once()
+	mockResumableManager.On("FindStart", ctx, uint32(3), uint32(9)).Return(uint32(6), true, nil).Once()
 
 	var invalidStore *InvalidDataStoreError
 	err := app.applyResumability(ctx, mockResumableManager)
@@ -57,14 +57,14 @@ func TestApplyResumeWithPartialRemoteDataPresent(t *testing.T) {
 	ctx := context.Background()
 	app := &App{}
 	app.config = &Config{
-		StartLedger:       0,
+		StartLedger:       10,
 		EndLedger:         99,
 		Resume:            true,
 		LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10, FilesPerPartition: 50},
 	}
 	mockResumableManager := &MockResumableManager{}
 	// simulates a data store that had ledger files populated up to seq=49, so the first absent ledger would be 50
-	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(99)).Return(uint32(50), false, nil).Once()
+	mockResumableManager.On("FindStart", ctx, uint32(10), uint32(99)).Return(uint32(50), true, nil).Once()
 
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.NoError(t, err)
@@ -76,17 +76,39 @@ func TestApplyResumeWithNoRemoteDataPresent(t *testing.T) {
 	ctx := context.Background()
 	app := &App{}
 	app.config = &Config{
-		StartLedger:       0,
+		StartLedger:       10,
 		EndLedger:         99,
 		Resume:            true,
 		LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10, FilesPerPartition: 50},
 	}
 	mockResumableManager := &MockResumableManager{}
 	// simulates a data store that had no data in the requested range
-	mockResumableManager.On("FindStart", ctx, uint32(0), uint32(99)).Return(uint32(0), false, nil).Once()
+	mockResumableManager.On("FindStart", ctx, uint32(10), uint32(99)).Return(uint32(2), true, nil).Once()
 
 	err := app.applyResumability(ctx, mockResumableManager)
 	require.NoError(t, err)
-	require.Equal(t, app.config.StartLedger, uint32(0))
+	require.Equal(t, app.config.StartLedger, uint32(2))
+	mockResumableManager.AssertExpectations(t)
+}
+
+func TestApplyResumeWithNoRemoteDataAndRequestFromGenesis(t *testing.T) {
+	// app will coerce config.StartLedger values less than 2 to a min of 2 before applying resumability FindStart 
+	// app will validate the response from FindStart to ensure datastore is ledgers-per-file aligned
+	// config.StartLedger=2 is a special genesis case that shouldn't trigger ledgers-per-file validation error
+	ctx := context.Background()
+	app := &App{}
+	app.config = &Config{
+		StartLedger:       2,
+		EndLedger:         99,
+		Resume:            true,
+		LedgerBatchConfig: LedgerBatchConfig{LedgersPerFile: 10, FilesPerPartition: 50},
+	}
+	mockResumableManager := &MockResumableManager{}
+	// simulates a data store that had no data in the requested range
+	mockResumableManager.On("FindStart", ctx, uint32(2), uint32(99)).Return(uint32(2), true, nil).Once()
+
+	err := app.applyResumability(ctx, mockResumableManager)
+	require.NoError(t, err)
+	require.Equal(t, app.config.StartLedger, uint32(2))
 	mockResumableManager.AssertExpectations(t)
 }

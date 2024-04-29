@@ -9,12 +9,11 @@ import (
 )
 
 type ResumableManager interface {
-	// Given a requested ledger range, return the first absent ledger in the
-	// range of [start, end].
-	// If ok is false then there are no absent ledgers in the range of [start, end].
+	// Given a requested ledger range, return the first absent ledger within the
+	// requested range of [start, end].
 	//
-	// start - begin search inclusively from this ledger, must be greater than 0.
-	// end   - stop search inclusively up to this ledger.
+	// start - begin search inclusive from this ledger, must be greater than 0.
+	// end   - stop search inclusive to this ledger.
 	//
 	// If start=0, invalid, error will be returned.
 	//
@@ -23,15 +22,15 @@ type ResumableManager interface {
 	// most recent checkpointed ledger + (2 * checkpoint_frequency).
 	//
 	// return:
-	// absentLedger      - if > 0, will be the oldest ledger sequence between inclusive range of [start, end]
-	//                     which is not populated on data store
-	// ok                - if true, there was no absent ledgers found on data store inclusive to the requested [start, end] range.
-	// err               - the search was cancelled due to this error, 'absentLedger' and 'ok' return values should be ignored.
+	// absentLedger      - will be non-zero, the oldest ledger sequence between range of [start, end]
+	//                     which is not populated on data store.
+	// ok                - if true, 'absentLedger' has a usable non-zero value, if false, 'absentLedger' will not be usable, and is set to zero.
+	// err               - the search was cancelled due to this unexpected error, 'absentLedger' and 'ok' return values should be ignored.
 	//
 	// When no error, the two return values will compose the following truth table:
-	//    1. datastore had no data in the requested range: absentLedger=0, ok=false
-	//    2. datastore had partial data in the requested range: absentLedger > 0, ok=false
-	//    3. datastore had all data in the requested range: absentLedger=0, ok=true
+	//    1. datastore had no data in the requested range: absentLedger={start}, ok=true
+	//    2. datastore had partial data in the requested range: absentLedger={a value > start and <= end}, ok=true
+	//    3. datastore had all data in the requested range: absentLedger=0, ok=false
 	FindStart(ctx context.Context, start, end uint32) (absentLedger uint32, ok bool, err error)
 }
 
@@ -92,23 +91,23 @@ func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint
 
 	if lowestAbsentIndex < 1 {
 		// data store had no data within search range
-		return 0, false, nil
+		return start, true, nil
 	}
 
 	if lowestAbsentIndex < int(rangeSize) {
 		nearestAbsentLedgerSequence := binarySearchStart + uint32(lowestAbsentIndex)
 		log.Infof("Resumability determined next absent object start key of %d for requested export ledger range", nearestAbsentLedgerSequence)
-		return nearestAbsentLedgerSequence, false, nil
+		return nearestAbsentLedgerSequence, true, nil
 	}
 
 	// unbounded, and datastore had up to latest network, return that as staring point.
 	if networkLatest > 0 {
-		return networkLatest, false, nil
+		return networkLatest, true, nil
 	}
 
 	// data store had all ledgers for requested range, no resumability needed.
 	log.Infof("Resumability found no absent object keys in requested ledger range")
-	return 0, true, nil
+	return 0, false, nil
 }
 
 func binarySearchCallbackFn(rm *resumableManagerService, ctx context.Context, start, end uint32, binarySearchError *error) func(ledgerSequence int) bool {

@@ -12,23 +12,23 @@ import (
 func TestResumability(t *testing.T) {
 
 	tests := []struct {
-		name                 string
-		startLedger          uint32
-		endLedger            uint32
-		ledgerBatchConfig    LedgerBatchConfig
-		resumableStartLedger uint32
-		dataStoreComplete    bool
-		networkName          string
-		latestLedger         uint32
-		errorSnippet         string
-		archiveError         error
+		name              string
+		startLedger       uint32
+		endLedger         uint32
+		ledgerBatchConfig LedgerBatchConfig
+		absentLedger      uint32
+		findStartOk       bool
+		networkName       string
+		latestLedger      uint32
+		errorSnippet      string
+		archiveError      error
 	}{
 		{
-			name:                 "archive error when resolving network latest",
-			startLedger:          4,
-			endLedger:            0,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "archive error when resolving network latest",
+			startLedger:  4,
+			endLedger:    0,
+			absentLedger: 0,
+			findStartOk:  false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -38,11 +38,11 @@ func TestResumability(t *testing.T) {
 			archiveError: errors.New("archive error"),
 		},
 		{
-			name:                 "End ledger same as start, data store has it",
-			startLedger:          4,
-			endLedger:            4,
-			resumableStartLedger: 0,
-			dataStoreComplete:    true,
+			name:         "End ledger same as start, data store has it",
+			startLedger:  4,
+			endLedger:    4,
+			absentLedger: 0,
+			findStartOk:  false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -50,11 +50,11 @@ func TestResumability(t *testing.T) {
 			networkName: "test",
 		},
 		{
-			name:                 "End ledger same as start, data store does not have it",
-			startLedger:          14,
-			endLedger:            14,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "End ledger same as start, data store does not have it",
+			startLedger:  14,
+			endLedger:    14,
+			absentLedger: 14,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -62,11 +62,11 @@ func TestResumability(t *testing.T) {
 			networkName: "test",
 		},
 		{
-			name:                 "binary search encounters an error during datastore retrieval",
-			startLedger:          24,
-			endLedger:            24,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "binary search encounters an error during datastore retrieval",
+			startLedger:  24,
+			endLedger:    24,
+			absentLedger: 0,
+			findStartOk:  false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -75,11 +75,11 @@ func TestResumability(t *testing.T) {
 			errorSnippet: "datastore error happened",
 		},
 		{
-			name:                 "Data store is beyond boundary aligned start ledger",
-			startLedger:          20,
-			endLedger:            50,
-			resumableStartLedger: 40,
-			dataStoreComplete:    false,
+			name:         "Data store is beyond boundary aligned start ledger",
+			startLedger:  20,
+			endLedger:    50,
+			absentLedger: 40,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -87,11 +87,11 @@ func TestResumability(t *testing.T) {
 			networkName: "test",
 		},
 		{
-			name:                 "Data store is beyond non boundary aligned start ledger",
-			startLedger:          55,
-			endLedger:            85,
-			resumableStartLedger: 80,
-			dataStoreComplete:    false,
+			name:         "Data store is beyond non boundary aligned start ledger",
+			startLedger:  55,
+			endLedger:    85,
+			absentLedger: 80,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -99,11 +99,11 @@ func TestResumability(t *testing.T) {
 			networkName: "test",
 		},
 		{
-			name:                 "Data store is beyond start and end ledger",
-			startLedger:          255,
-			endLedger:            275,
-			resumableStartLedger: 0,
-			dataStoreComplete:    true,
+			name:         "Data store is beyond start and end ledger",
+			startLedger:  255,
+			endLedger:    275,
+			absentLedger: 0,
+			findStartOk:  false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -111,11 +111,11 @@ func TestResumability(t *testing.T) {
 			networkName: "test",
 		},
 		{
-			name:                 "Data store is not beyond start ledger",
-			startLedger:          95,
-			endLedger:            125,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "Data store is not beyond start ledger",
+			startLedger:  95,
+			endLedger:    125,
+			absentLedger: 95,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -123,11 +123,11 @@ func TestResumability(t *testing.T) {
 			networkName: "test",
 		},
 		{
-			name:                 "No start ledger provided",
-			startLedger:          0,
-			endLedger:            10,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "No start ledger provided",
+			startLedger:  0,
+			endLedger:    10,
+			absentLedger: 0,
+			findStartOk:  false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -136,11 +136,11 @@ func TestResumability(t *testing.T) {
 			errorSnippet: "Invalid start value",
 		},
 		{
-			name:                 "No end ledger provided, data store not beyond start",
-			startLedger:          1145,
-			endLedger:            0,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "No end ledger provided, data store not beyond start",
+			startLedger:  1145,
+			endLedger:    0,
+			absentLedger: 1145,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -149,11 +149,11 @@ func TestResumability(t *testing.T) {
 			latestLedger: uint32(2000),
 		},
 		{
-			name:                 "No end ledger provided, data store is beyond start",
-			startLedger:          2145,
-			endLedger:            0,
-			resumableStartLedger: 2250,
-			dataStoreComplete:    false,
+			name:         "No end ledger provided, data store is beyond start",
+			startLedger:  2145,
+			endLedger:    0,
+			absentLedger: 2250,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -162,11 +162,11 @@ func TestResumability(t *testing.T) {
 			latestLedger: uint32(3000),
 		},
 		{
-			name:                 "No end ledger provided, data store is beyond start and archive network latest, and partially into checkpoint frequency padding",
-			startLedger:          3145,
-			endLedger:            0,
-			resumableStartLedger: 4070,
-			dataStoreComplete:    false,
+			name:         "No end ledger provided, data store is beyond start and archive network latest, and partially into checkpoint frequency padding",
+			startLedger:  3145,
+			endLedger:    0,
+			absentLedger: 4070,
+			findStartOk:  true,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -175,11 +175,11 @@ func TestResumability(t *testing.T) {
 			latestLedger: uint32(4000),
 		},
 		{
-			name:                 "No end ledger provided, start is beyond archive network latest and checkpoint frequency padding",
-			startLedger:          5129,
-			endLedger:            0,
-			resumableStartLedger: 0,
-			dataStoreComplete:    false,
+			name:         "No end ledger provided, start is beyond archive network latest and checkpoint frequency padding",
+			startLedger:  5129,
+			endLedger:    0,
+			absentLedger: 0,
+			findStartOk:  false,
 			ledgerBatchConfig: LedgerBatchConfig{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
@@ -254,14 +254,14 @@ func TestResumability(t *testing.T) {
 			mockArchive.On("GetRootHAS").Return(historyarchive.HistoryArchiveState{CurrentLedger: tt.latestLedger}, tt.archiveError).Once()
 
 			resumableManager := NewResumableManager(mockDataStore, tt.networkName, tt.ledgerBatchConfig, mockArchive)
-			resumableStartLedger, dataStoreComplete, err := resumableManager.FindStart(ctx, tt.startLedger, tt.endLedger)
+			absentLedger, ok, err := resumableManager.FindStart(ctx, tt.startLedger, tt.endLedger)
 			if tt.errorSnippet != "" {
 				require.ErrorContains(t, err, tt.errorSnippet)
 			} else {
 				require.NoError(t, err)
 			}
-			require.Equal(t, tt.resumableStartLedger, resumableStartLedger)
-			require.Equal(t, tt.dataStoreComplete, dataStoreComplete)
+			require.Equal(t, tt.absentLedger, absentLedger)
+			require.Equal(t, tt.findStartOk, ok)
 			if tt.endLedger == 0 {
 				// archives are only expected to be called when end = 0
 				mockArchive.AssertExpectations(t)
