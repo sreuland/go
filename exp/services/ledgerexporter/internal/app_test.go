@@ -92,7 +92,7 @@ func TestApplyResumeWithNoRemoteDataPresent(t *testing.T) {
 }
 
 func TestApplyResumeWithNoRemoteDataAndRequestFromGenesis(t *testing.T) {
-	// app will coerce config.StartLedger values less than 2 to a min of 2 before applying resumability FindStart 
+	// app will coerce config.StartLedger values less than 2 to a min of 2 before applying resumability FindStart
 	// app will validate the response from FindStart to ensure datastore is ledgers-per-file aligned
 	// config.StartLedger=2 is a special genesis case that shouldn't trigger ledgers-per-file validation error
 	ctx := context.Background()
