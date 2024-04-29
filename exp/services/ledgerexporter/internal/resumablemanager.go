@@ -9,24 +9,30 @@ import (
 )
 
 type ResumableManager interface {
-	// Find the closest ledger number to requested start but not greater which
-	// does not exist on datastore yet.
+	// Given a requested ledger range consisting of a start and end value,
+	// identify the closest ledger number to start but no greater which does
+	// not exist on datastore and is also less than or equal to end value.
 	//
-	// start - start search from this ledger, must be greater than 0.
-	// end   - stop search at this ledger.
+	// start - begin search inclusively from this ledger, must be greater than 0.
+	// end   - stop search inclusively up to this ledger.
 	//
-	// If start=0, this means no starting point is resumability is skipped,
+	// If start=0, invalid, error will be returned.
 	//
-	// If end=0, means unbounded, this will substitute an effective end value of
-	// the network's latest checkpointed ledger + (2 * checkpoint_frequency),
+	// If end=0, is provided as a convenience, to allow requesting an effectively
+	// dynamic end value for the range, which will be an approximation of the network's
+	// most recent checkpointed ledger + (2 * checkpoint_frequency).
 	//
 	// return:
-	// resumableLedger   - if > 0, will be the next ledger that is not populated on data store.
-	// dataStoreComplete - if true, there was no gaps on data store for bounded range requested
-	// err               - when present, resumableLedger will be and dataStoreComplete will be false
+	// resumableLedger   - if > 0, will be the next ledger that is not populated on
+	//                     data store within requested range.
+	// dataStoreComplete - if true, there was no missing ledgers found on data store within the requested range.
+	// err               - the search was cancelled due to this error,
+	//                     resumableLedger and dataStoreComplete should be ignored.
 	//
-	// if no err and resumableLedger is 0 and dataStoreComplete is false, no resumability was applicable,
-	// the datastore had no additional data to extend starting point.
+	// When no error, the two return values will compose the following truth table:
+	//    1. datastore had no data in the requested range: resumableLedger=0, dataStoreComplete=false
+	//    2. datastore had partial data in the requested range: resumableLedger > 0, dataStoreComplete=false
+	//    3. datastore had all data in the requested range: resumableLedger=0, dataStoreComplete=true
 	FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool, err error)
 }
 
