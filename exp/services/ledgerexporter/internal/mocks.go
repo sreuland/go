@@ -46,7 +46,7 @@ type MockResumableManager struct {
 	mock.Mock
 }
 
-func (m *MockResumableManager) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool, err error) {
+func (m *MockResumableManager) FindStart(ctx context.Context, start, end uint32) (absentLedger uint32, ok bool, err error) {
 	a := m.Called(ctx, start, end)
 	return a.Get(0).(uint32), a.Get(1).(bool), a.Error(2)
 }

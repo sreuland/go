@@ -9,9 +9,9 @@ import (
 )
 
 type ResumableManager interface {
-	// Given a requested ledger range consisting of a start and end value,
-	// identify the closest ledger number to start but no greater which does
-	// not exist on datastore and is also less than or equal to end value.
+	// Given a requested ledger range, return the first absent ledger in the
+	// range of [start, end].
+	// If ok is false then there are no absent ledgers in the range of [start, end].
 	//
 	// start - begin search inclusively from this ledger, must be greater than 0.
 	// end   - stop search inclusively up to this ledger.
@@ -23,17 +23,16 @@ type ResumableManager interface {
 	// most recent checkpointed ledger + (2 * checkpoint_frequency).
 	//
 	// return:
-	// resumableLedger   - if > 0, will be the next ledger that is not populated on
-	//                     data store within requested range.
-	// dataStoreComplete - if true, there was no missing ledgers found on data store within the requested range.
-	// err               - the search was cancelled due to this error,
-	//                     resumableLedger and dataStoreComplete should be ignored.
+	// absentLedger      - if > 0, will be the oldest ledger sequence between inclusive range of [start, end]
+	//                     which is not populated on data store
+	// ok                - if true, there was no absent ledgers found on data store inclusive to the requested [start, end] range.
+	// err               - the search was cancelled due to this error, 'absentLedger' and 'ok' return values should be ignored.
 	//
 	// When no error, the two return values will compose the following truth table:
-	//    1. datastore had no data in the requested range: resumableLedger=0, dataStoreComplete=false
-	//    2. datastore had partial data in the requested range: resumableLedger > 0, dataStoreComplete=false
-	//    3. datastore had all data in the requested range: resumableLedger=0, dataStoreComplete=true
-	FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool, err error)
+	//    1. datastore had no data in the requested range: absentLedger=0, ok=false
+	//    2. datastore had partial data in the requested range: absentLedger > 0, ok=false
+	//    3. datastore had all data in the requested range: absentLedger=0, ok=true
+	FindStart(ctx context.Context, start, end uint32) (absentLedger uint32, ok bool, err error)
 }
 
 type resumableManagerService struct {
@@ -55,7 +54,7 @@ func NewResumableManager(dataStore DataStore,
 	}
 }
 
-func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint32) (resumableLedger uint32, dataStoreComplete bool, err error) {
+func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint32) (absentLedger uint32, ok bool, err error) {
 	if start < 1 {
 		return 0, false, errors.New("Invalid start value, must be greater than zero")
 	}
@@ -68,10 +67,8 @@ func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint
 		networkLatest, latestErr = getLatestLedgerSequenceFromHistoryArchives(rm.archive)
 		if latestErr != nil {
 			err := errors.Wrap(latestErr, "Resumability of requested export ledger range, was not able to get latest ledger from network")
-			log.WithError(err)
 			return 0, false, err
 		}
-		logger.Infof("Resumability acquired latest archived network ledger =%d + for network=%v", networkLatest, rm.network)
 		networkLatest = networkLatest + (getHistoryArchivesCheckPointFrequency() * 2)
 		logger.Infof("Resumability computed effective latest network ledger including padding of checkpoint frequency to be %d + for network=%v", networkLatest, rm.network)
 
