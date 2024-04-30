@@ -39,7 +39,7 @@ Exporting a ledger range can be optimized further by enabling resumability if th
 By default, resumability is disabled, `--resume false`
 
 When enabled, `--resume true`, ledgerexporter will search the remote data store within the requested range, looking for the oldest absent ledger sequence number within range. If abscence is detected, the export range is narrowed to `--start <absent_ledger_sequence>`. 
-This feature requires any existing data within the requested range on remote data store to be in an ordered and consistent state, beginning at `--start` and populalated contiguously in increasing order of sequence numbers, without gaps, up to point of abscence or `--end <end>`, whichever comes first or if streaming with `--end 0`.
+This feature requires all ledgers to be present on the remote data store for some (possibly empty) prefix of the requested range and then absent for the (possibly empty) remainder.
 
 ### Configuration (toml):
 
