@@ -62,8 +62,7 @@ func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint
 
 	networkLatest := uint32(0)
 	if end < 1 {
-		var latestErr error
-		networkLatest, latestErr = getLatestLedgerSequenceFromHistoryArchives(rm.archive)
+		networkLatest, latestErr := getLatestLedgerSequenceFromHistoryArchives(rm.archive)
 		if latestErr != nil {
 			err := errors.Wrap(latestErr, "Resumability of requested export ledger range, was not able to get latest ledger from network")
 			return 0, false, err
@@ -75,27 +74,18 @@ func (rm resumableManagerService) FindStart(ctx context.Context, start, end uint
 			// requested to start at a point beyond the latest network, resume not applicable.
 			return 0, false, errors.Errorf("Invalid start value of %v, it is greater than network's latest ledger of %v", start, networkLatest)
 		}
+		end = networkLatest
 	}
 
-	binarySearchStop := max(end, networkLatest)
-	binarySearchStart := start
-
-	log.Infof("Resumability is searching datastore for next absent object key of requested export ledger range")
-
-	rangeSize := max(int(binarySearchStop-binarySearchStart), 1)
+	rangeSize := max(int(end-start), 1)
 	var binarySearchError error
-	lowestAbsentIndex := sort.Search(rangeSize, binarySearchCallbackFn(&rm, ctx, binarySearchStart, binarySearchStop, &binarySearchError))
+	lowestAbsentIndex := sort.Search(rangeSize, binarySearchCallbackFn(&rm, ctx, start, end, &binarySearchError))
 	if binarySearchError != nil {
 		return 0, false, binarySearchError
 	}
 
-	if lowestAbsentIndex < 1 {
-		// data store had no data within search range
-		return start, true, nil
-	}
-
 	if lowestAbsentIndex < int(rangeSize) {
-		nearestAbsentLedgerSequence := binarySearchStart + uint32(lowestAbsentIndex)
+		nearestAbsentLedgerSequence := start + uint32(lowestAbsentIndex)
 		log.Infof("Resumability determined next absent object start key of %d for requested export ledger range", nearestAbsentLedgerSequence)
 		return nearestAbsentLedgerSequence, true, nil
 	}
