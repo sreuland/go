@@ -24,7 +24,7 @@ type ResumableManager interface {
 	// return:
 	// absentLedger      - will be non-zero, the oldest ledger sequence between range of [start, end]
 	//                     which is not populated on data store.
-	// ok                - if true, 'absentLedger' has a usable non-zero value, if false, 'absentLedger' will not be usable, and is set to zero.
+	// ok                - if true, 'absentLedger' has a usable non-zero value, if false, there is no absent ledger in the requested range and 'absentLedger' is set to zero.
 	// err               - the search was cancelled due to this unexpected error, 'absentLedger' and 'ok' return values should be ignored.
 	//
 	// When no error, the two return values will compose the following truth table:
