@@ -173,6 +173,10 @@ type Metrics struct {
 
 	// ArchiveRequestCounter counts how many http requests are sent to history server
 	HistoryArchiveStatsCounter *prometheus.CounterVec
+
+	// IngestionErrorRestartCounter counts the number of times the live/forward ingestion state machine
+	// initiates a restart or retry.
+	IngestionErrorRestartCounter *prometheus.CounterVec
 }
 
 type System interface {
@@ -443,6 +447,19 @@ func (s *system) initMetrics() {
 		},
 		[]string{"source", "type"},
 	)
+
+	s.metrics.IngestionErrorRestartCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "horizon", Subsystem: "ingest", Name: "error_restarts",
+			Help: "Counters of the number of times the live/forward ingestion state machine initiates a restart. " +
+				"when 'type' label is 'start' means some aspect of ledger order is out of sync between data from " +
+				"captive core meta pipe and horizon's db, restarting to see if condition resolves. " +
+				"when 'type' label is 'retry' means ingestion is getting an unexpected error while " +
+				"processing network ledger data which it can't resolve. If this metric is constantly increasing, " +
+				"it means ingestion is stuck in a retry loop on an error it can't resolve, effectively halted.",
+		},
+		[]string{"type"},
+	)
 }
 
 func (s *system) GetCurrentState() State {
@@ -471,6 +488,7 @@ func (s *system) RegisterMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(s.metrics.LoadersStatsSummary)
 	registry.MustRegister(s.metrics.StateVerifyLedgerEntriesCount)
 	registry.MustRegister(s.metrics.HistoryArchiveStatsCounter)
+	registry.MustRegister(s.metrics.IngestionErrorRestartCounter)
 	s.ledgerBackend = ledgerbackend.WithMetrics(s.ledgerBackend, registry, "horizon")
 }
 

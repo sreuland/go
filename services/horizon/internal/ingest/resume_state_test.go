@@ -6,6 +6,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
@@ -28,6 +30,7 @@ type ResumeTestTestSuite struct {
 	runner            *mockProcessorsRunner
 	stellarCoreClient *mockStellarCoreClient
 	system            *system
+	registry          *prometheus.Registry
 }
 
 func (s *ResumeTestTestSuite) SetupTest() {
@@ -37,6 +40,7 @@ func (s *ResumeTestTestSuite) SetupTest() {
 	s.historyAdapter = &mockHistoryArchiveAdapter{}
 	s.runner = &mockProcessorsRunner{}
 	s.stellarCoreClient = &mockStellarCoreClient{}
+	s.registry = prometheus.NewRegistry()
 	s.system = &system{
 		ctx:                          s.ctx,
 		historyQ:                     s.historyQ,
@@ -47,8 +51,8 @@ func (s *ResumeTestTestSuite) SetupTest() {
 		runStateVerificationOnLedger: ledgerEligibleForStateVerification(64, 1),
 	}
 	s.system.initMetrics()
-
 	s.historyQ.On("Rollback").Return(nil).Once()
+	s.registry.Register(s.system.Metrics().IngestionErrorRestartCounter)
 
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(101)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(101)).Return(nil).Once()
@@ -72,6 +76,7 @@ func (s *ResumeTestTestSuite) TearDownTest() {
 	s.historyAdapter.AssertExpectations(t)
 	s.ledgerBackend.AssertExpectations(t)
 	s.stellarCoreClient.AssertExpectations(t)
+	s.registry.Unregister(s.system.Metrics().IngestionErrorRestartCounter)
 }
 
 func (s *ResumeTestTestSuite) TestInvalidParam() {
@@ -86,6 +91,7 @@ func (s *ResumeTestTestSuite) TestInvalidParam() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "start", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestRangeNotPreparedFailPrepare() {
@@ -103,6 +109,7 @@ func (s *ResumeTestTestSuite) TestRangeNotPreparedFailPrepare() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "start", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestRangeNotPreparedSuccessPrepareGetLedgerFail() {
@@ -118,6 +125,7 @@ func (s *ResumeTestTestSuite) TestRangeNotPreparedSuccessPrepareGetLedgerFail() 
 	s.Assert().Error(err)
 	s.Assert().EqualError(err, "error getting ledger blocking: my error")
 	s.Assert().Equal(transition{node: startState{}, sleepDuration: defaultSleep}, next)
+	assertErrorRestartMetrics(s.registry, "start", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestBeginReturnsError() {
@@ -136,6 +144,7 @@ func (s *ResumeTestTestSuite) TestBeginReturnsError() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "retry", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestGetLastLedgerIngestReturnsError() {
@@ -152,6 +161,7 @@ func (s *ResumeTestTestSuite) TestGetLastLedgerIngestReturnsError() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "retry", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestGetLatestLedgerLessThanCurrent() {
@@ -165,6 +175,7 @@ func (s *ResumeTestTestSuite) TestGetLatestLedgerLessThanCurrent() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "start", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestGetIngestionVersionError() {
@@ -182,6 +193,7 @@ func (s *ResumeTestTestSuite) TestGetIngestionVersionError() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "retry", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestIngestionVersionLessThanCurrentVersion() {
@@ -195,6 +207,7 @@ func (s *ResumeTestTestSuite) TestIngestionVersionLessThanCurrentVersion() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestIngestionVersionGreaterThanCurrentVersion() {
@@ -208,6 +221,7 @@ func (s *ResumeTestTestSuite) TestIngestionVersionGreaterThanCurrentVersion() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestGetLatestLedgerError() {
@@ -226,6 +240,7 @@ func (s *ResumeTestTestSuite) TestGetLatestLedgerError() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "retry", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestLatestHistoryLedgerLessThanIngestLedger() {
@@ -240,6 +255,7 @@ func (s *ResumeTestTestSuite) TestLatestHistoryLedgerLessThanIngestLedger() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestLatestHistoryLedgerGreaterThanIngestLedger() {
@@ -254,6 +270,7 @@ func (s *ResumeTestTestSuite) TestLatestHistoryLedgerGreaterThanIngestLedger() {
 		transition{node: startState{}, sleepDuration: defaultSleep},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) mockSuccessfulIngestion() {
@@ -313,6 +330,7 @@ func (s *ResumeTestTestSuite) TestBumpIngestLedger() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestIngestAllMasterNode() {
@@ -327,6 +345,7 @@ func (s *ResumeTestTestSuite) TestIngestAllMasterNode() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestRebuildTradeAggregationBucketsError() {
@@ -357,6 +376,28 @@ func (s *ResumeTestTestSuite) TestRebuildTradeAggregationBucketsError() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "retry", 1, s.Assert())
+}
+
+func (s *ResumeTestTestSuite) TestRunAllProcessorsError() {
+	s.historyQ.On("Begin", s.ctx).Return(nil).Once()
+	s.historyQ.On("GetLastLedgerIngest", s.ctx).Return(uint32(100), nil).Once()
+	s.historyQ.On("GetIngestVersion", s.ctx).Return(CurrentVersion, nil).Once()
+	s.historyQ.On("GetLatestHistoryLedger", s.ctx).Return(uint32(100), nil)
+
+	s.runner.On("RunAllProcessorsOnLedger", mock.AnythingOfType("xdr.LedgerCloseMeta")).
+		Return(ledgerStats{}, errors.New("processor error")).Once()
+
+	next, err := resumeState{latestSuccessfullyProcessedLedger: 100}.run(s.system)
+	s.Assert().ErrorContains(err, "processor error")
+	s.Assert().Equal(
+		transition{
+			node:          resumeState{latestSuccessfullyProcessedLedger: 100},
+			sleepDuration: defaultSleep,
+		},
+		next,
+	)
+	assertErrorRestartMetrics(s.registry, "retry", 1, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestReapingObjectsDisabled() {
@@ -398,6 +439,7 @@ func (s *ResumeTestTestSuite) TestReapingObjectsDisabled() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
 }
 
 func (s *ResumeTestTestSuite) TestErrorReapingObjectsIgnored() {
@@ -448,4 +490,31 @@ func (s *ResumeTestTestSuite) TestErrorReapingObjectsIgnored() {
 		},
 		next,
 	)
+	assertErrorRestartMetrics(s.registry, "", 0, s.Assert())
+}
+
+func assertErrorRestartMetrics(reg *prometheus.Registry, assertRestartType string, assertRestartCount float64, assert *assert.Assertions) {
+
+	metrics, err := reg.Gather()
+	assert.NoError(err)
+
+	for _, metricFamily := range metrics {
+		if metricFamily.GetName() == "horizon_ingest_error_restarts" {
+			assert.Len(metricFamily.GetMetric(), 1)
+			assert.Equal(metricFamily.GetMetric()[0].GetCounter().GetValue(), assertRestartCount)
+			var restartType = ""
+			for _, label := range metricFamily.GetMetric()[0].GetLabel() {
+				if label.GetName() == "type" {
+					restartType = label.GetValue()
+				}
+			}
+
+			assert.Equal(restartType, assertRestartType)
+			return
+		}
+	}
+
+	if assertRestartCount > 0.0 {
+		assert.Fail("horizon_ingest_restarts metrics were not correct")
+	}
 }
