@@ -431,7 +431,7 @@ func (resumeState) GetState() State {
 	return Resume
 }
 
-func (r resumeState) run(s *system) (transitionResult transition, errorResult error) {
+func (r resumeState) run(s *system) (transition, error) {
 	if r.latestSuccessfullyProcessedLedger == 0 {
 		return start(), errors.New("unexpected latestSuccessfullyProcessedLedger value")
 	}
