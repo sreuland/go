@@ -3,7 +3,6 @@ package ingest
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -46,6 +45,32 @@ const (
 	HistoryRange
 	ReingestHistoryRange
 )
+
+// provide a name represention for a state
+func (state State) Name() string {
+	switch state {
+	case Start:
+		return "start"
+	case Stop:
+		return "stop"
+	case Build:
+		return "build"
+	case Resume:
+		return "resume"
+	case WaitForCheckpoint:
+		return "waitforcheckpoint"
+	case StressTest:
+		return "stresstest"
+	case VerifyRange:
+		return "verifyrange"
+	case HistoryRange:
+		return "historyrange"
+	case ReingestHistoryRange:
+		return "reingesthistoryrange"
+	default:
+		return "none"
+	}
+}
 
 type stateMachineNode interface {
 	run(*system) (transition, error)
@@ -407,18 +432,6 @@ func (resumeState) GetState() State {
 }
 
 func (r resumeState) run(s *system) (transitionResult transition, errorResult error) {
-	defer func() {
-		if errorResult != nil {
-			// capture any restarts that are being triggered by the state
-			switch reflect.TypeOf(transitionResult.node) {
-			case (reflect.TypeFor[startState]()):
-				r.incrementRestartMetric(s, "start")
-			case (reflect.TypeFor[resumeState]()):
-				r.incrementRestartMetric(s, "retry")
-			}
-		}
-	}()
-
 	if r.latestSuccessfullyProcessedLedger == 0 {
 		return start(), errors.New("unexpected latestSuccessfullyProcessedLedger value")
 	}
@@ -585,11 +598,6 @@ func (r resumeState) addProcessorDurationsMetricFromMap(s *system, m map[string]
 		s.Metrics().ProcessorsRunDurationSummary.
 			With(prometheus.Labels{"name": processorName}).Observe(value.Seconds())
 	}
-}
-
-func (r resumeState) incrementRestartMetric(s *system, restartType string) {
-	s.Metrics().IngestionErrorRestartCounter.
-		With(prometheus.Labels{"type": restartType}).Inc()
 }
 
 func (r resumeState) addLoaderDurationsMetricFromMap(s *system, m map[string]time.Duration) {
