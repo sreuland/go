@@ -1,0 +1,5 @@
+network_name = "test"
+
+[stellar_core_config]
+preconfigured_network = "pubnet"  
+

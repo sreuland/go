@@ -13,7 +13,7 @@ import (
 )
 
 type ExportManager struct {
-	config             datastore.LedgerBatchConfig
+	config             datastore.DataStoreSchema
 	ledgerBackend      ledgerbackend.LedgerBackend
 	currentMetaArchive *datastore.LedgerMetaArchive
 	queue              UploadQueue
@@ -21,7 +21,7 @@ type ExportManager struct {
 }
 
 // NewExportManager creates a new ExportManager with the provided configuration.
-func NewExportManager(config datastore.LedgerBatchConfig, backend ledgerbackend.LedgerBackend, queue UploadQueue, prometheusRegistry *prometheus.Registry) (*ExportManager, error) {
+func NewExportManager(config datastore.DataStoreSchema, backend ledgerbackend.LedgerBackend, queue UploadQueue, prometheusRegistry *prometheus.Registry) (*ExportManager, error) {
 	if config.LedgersPerFile < 1 {
 		return nil, errors.Errorf("Invalid ledgers per file (%d): must be at least 1", config.LedgersPerFile)
 	}

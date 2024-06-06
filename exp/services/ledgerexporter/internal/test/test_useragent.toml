@@ -1,0 +1,6 @@
+network_name = "test"
+user_agent = "useragent_x"
+
+[stellar_core_config]
+preconfigured_network = "pubnet"  
+

@@ -26,7 +26,7 @@ func createBufferedStorageBackendConfigForTesting() BufferedStorageBackendConfig
 	param := make(map[string]string)
 	param["destination_bucket_path"] = "testURL"
 
-	ledgerBatchConfig := datastore.LedgerBatchConfig{
+	ledgerBatchConfig := datastore.DataStoreSchema{
 		LedgersPerFile:    1,
 		FilesPerPartition: 64000,
 	}

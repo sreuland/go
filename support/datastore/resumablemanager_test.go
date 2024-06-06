@@ -15,7 +15,7 @@ func TestResumability(t *testing.T) {
 		name              string
 		startLedger       uint32
 		endLedger         uint32
-		ledgerBatchConfig LedgerBatchConfig
+		ledgerBatchConfig DataStoreSchema
 		absentLedger      uint32
 		findStartOk       bool
 		networkName       string
@@ -29,7 +29,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    0,
 			absentLedger: 0,
 			findStartOk:  false,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -43,7 +43,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    4,
 			absentLedger: 0,
 			findStartOk:  false,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -55,7 +55,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    14,
 			absentLedger: 14,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -67,7 +67,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    24,
 			absentLedger: 0,
 			findStartOk:  false,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -80,7 +80,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    50,
 			absentLedger: 40,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -92,7 +92,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    85,
 			absentLedger: 80,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -104,7 +104,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    275,
 			absentLedger: 0,
 			findStartOk:  false,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -116,7 +116,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    125,
 			absentLedger: 95,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -128,7 +128,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    10,
 			absentLedger: 0,
 			findStartOk:  false,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -141,7 +141,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    0,
 			absentLedger: 1145,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -154,7 +154,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    0,
 			absentLedger: 2250,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -167,7 +167,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    0,
 			absentLedger: 4070,
 			findStartOk:  true,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
@@ -180,7 +180,7 @@ func TestResumability(t *testing.T) {
 			endLedger:    0,
 			absentLedger: 0,
 			findStartOk:  false,
-			ledgerBatchConfig: LedgerBatchConfig{
+			ledgerBatchConfig: DataStoreSchema{
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},

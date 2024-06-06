@@ -21,30 +21,25 @@ type LedgerCloseMetaBatch struct {
 
 ### Command Line Options
 
-#### Bounded Mode:
-Exports a specific range of ledgers, defined by --start and --end.
+#### Scan and Fill Mode:
+Exports a specific range of ledgers, defined by --start and --end. Will only export to remote datastore if data is absent.
 ```bash
-ledgerexporter --start <start_ledger> --end <end_ledger> --config-file <config_file_path>
+ledgerexporter scan-and-fill --start <start_ledger> --end <end_ledger> --config-file <config_file_path>
 ```
 
-#### Unbounded Mode:
-Exports ledgers continuously starting from --start. In this mode, the end ledger is either not provided or set to 0.
+#### Append Mode:
+Exports ledgers initially searching from --start, looking for the next absent ledger sequence number proceeding --start on the data store. If abscence is detected, the export range is narrowed to `--start <absent_ledger_sequence>`. 
+This feature requires ledgers to be present on the remote data store for some (possibly empty) prefix of the requested range and then absent for the (possibly empty) remainder. 
+
+In this mode, the --end ledger can be provided to stop the process once export has reached that ledger, or if absent or 0 it will result in continous exporting of new ledgers emitted from the network. 
 ```bash
-ledgerexporter --start <start_ledger> --config-file <config_file_path>
+ledgerexporter append --start <start_ledger> --config-file <config_file_path>
 ```
-
-#### Resumability:
-Exporting a ledger range can be optimized further by enabling resumability if the remote data store supports it.
-
-By default, resumability is disabled, `--resume false`
-
-When enabled, `--resume true`, ledgerexporter will search the remote data store within the requested range, looking for the oldest absent ledger sequence number within range. If abscence is detected, the export range is narrowed to `--start <absent_ledger_sequence>`. 
-This feature requires all ledgers to be present on the remote data store for some (possibly empty) prefix of the requested range and then absent for the (possibly empty) remainder.
 
 ### Configuration (toml):
 
 ```toml
-network = "testnet"  # Options: `testnet` or `pubnet`
+network_name = "testnet"  
 
 [datastore_config]
 type = "GCS"
@@ -52,13 +47,28 @@ type = "GCS"
 [datastore_config.params]
 destination_bucket_path = "your-bucket-name/<optional_subpaths>"
 
-[exporter_config]
+[datastore_config.schema]
 ledgers_per_file = 64
 files_per_partition = 10
+file_suffix = ".xdr.gz"
+
+[stellar_core_config]
+ stellar_core_binary_path = "/my/path/to/stellar-core"
+  preconfigured_network = "testnet" # Options: `testnet` or `pubnet`
+
+or
+
+[stellar_core_config]
+  captive_core_toml_path = "my-captive-core.cfg"
+  stellar_core_binary_path = "/my/path/to/stellar-core"
+  history_archive_urls = ["http://testarchiveurl1", "http://testarchiveurl2"]
+  network_passphrase = "test"
+
 ```
 
 #### Stellar-core configuration:
-- The exporter automatically configures stellar-core based on the network specified in the config.
+- The exporter automatically configures stellar-core based on stellar_core_config.preconfigured_network or directly with stellar_core_config.captive_core_toml_path,  
+stellar_core_config.history_archive_urls, and stellar_core_config.network_passphrase
 - Ensure you have stellar-core installed and accessible in your system's $PATH.
 
 ### Exported Files

@@ -1,5 +1,8 @@
-network = "test"  
+network_name = "test"  
 
-[exporter_config]
+[stellar_core_config]
+preconfigured_network = "pubnet"  
+
+[datastore_config.schema]
 ledgers_per_file = 10
 file_suffix = ".xdr.gz"

@@ -10,6 +10,7 @@ import (
 type DataStoreConfig struct {
 	Type   string            `toml:"type"`
 	Params map[string]string `toml:"params"`
+	Schema DataStoreSchema   `toml:"schema"`
 }
 
 // DataStore defines an interface for interacting with data storage

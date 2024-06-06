@@ -37,14 +37,14 @@ type ResumableManager interface {
 
 type resumableManagerService struct {
 	network           string
-	ledgerBatchConfig LedgerBatchConfig
+	ledgerBatchConfig DataStoreSchema
 	dataStore         DataStore
 	archive           historyarchive.ArchiveInterface
 }
 
 func NewResumableManager(dataStore DataStore,
 	network string,
-	ledgerBatchConfig LedgerBatchConfig,
+	ledgerBatchConfig DataStoreSchema,
 	archive historyarchive.ArchiveInterface) ResumableManager {
 	return &resumableManagerService{
 		ledgerBatchConfig: ledgerBatchConfig,

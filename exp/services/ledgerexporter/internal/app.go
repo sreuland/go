@@ -67,39 +67,38 @@ type App struct {
 	dataStore          datastore.DataStore
 	exportManager      *ExportManager
 	uploader           Uploader
-	flags              Flags
 	prometheusRegistry *prometheus.Registry
 }
 
-func NewApp(flags Flags) *App {
+func NewApp() *App {
 	logger.SetLevel(log.DebugLevel)
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{Namespace: "ledger_exporter"}),
 		collectors.NewGoCollector(),
 	)
-	app := &App{flags: flags, prometheusRegistry: registry}
+	app := &App{prometheusRegistry: registry}
 	return app
 }
 
-func (a *App) init(ctx context.Context) error {
+func (a *App) init(ctx context.Context, runtimeSettings RuntimeSettings) error {
 	var err error
 	var archive historyarchive.ArchiveInterface
 
-	if a.config, err = NewConfig(ctx, a.flags); err != nil {
+	if a.config, err = NewConfig(runtimeSettings); err != nil {
 		return errors.Wrap(err, "Could not load configuration")
 	}
-	if archive, err = datastore.CreateHistoryArchiveFromNetworkName(ctx, a.config.Network); err != nil {
+	if archive, err = a.config.GenerateHistoryArchive(ctx); err != nil {
 		return err
 	}
 	a.config.ValidateAndSetLedgerRange(ctx, archive)
 
-	if a.dataStore, err = datastore.NewDataStore(ctx, a.config.DataStoreConfig, a.config.Network); err != nil {
+	if a.dataStore, err = datastore.NewDataStore(ctx, a.config.DataStoreConfig, a.config.NetworkName); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
-	if a.config.Resume {
+	if a.config.Resumable() {
 		if err = a.applyResumability(ctx,
-			datastore.NewResumableManager(a.dataStore, a.config.Network, a.config.LedgerBatchConfig, archive)); err != nil {
+			datastore.NewResumableManager(a.dataStore, a.config.NetworkName, a.config.DataStoreConfig.Schema, archive)); err != nil {
 			return err
 		}
 	}
@@ -112,7 +111,7 @@ func (a *App) init(ctx context.Context) error {
 
 	// TODO: make number of upload workers configurable instead of hard coding it to 1
 	queue := NewUploadQueue(1, a.prometheusRegistry)
-	if a.exportManager, err = NewExportManager(a.config.LedgerBatchConfig, a.ledgerBackend, queue, a.prometheusRegistry); err != nil {
+	if a.exportManager, err = NewExportManager(a.config.DataStoreConfig.Schema, a.ledgerBackend, queue, a.prometheusRegistry); err != nil {
 		return err
 	}
 	a.uploader = NewUploader(a.dataStore, queue, a.prometheusRegistry)
@@ -131,8 +130,8 @@ func (a *App) applyResumability(ctx context.Context, resumableManager datastore.
 
 	// TODO - evaluate a more robust validation of remote data for ledgers-per-file consistency
 	// this assumes ValidateAndSetLedgerRange() has conditioned the a.config.StartLedger to be at least > 1
-	if absentLedger > 2 && absentLedger != a.config.LedgerBatchConfig.GetSequenceNumberStartBoundary(absentLedger) {
-		return NewInvalidDataStoreError(absentLedger, a.config.LedgerBatchConfig.LedgersPerFile)
+	if absentLedger > 2 && absentLedger != a.config.DataStoreConfig.Schema.GetSequenceNumberStartBoundary(absentLedger) {
+		return NewInvalidDataStoreError(absentLedger, a.config.DataStoreConfig.Schema.LedgersPerFile)
 	}
 	logger.Infof("For export ledger range start=%d, end=%d, the remote storage has some of this data already, will resume at later start ledger of %d", a.config.StartLedger, a.config.EndLedger, absentLedger)
 	a.config.StartLedger = absentLedger
@@ -167,18 +166,19 @@ func (a *App) serveAdmin() {
 	})
 }
 
-func (a *App) Run() {
+func (a *App) Run(runtimeSettings RuntimeSettings) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := a.init(ctx); err != nil {
+	if err := a.init(ctx, runtimeSettings); err != nil {
 		var dataAlreadyExported DataAlreadyExportedError
 		if errors.As(err, &dataAlreadyExported) {
 			logger.Info(err.Error())
 			logger.Info("Shutting down ledger-exporter")
-			return
+			return dataAlreadyExported
 		}
-		logger.WithError(err).Fatal("Stopping ledger-exporter")
+		logger.WithError(err).Error("Stopping ledger-exporter")
+		return err
 	}
 	defer a.close()
 
@@ -218,6 +218,7 @@ func (a *App) Run() {
 
 	wg.Wait()
 	logger.Info("Shutting down ledger-exporter")
+	return nil
 }
 
 // newLedgerBackend Creates and initializes captive core ledger backend
