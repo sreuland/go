@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/stellar/go/support/compressxdr"
 	"github.com/stellar/go/support/datastore"
 )
@@ -18,6 +19,7 @@ type Uploader struct {
 	queue                UploadQueue
 	uploadDurationMetric *prometheus.SummaryVec
 	objectSizeMetrics    *prometheus.SummaryVec
+	latestLedgerMetric   prometheus.Gauge
 }
 
 // NewUploader constructs a new Uploader instance
@@ -42,12 +44,17 @@ func NewUploader(
 		},
 		[]string{"ledgers", "already_exists", "compression"},
 	)
-	prometheusRegistry.MustRegister(uploadDurationMetric, objectSizeMetrics)
+	latestLedgerMetric := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "ledger_exporter", Subsystem: "uploader", Name: "latest_ledger",
+		Help: "sequence number of the latest ledger uploaded",
+	})
+	prometheusRegistry.MustRegister(uploadDurationMetric, objectSizeMetrics, latestLedgerMetric)
 	return Uploader{
 		dataStore:            destination,
 		queue:                queue,
 		uploadDurationMetric: uploadDurationMetric,
 		objectSizeMetrics:    objectSizeMetrics,
+		latestLedgerMetric:   latestLedgerMetric,
 	}
 }
 
@@ -78,20 +85,22 @@ func (r *writerToRecorder) WriteTo(w io.Writer) (int64, error) {
 }
 
 // Upload uploads the serialized binary data of ledger TxMeta to the specified destination.
-func (u Uploader) Upload(ctx context.Context, metaArchive *datastore.LedgerMetaArchive) error {
-	logger.Infof("Uploading: %s", metaArchive.GetObjectKey())
+func (u Uploader) Upload(ctx context.Context, metaArchive *LedgerMetaArchive) error {
+	logger.Infof("Uploading: %s", metaArchive.ObjectKey)
 	startTime := time.Now()
-	numLedgers := strconv.FormatUint(uint64(metaArchive.GetLedgerCount()), 10)
+	numLedgers := strconv.FormatUint(uint64(len(metaArchive.Data.LedgerCloseMetas)), 10)
 
 	xdrEncoder := compressxdr.NewXDREncoder(compressxdr.DefaultCompressor, &metaArchive.Data)
 
 	writerTo := &writerToRecorder{
 		WriterTo: xdrEncoder,
 	}
-	ok, err := u.dataStore.PutFileIfNotExists(ctx, metaArchive.GetObjectKey(), writerTo)
+	ok, err := u.dataStore.PutFileIfNotExists(ctx, metaArchive.ObjectKey, writerTo, metaArchive.metaData.ToMap())
 	if err != nil {
-		return errors.Wrapf(err, "error uploading %s", metaArchive.GetObjectKey())
+		return errors.Wrapf(err, "error uploading %s", metaArchive.ObjectKey)
 	}
+
+	logger.Infof("Uploaded %s successfully", metaArchive.ObjectKey)
 	alreadyExists := strconv.FormatBool(!ok)
 
 	u.uploadDurationMetric.With(prometheus.Labels{
@@ -108,22 +117,36 @@ func (u Uploader) Upload(ctx context.Context, metaArchive *datastore.LedgerMetaA
 		"ledgers":        numLedgers,
 		"already_exists": alreadyExists,
 	}).Observe(float64(writerTo.totalCompressed))
+	u.latestLedgerMetric.Set(float64(metaArchive.Data.EndSequence))
 	return nil
 }
 
-// TODO: make it configurable
-var uploaderShutdownWaitTime = 10 * time.Second
-
 // Run starts the uploader, continuously listening for LedgerMetaArchive objects to upload.
-func (u Uploader) Run(ctx context.Context) error {
+func (u Uploader) Run(ctx context.Context, shutdownDelayTime time.Duration) error {
 	uploadCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	go func() {
-		<-ctx.Done()
-		logger.Info("Context done, waiting for remaining uploads to complete...")
-		// wait for a few seconds to upload remaining objects from metaArchiveCh
-		<-time.After(uploaderShutdownWaitTime)
-		logger.Info("Timeout reached, canceling remaining uploads...")
-		cancel()
+		select {
+		case <-uploadCtx.Done():
+			// if uploadCtx is cancelled that means we have exited Run()
+			// and therefore there are no remaining uploads
+			return
+		case <-ctx.Done():
+			logger.Info("Received shutdown signal, waiting for remaining uploads to complete...")
+		}
+
+		select {
+		case <-time.After(shutdownDelayTime):
+			// wait for some time to upload remaining objects from
+			// the upload queue
+			logger.Info("Timeout reached, canceling remaining uploads...")
+			cancel()
+		case <-uploadCtx.Done():
+			// if uploadCtx is cancelled that means we have exited Run()
+			// and therefore there are no remaining uploads
+			return
+		}
 	}()
 
 	for {
@@ -140,6 +163,5 @@ func (u Uploader) Run(ctx context.Context) error {
 		if err = u.Upload(uploadCtx, metaObject); err != nil {
 			return err
 		}
-		logger.Infof("Uploaded %s successfully", metaObject.ObjectKey)
 	}
 }

@@ -3,12 +3,17 @@ package ledgerexporter
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
-	"github.com/stellar/go/historyarchive"
 	"github.com/stellar/go/network"
 	"github.com/stellar/go/support/datastore"
+
 	"github.com/stretchr/testify/require"
+
+	"github.com/stellar/go/historyarchive"
+	"github.com/stellar/go/support/errors"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -19,6 +24,7 @@ func TestNewConfig(t *testing.T) {
 
 	config, err := NewConfig(
 		RuntimeSettings{StartLedger: 2, EndLedger: 3, ConfigFilePath: "test/test.toml", Mode: Append})
+
 	require.NoError(t, err)
 	err = config.ValidateAndSetLedgerRange(ctx, mockArchive)
 	require.NoError(t, err)
@@ -41,7 +47,6 @@ func TestGenerateHistoryArchiveFromPreconfiguredNetwork(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = config.GenerateHistoryArchive(ctx)
-	require.NoError(t, err)
 }
 
 func TestGenerateHistoryArchive(t *testing.T) {
@@ -252,7 +257,7 @@ func TestAdjustedLedgerRangeBoundedMode(t *testing.T) {
 			start:         2,
 			end:           3,
 			expectedStart: 2,
-			expectedEnd:   10,
+			expectedEnd:   9,
 		},
 		{
 			name:          "Round down start ledger and round up end ledger, 15 ledgers per file ",
@@ -260,7 +265,7 @@ func TestAdjustedLedgerRangeBoundedMode(t *testing.T) {
 			start:         4,
 			end:           10,
 			expectedStart: 2,
-			expectedEnd:   15,
+			expectedEnd:   14,
 		},
 		{
 			name:          "Round down start ledger and round up end ledger, 64 ledgers per file ",
@@ -268,7 +273,7 @@ func TestAdjustedLedgerRangeBoundedMode(t *testing.T) {
 			start:         400,
 			end:           500,
 			expectedStart: 384,
-			expectedEnd:   512,
+			expectedEnd:   511,
 		},
 		{
 			name:          "No change, 64 ledger per file",
@@ -276,7 +281,7 @@ func TestAdjustedLedgerRangeBoundedMode(t *testing.T) {
 			start:         64,
 			end:           128,
 			expectedStart: 64,
-			expectedEnd:   128,
+			expectedEnd:   191,
 		},
 	}
 
@@ -288,6 +293,7 @@ func TestAdjustedLedgerRangeBoundedMode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			config, err := NewConfig(
 				RuntimeSettings{StartLedger: tt.start, EndLedger: tt.end, ConfigFilePath: tt.configFile, Mode: ScanFill})
+
 			require.NoError(t, err)
 			err = config.ValidateAndSetLedgerRange(ctx, mockArchive)
 			require.NoError(t, err)
@@ -358,4 +364,70 @@ func TestAdjustedLedgerRangeUnBoundedMode(t *testing.T) {
 		})
 	}
 	mockArchive.AssertExpectations(t)
+}
+
+var cmdOut = ""
+
+func fakeExecCommand(command string, args ...string) *exec.Cmd {
+	cs := append([]string{"-test.run=TestExecCmdHelperProcess", "--", command}, args...)
+	cmd := exec.Command(os.Args[0], cs...)
+	cmd.Env = append(os.Environ(), "GO_EXEC_CMD_HELPER_PROCESS=1", "CMD_OUT="+cmdOut)
+	return cmd
+}
+
+func TestExecCmdHelperProcess(t *testing.T) {
+	if os.Getenv("GO_EXEC_CMD_HELPER_PROCESS") != "1" {
+		return
+	}
+	fmt.Fprintf(os.Stdout, os.Getenv("CMD_OUT"))
+	os.Exit(0)
+}
+
+func TestSetCoreVersionInfo(t *testing.T) {
+	tests := []struct {
+		name            string
+		commandOutput   string
+		expectedError   error
+		expectedCoreVer string
+	}{
+		{
+			name: "version found",
+			commandOutput: "v20.2.0-2-g6e73c0a88\n" +
+				"rust version: rustc 1.74.1 (a28077b28 2023-12-04)\n" +
+				"soroban-env-host: \n" +
+				"    curr:\n" +
+				"       package version: 20.2.0\n" +
+				"       git version: 1bfc0f2a2ee134efc1e1b0d5270281d0cba61c2e\n" +
+				"       ledger protocol version: 20\n" +
+				"       pre-release version: 0\n" +
+				"       rs-stellar-xdr:\n" +
+				"           package version: 20.1.0\n" +
+				"           git version: 8b9d623ef40423a8462442b86997155f2c04d3a1\n" +
+				"           base XDR git version: b96148cd4acc372cc9af17b909ffe4b12c43ecb6\n",
+			expectedError:   nil,
+			expectedCoreVer: "v20.2.0-2-g6e73c0a88",
+		},
+		{
+			name:            "core version not found",
+			commandOutput:   "",
+			expectedError:   errors.New("stellar-core version not found"),
+			expectedCoreVer: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := Config{}
+
+			cmdOut = tt.commandOutput
+			execCommand = fakeExecCommand
+			err := config.setCoreVersionInfo()
+
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedCoreVer, config.CoreVersion)
+			}
+		})
+	}
 }

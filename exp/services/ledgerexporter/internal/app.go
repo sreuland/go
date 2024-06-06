@@ -2,28 +2,43 @@ package ledgerexporter
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/stellar/go/historyarchive"
 
+	"github.com/stellar/go/historyarchive"
 	"github.com/stellar/go/ingest/ledgerbackend"
-	_ "github.com/stellar/go/network"
 	"github.com/stellar/go/support/datastore"
 	supporthttp "github.com/stellar/go/support/http"
 	"github.com/stellar/go/support/log"
 )
 
+const (
+	adminServerReadTimeout     = 5 * time.Second
+	adminServerShutdownTimeout = time.Second * 5
+	// TODO: make this timeout configurable
+	uploadShutdownTimeout = 10 * time.Second
+	// We expect the queue size to rarely exceed 1 or 2 because
+	// upload speeds are expected to be much faster than the rate at which
+	// captive core emits ledgers. However, configuring a higher capacity
+	// than our expectation is useful because if we observe a large queue
+	// size in our metrics that is an indication that uploads to the
+	// data store have degraded
+	uploadQueueCapacity = 128
+)
+
 var (
-	logger = log.New().WithField("service", "ledger-exporter")
+	logger  = log.New().WithField("service", "ledger-exporter")
+	version = "develop"
 )
 
 func NewDataAlreadyExportedError(Start uint32, End uint32) *DataAlreadyExportedError {
@@ -62,28 +77,31 @@ func (m InvalidDataStoreError) Error() string {
 }
 
 type App struct {
-	config             *Config
-	ledgerBackend      ledgerbackend.LedgerBackend
-	dataStore          datastore.DataStore
-	exportManager      *ExportManager
-	uploader           Uploader
-	prometheusRegistry *prometheus.Registry
+	config        *Config
+	ledgerBackend ledgerbackend.LedgerBackend
+	dataStore     datastore.DataStore
+	exportManager *ExportManager
+	uploader      Uploader
+	adminServer   *http.Server
 }
 
 func NewApp() *App {
 	logger.SetLevel(log.DebugLevel)
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(
-		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{Namespace: "ledger_exporter"}),
-		collectors.NewGoCollector(),
-	)
-	app := &App{prometheusRegistry: registry}
+	app := &App{}
 	return app
 }
 
 func (a *App) init(ctx context.Context, runtimeSettings RuntimeSettings) error {
 	var err error
 	var archive historyarchive.ArchiveInterface
+
+	logger.Infof("Starting Ledger Exporter with version %s", version)
+
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{Namespace: "ledger_exporter"}),
+		collectors.NewGoCollector(),
+	)
 
 	if a.config, err = NewConfig(runtimeSettings); err != nil {
 		return errors.Wrap(err, "Could not load configuration")
@@ -105,17 +123,22 @@ func (a *App) init(ctx context.Context, runtimeSettings RuntimeSettings) error {
 
 	logger.Infof("Final computed ledger range for backend retrieval and export, start=%d, end=%d", a.config.StartLedger, a.config.EndLedger)
 
-	if a.ledgerBackend, err = newLedgerBackend(ctx, a.config, a.prometheusRegistry); err != nil {
+	if a.ledgerBackend, err = newLedgerBackend(a.config, registry); err != nil {
 		return err
 	}
 
-	// TODO: make number of upload workers configurable instead of hard coding it to 1
-	queue := NewUploadQueue(1, a.prometheusRegistry)
-	if a.exportManager, err = NewExportManager(a.config.DataStoreConfig.Schema, a.ledgerBackend, queue, a.prometheusRegistry); err != nil {
+	queue := NewUploadQueue(uploadQueueCapacity, registry)
+	if a.exportManager, err = NewExportManager(a.config.DataStoreConfig.Schema,
+		a.ledgerBackend, queue, registry,
+		a.config.StellarCoreConfig.NetworkPassphrase,
+		a.config.CoreVersion); err != nil {
 		return err
 	}
-	a.uploader = NewUploader(a.dataStore, queue, a.prometheusRegistry)
+	a.uploader = NewUploader(a.dataStore, queue, registry)
 
+	if a.config.AdminPort != 0 {
+		a.adminServer = newAdminServer(a.config.AdminPort, registry)
+	}
 	return nil
 }
 
@@ -148,22 +171,15 @@ func (a *App) close() {
 	}
 }
 
-func (a *App) serveAdmin() {
-	if a.config.AdminPort == 0 {
-		return
-	}
-
+func newAdminServer(adminPort int, prometheusRegistry *prometheus.Registry) *http.Server {
 	mux := supporthttp.NewMux(logger)
-	mux.Handle("/metrics", promhttp.HandlerFor(a.prometheusRegistry, promhttp.HandlerOpts{}))
-
-	addr := fmt.Sprintf(":%d", a.config.AdminPort)
-	supporthttp.Run(supporthttp.Config{
-		ListenAddr: addr,
-		Handler:    mux,
-		OnStarting: func() {
-			logger.Infof("Starting admin port server on %s", addr)
-		},
-	})
+	mux.Handle("/metrics", promhttp.HandlerFor(prometheusRegistry, promhttp.HandlerOpts{}))
+	adminAddr := fmt.Sprintf(":%d", adminPort)
+	return &http.Server{
+		Addr:        adminAddr,
+		Handler:     mux,
+		ReadTimeout: adminServerReadTimeout,
+	}
 }
 
 func (a *App) Run(runtimeSettings RuntimeSettings) error {
@@ -188,7 +204,7 @@ func (a *App) Run(runtimeSettings RuntimeSettings) error {
 	go func() {
 		defer wg.Done()
 
-		err := a.uploader.Run(ctx)
+		err := a.uploader.Run(ctx, uploadShutdownTimeout)
 		if err != nil && !errors.Is(err, context.Canceled) {
 			logger.WithError(err).Error("Error executing Uploader")
 			cancel()
@@ -205,25 +221,48 @@ func (a *App) Run(runtimeSettings RuntimeSettings) error {
 		}
 	}()
 
-	go a.serveAdmin()
+	if a.adminServer != nil {
+		// no need to include this goroutine in the wait group
+		// because a.adminServer.Shutdown() is called below and
+		// that will block until a.adminServer has finished
+		// shutting down
+		go func() {
+			logger.Infof("Starting admin server on port %v", a.config.AdminPort)
+			if err := a.adminServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Warn(errors.Wrap(err, "error in internalServer.ListenAndServe()"))
+			}
+		}()
+	}
 
 	// Handle OS signals to gracefully terminate the service
 	sigCh := make(chan os.Signal, 1)
+	defer close(sigCh)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		sig := <-sigCh
-		logger.Infof("Received termination signal: %v", sig)
-		cancel()
+		sig, ok := <-sigCh
+		if ok {
+			logger.Infof("Received termination signal: %v", sig)
+			cancel()
+		}
 	}()
 
 	wg.Wait()
 	logger.Info("Shutting down ledger-exporter")
+
+	if a.adminServer != nil {
+		serverShutdownCtx, serverShutdownCancel := context.WithTimeout(context.Background(), adminServerShutdownTimeout)
+		defer serverShutdownCancel()
+
+		if err := a.adminServer.Shutdown(serverShutdownCtx); err != nil {
+			logger.WithError(err).Warn("error in internalServer.Shutdown")
+		}
+	}
 	return nil
 }
 
 // newLedgerBackend Creates and initializes captive core ledger backend
 // Currently, only supports captive-core as ledger backend
-func newLedgerBackend(ctx context.Context, config *Config, prometheusRegistry *prometheus.Registry) (ledgerbackend.LedgerBackend, error) {
+func newLedgerBackend(config *Config, prometheusRegistry *prometheus.Registry) (ledgerbackend.LedgerBackend, error) {
 	captiveConfig, err := config.GenerateCaptiveCoreConfig()
 	if err != nil {
 		return nil, err
@@ -237,15 +276,5 @@ func newLedgerBackend(ctx context.Context, config *Config, prometheusRegistry *p
 	}
 	backend = ledgerbackend.WithMetrics(backend, prometheusRegistry, "ledger_exporter")
 
-	var ledgerRange ledgerbackend.Range
-	if config.EndLedger == 0 {
-		ledgerRange = ledgerbackend.UnboundedRange(config.StartLedger)
-	} else {
-		ledgerRange = ledgerbackend.BoundedRange(config.StartLedger, config.EndLedger)
-	}
-
-	if err = backend.PrepareRange(ctx, ledgerRange); err != nil {
-		return nil, errors.Wrap(err, "Could not prepare captive core ledger backend")
-	}
 	return backend, nil
 }

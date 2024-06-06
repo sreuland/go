@@ -8,14 +8,35 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/mock"
-
 	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/stellar/go/ingest/ledgerbackend"
 	"github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/support/datastore"
+	"github.com/stellar/go/xdr"
 )
+
+func createLedgerCloseMeta(ledgerSeq uint32) xdr.LedgerCloseMeta {
+	return xdr.LedgerCloseMeta{
+		V: int32(0),
+		V0: &xdr.LedgerCloseMetaV0{
+			LedgerHeader: xdr.LedgerHeaderHistoryEntry{
+				Header: xdr.LedgerHeader{
+					LedgerVersion: 21,
+					LedgerSeq:     xdr.Uint32(ledgerSeq),
+					ScpValue:      xdr.StellarValue{CloseTime: xdr.TimePoint(ledgerSeq * 100)},
+				},
+			},
+			TxSet:              xdr.TransactionSet{},
+			TxProcessing:       nil,
+			UpgradesProcessing: nil,
+			ScpInfo:            nil,
+		},
+		V1: nil,
+	}
+}
 
 func TestExporterSuite(t *testing.T) {
 	suite.Run(t, new(ExportManagerSuite))
@@ -41,23 +62,24 @@ func (s *ExportManagerSuite) TestInvalidExportConfig() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 0, FilesPerPartition: 10}
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	_, err := NewExportManager(config, &s.mockBackend, queue, registry)
-	require.Error(s.T(), err)
+	_, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
+	s.Require().Error(err)
 }
 
 func (s *ExportManagerSuite) TestRun() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 64, FilesPerPartition: 10}
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry)
-	require.NoError(s.T(), err)
+	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
+	s.Require().NoError(err)
 
 	start := uint32(0)
 	end := uint32(255)
 	expectedKeys := set.NewSet[string](10)
+	s.mockBackend.On("PrepareRange", s.ctx, ledgerbackend.BoundedRange(start, end)).Return(nil)
 	for i := start; i <= end; i++ {
 		s.mockBackend.On("GetLedger", s.ctx, i).
-			Return(datastore.CreateLedgerCloseMeta(i), nil)
+			Return(createLedgerCloseMeta(i), nil)
 		key := config.GetObjectKeyFromSequenceNumber(i)
 		expectedKeys.Add(key)
 	}
@@ -78,13 +100,12 @@ func (s *ExportManagerSuite) TestRun() {
 	}()
 
 	err = exporter.Run(s.ctx, start, end)
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
 
 	wg.Wait()
 
-	require.Equal(s.T(), expectedKeys, actualKeys)
-	require.Equal(
-		s.T(),
+	s.Require().Equal(expectedKeys, actualKeys)
+	s.Require().Equal(
 		float64(255),
 		getMetricValue(exporter.latestLedgerMetric.With(
 			prometheus.Labels{
@@ -97,14 +118,16 @@ func (s *ExportManagerSuite) TestRun() {
 
 func (s *ExportManagerSuite) TestRunContextCancel() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 1, FilesPerPartition: 1}
+
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry)
-	require.NoError(s.T(), err)
+	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
+	s.Require().NoError(err)
 	ctx, cancel := context.WithCancel(context.Background())
 
+	s.mockBackend.On("PrepareRange", ctx, ledgerbackend.BoundedRange(0, 255)).Return(nil)
 	s.mockBackend.On("GetLedger", mock.Anything, mock.Anything).
-		Return(datastore.CreateLedgerCloseMeta(1), nil)
+		Return(createLedgerCloseMeta(1), nil)
 
 	go func() {
 		<-time.After(time.Second * 1)
@@ -120,29 +143,37 @@ func (s *ExportManagerSuite) TestRunContextCancel() {
 	}()
 
 	err = exporter.Run(ctx, 0, 255)
-	require.EqualError(s.T(), err, "failed to add ledgerCloseMeta for ledger 128: context canceled")
+	s.Require().EqualError(err, "failed to add ledgerCloseMeta for ledger 128: context canceled")
 
 }
 
 func (s *ExportManagerSuite) TestRunWithCanceledContext() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 1, FilesPerPartition: 10}
+
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry)
-	require.NoError(s.T(), err)
+	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
+	s.Require().NoError(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+
+	s.mockBackend.On("PrepareRange", ctx, ledgerbackend.BoundedRange(1, 10)).
+		Return(context.Canceled).Run(func(args mock.Arguments) {
+		ctx := args.Get(0).(context.Context)
+		s.Require().ErrorIs(ctx.Err(), context.Canceled)
+	})
 	err = exporter.Run(ctx, 1, 10)
-	require.EqualError(s.T(), err, "context canceled")
+	s.Require().ErrorIs(err, context.Canceled)
 }
 
 func (s *ExportManagerSuite) TestAddLedgerCloseMeta() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 1, FilesPerPartition: 10}
+
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry)
-	require.NoError(s.T(), err)
+	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
+	s.Require().NoError(err)
 
 	expectedKeys := set.NewSet[string](10)
 	actualKeys := set.NewSet[string](10)
@@ -164,7 +195,7 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMeta() {
 	start := uint32(0)
 	end := uint32(255)
 	for i := start; i <= end; i++ {
-		require.NoError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), datastore.CreateLedgerCloseMeta(i)))
+		s.Require().NoError(exporter.AddLedgerCloseMeta(context.Background(), createLedgerCloseMeta(i)))
 
 		key := config.GetObjectKeyFromSequenceNumber(i)
 		expectedKeys.Add(key)
@@ -172,15 +203,15 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMeta() {
 
 	queue.Close()
 	wg.Wait()
-	require.Equal(s.T(), expectedKeys, actualKeys)
+	s.Require().Equal(expectedKeys, actualKeys)
 }
 
 func (s *ExportManagerSuite) TestAddLedgerCloseMetaContextCancel() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 1, FilesPerPartition: 10}
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry)
-	require.NoError(s.T(), err)
+	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
+	s.Require().NoError(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -188,8 +219,8 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMetaContextCancel() {
 		cancel()
 	}()
 
-	require.NoError(s.T(), exporter.AddLedgerCloseMeta(ctx, datastore.CreateLedgerCloseMeta(1)))
-	err = exporter.AddLedgerCloseMeta(ctx, datastore.CreateLedgerCloseMeta(2))
+	require.NoError(s.T(), exporter.AddLedgerCloseMeta(ctx, createLedgerCloseMeta(1)))
+	err = exporter.AddLedgerCloseMeta(ctx, createLedgerCloseMeta(2))
 	require.EqualError(s.T(), err, "context canceled")
 }
 
@@ -197,10 +228,10 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMetaKeyMismatch() {
 	config := datastore.DataStoreSchema{LedgersPerFile: 10, FilesPerPartition: 1}
 	registry := prometheus.NewRegistry()
 	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry)
+	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
 	require.NoError(s.T(), err)
 
-	require.NoError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), datastore.CreateLedgerCloseMeta(16)))
-	require.EqualError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), datastore.CreateLedgerCloseMeta(21)),
+	require.NoError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), createLedgerCloseMeta(16)))
+	require.EqualError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), createLedgerCloseMeta(21)),
 		"Current meta archive object key mismatch")
 }
