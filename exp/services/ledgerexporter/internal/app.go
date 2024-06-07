@@ -72,7 +72,7 @@ type InvalidDataStoreError struct {
 func (m InvalidDataStoreError) Error() string {
 	return fmt.Sprintf("The remote data store has inconsistent data, "+
 		"a resumable starting ledger of %v was identified, "+
-		"but that is not aligned to expected ledgers-per-file of %v. use '--resume false' to bypass",
+		"but that is not aligned to expected ledgers-per-file of %v. use 'scan-and-fill' sub-command to bypass",
 		m.LedgerSequence, m.LedgersPerFile)
 }
 

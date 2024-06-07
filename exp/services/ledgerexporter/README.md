@@ -53,7 +53,7 @@ files_per_partition = 10
 file_suffix = ".xdr.gz"
 
 [stellar_core_config]
- stellar_core_binary_path = "/my/path/to/stellar-core"
+  stellar_core_binary_path = "/my/path/to/stellar-core"
   preconfigured_network = "testnet" # Options: `testnet` or `pubnet`
 
 or
