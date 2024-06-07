@@ -62,7 +62,7 @@ func TestGenerateHistoryArchive(t *testing.T) {
 
 func TestNewConfigUserAgent(t *testing.T) {
 	config, err := NewConfig(
-		RuntimeSettings{StartLedger: 2, EndLedger: 3, ConfigFilePath: "test/test_useragent.toml"})
+		RuntimeSettings{StartLedger: 2, EndLedger: 3, ConfigFilePath: "test/useragent.toml"})
 	require.NoError(t, err)
 	require.Equal(t, config.UserAgent, "useragent_x")
 }
@@ -83,8 +83,37 @@ func TestInvalidConfigPath(t *testing.T) {
 
 func TestNoNameNetworkConfig(t *testing.T) {
 	_, err := NewConfig(
-		RuntimeSettings{ConfigFilePath: "test/no_network_name.toml"})
+		RuntimeSettings{ConfigFilePath: "test/invalid_empty.toml"})
 	require.ErrorContains(t, err, "Invalid config file, network_name must be set")
+}
+
+func TestNoCaptiveConfig(t *testing.T) {
+	cfg, err := NewConfig(
+		RuntimeSettings{ConfigFilePath: "test/useragent.toml"})
+	require.NoError(t, err)
+
+	_, err = cfg.GenerateCaptiveCoreConfig("")
+	require.ErrorContains(t, err, "Invalid captive core config")
+}
+
+func TestNoCaptiveCoreBin(t *testing.T) {
+	cfg, err := NewConfig(
+		RuntimeSettings{ConfigFilePath: "test/no_core_bin.toml"})
+	require.NoError(t, err)
+
+	_, err = cfg.GenerateCaptiveCoreConfig("")
+	require.ErrorContains(t, err, "Invalid config, no stellar-core binary path was provided.")
+}
+
+func TestDefaultCaptiveCoreBin(t *testing.T) {
+	cfg, err := NewConfig(
+		RuntimeSettings{ConfigFilePath: "test/no_core_bin.toml"})
+	require.NoError(t, err)
+
+	cmdOut = "v20.2.0-2-g6e73c0a88\n"
+	ccConfig, err := cfg.GenerateCaptiveCoreConfig("/test/default/stellar-core")
+	require.NoError(t, err)
+	require.Equal(t, ccConfig.BinaryPath, "/test/default/stellar-core")
 }
 
 func TestInvalidCaptiveCorePreconfiguredNetwork(t *testing.T) {
@@ -93,7 +122,7 @@ func TestInvalidCaptiveCorePreconfiguredNetwork(t *testing.T) {
 	require.NoError(t, err)
 
 	cmdOut = "v20.2.0-2-g6e73c0a88\n"
-	_, err = cfg.GenerateCaptiveCoreConfig()
+	_, err = cfg.GenerateCaptiveCoreConfig("")
 	require.ErrorContains(t, err, "invalid captive core config")
 }
 
@@ -103,10 +132,17 @@ func TestValidCaptiveCorePreconfiguredNetwork(t *testing.T) {
 		RuntimeSettings{ConfigFilePath: "test/valid_preconfigured_network.toml"})
 	require.NoError(t, err)
 
-	_, err = cfg.GenerateCaptiveCoreConfig()
+	ccConfig, err := cfg.GenerateCaptiveCoreConfig("")
 	require.NoError(t, err)
 	require.Equal(t, cfg.StellarCoreConfig.NetworkPassphrase, network.PublicNetworkPassphrase)
-	require.Equal(t, cfg.StellarCoreConfig.NetworkPassphrase, network.PublicNetworkPassphrase)
+	require.Equal(t, cfg.StellarCoreConfig.HistoryArchiveUrls, network.PublicNetworkhistoryArchiveURLs)
+	require.Equal(t, cfg.CoreVersion, "v20.2.0-2-g6e73c0a88")
+
+	// validates that ingest/ledgerbackend/configs/captive-core-pubnet.cfg was loaded
+	require.Equal(t, ccConfig.BinaryPath, "test/stellar-core")
+	require.Equal(t, ccConfig.NetworkPassphrase, network.PublicNetworkPassphrase)
+	require.Len(t, ccConfig.Toml.Validators, 23)
+	require.Equal(t, ccConfig.Toml.Validators[0].Name, "Boötes")
 }
 
 func TestValidCaptiveCoreExternalConfig(t *testing.T) {
@@ -116,9 +152,10 @@ func TestValidCaptiveCoreExternalConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, cfg.CoreVersion, "")
 
-	ccConfig, err := cfg.GenerateCaptiveCoreConfig()
+	ccConfig, err := cfg.GenerateCaptiveCoreConfig("")
 	require.NoError(t, err)
 
+	require.Equal(t, ccConfig.BinaryPath, "test/stellar-core")
 	require.Equal(t, ccConfig.NetworkPassphrase, "test")
 	require.Len(t, ccConfig.Toml.Validators, 1)
 	require.Equal(t, ccConfig.Toml.Validators[0].Name, "local_core")
@@ -131,7 +168,7 @@ func TestInvalidCaptiveCoreExternalConfig(t *testing.T) {
 		RuntimeSettings{ConfigFilePath: "test/invalid_captive_core.toml"})
 	require.NoError(t, err)
 
-	_, err = cfg.GenerateCaptiveCoreConfig()
+	_, err = cfg.GenerateCaptiveCoreConfig("")
 	require.ErrorContains(t, err, "Failed to load captive-core-toml-path file")
 }
 

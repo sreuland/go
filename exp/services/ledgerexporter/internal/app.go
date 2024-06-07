@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -263,7 +264,10 @@ func (a *App) Run(runtimeSettings RuntimeSettings) error {
 // newLedgerBackend Creates and initializes captive core ledger backend
 // Currently, only supports captive-core as ledger backend
 func newLedgerBackend(config *Config, prometheusRegistry *prometheus.Registry) (ledgerbackend.LedgerBackend, error) {
-	captiveConfig, err := config.GenerateCaptiveCoreConfig()
+	// best effort check on a core bin available from PATH to provide as default if
+	// no core bin is provided from config.
+	coreBinFromPath, _ := exec.LookPath("stellar-core")
+	captiveConfig, err := config.GenerateCaptiveCoreConfig(coreBinFromPath)
 	if err != nil {
 		return nil, err
 	}

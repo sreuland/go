@@ -140,13 +140,22 @@ func (config *Config) GenerateHistoryArchive(ctx context.Context) (historyarchiv
 	})
 }
 
-func (config *Config) GenerateCaptiveCoreConfig() (ledgerbackend.CaptiveCoreConfig, error) {
+// coreBinDefaultPath - a default value to use for core binary path on system.
+//
+//	this will be used if StellarCoreConfig.StellarCoreBinaryPath is not specified
+func (config *Config) GenerateCaptiveCoreConfig(coreBinFromPath string) (ledgerbackend.CaptiveCoreConfig, error) {
 	var err error
-	// Look for stellar-core binary in $PATH, if not supplied
+	if config.StellarCoreConfig.PreconfiguredNetwork == "" && (len(config.StellarCoreConfig.HistoryArchiveUrls) == 0 || config.StellarCoreConfig.NetworkPassphrase == "" || config.StellarCoreConfig.CaptiveCoreTomlPath == "") {
+		return ledgerbackend.CaptiveCoreConfig{}, errors.New("Invalid captive core config, the 'preconfigured_network' parameter must be set to pubnet or testnet or " +
+			"'stellar_core_config.history_archive_urls' and 'stellar_core_config.network_passphrase' and 'stellar_core_config.captive_core_toml_path' must be set.")
+	}
+
+	if config.StellarCoreConfig.StellarCoreBinaryPath == "" && coreBinFromPath == "" {
+		return ledgerbackend.CaptiveCoreConfig{}, errors.New("Invalid config, no stellar-core binary path was provided.")
+	}
+
 	if config.StellarCoreConfig.StellarCoreBinaryPath == "" {
-		if config.StellarCoreConfig.StellarCoreBinaryPath, err = exec.LookPath("stellar-core"); err != nil {
-			return ledgerbackend.CaptiveCoreConfig{}, errors.Wrap(err, "Failed to find stellar-core binary")
-		}
+		config.StellarCoreConfig.StellarCoreBinaryPath = coreBinFromPath
 	}
 
 	if err = config.setCoreVersionInfo(); err != nil {
@@ -241,12 +250,6 @@ func (config *Config) processToml(tomlPath string) error {
 
 	if config.NetworkName == "" {
 		return errors.Errorf("Invalid config file, network_name must be set")
-	}
-
-	// validate TOML data
-	if config.StellarCoreConfig.PreconfiguredNetwork == "" && (len(config.StellarCoreConfig.HistoryArchiveUrls) == 0 || config.StellarCoreConfig.NetworkPassphrase == "" || config.StellarCoreConfig.CaptiveCoreTomlPath == "") {
-		return errors.Errorf("Invalid network config, the 'preconfigured_network' parameter in %v must be set to pubnet or testnet or "+
-			"'stellar_core_config.history_archive_urls' and 'stellar_core_config.network_passphrase' and 'stellar_core_config.captive_core_toml_path' must be set.", tomlPath)
 	}
 
 	return nil
