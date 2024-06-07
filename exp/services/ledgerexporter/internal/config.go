@@ -149,7 +149,7 @@ func (config *Config) GenerateCaptiveCoreConfig() (ledgerbackend.CaptiveCoreConf
 		}
 	}
 
-	if err := config.setCoreVersionInfo(); err != nil {
+	if err = config.setCoreVersionInfo(); err != nil {
 		return ledgerbackend.CaptiveCoreConfig{}, fmt.Errorf("failed to set stellar-core version info: %w", err)
 	}
 
