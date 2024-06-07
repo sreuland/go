@@ -10,7 +10,6 @@ import (
 )
 
 func TestFlagsOutput(t *testing.T) {
-
 	var testResultSettings RuntimeSettings
 	appRunnerSuccess := func(runtimeSettings RuntimeSettings) error {
 		testResultSettings = runtimeSettings

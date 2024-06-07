@@ -47,6 +47,7 @@ func TestGenerateHistoryArchiveFromPreconfiguredNetwork(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = config.GenerateHistoryArchive(ctx)
+	require.NoError(t, err)
 }
 
 func TestGenerateHistoryArchive(t *testing.T) {
@@ -80,20 +81,24 @@ func TestInvalidConfigPath(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestInvalidNetworkConfig(t *testing.T) {
+func TestNoNameNetworkConfig(t *testing.T) {
 	_, err := NewConfig(
 		RuntimeSettings{ConfigFilePath: "test/no_network_name.toml"})
-	require.ErrorContains(t, err, "Invalid config file, network_name, must be set")
+	require.ErrorContains(t, err, "Invalid config file, network_name must be set")
+}
 
+func TestInvalidCaptiveCorePreconfiguredNetwork(t *testing.T) {
 	cfg, err := NewConfig(
 		RuntimeSettings{ConfigFilePath: "test/invalid_preconfigured_network.toml"})
 	require.NoError(t, err)
 
+	cmdOut = "v20.2.0-2-g6e73c0a88\n"
 	_, err = cfg.GenerateCaptiveCoreConfig()
 	require.ErrorContains(t, err, "invalid captive core config")
 }
 
-func TestValidNetworkConfig(t *testing.T) {
+func TestValidCaptiveCorePreconfiguredNetwork(t *testing.T) {
+	cmdOut = "v20.2.0-2-g6e73c0a88\n"
 	cfg, err := NewConfig(
 		RuntimeSettings{ConfigFilePath: "test/valid_preconfigured_network.toml"})
 	require.NoError(t, err)
@@ -101,12 +106,15 @@ func TestValidNetworkConfig(t *testing.T) {
 	_, err = cfg.GenerateCaptiveCoreConfig()
 	require.NoError(t, err)
 	require.Equal(t, cfg.StellarCoreConfig.NetworkPassphrase, network.PublicNetworkPassphrase)
+	require.Equal(t, cfg.StellarCoreConfig.NetworkPassphrase, network.PublicNetworkPassphrase)
 }
 
-func TestValidCaptiveCoreConfig(t *testing.T) {
+func TestValidCaptiveCoreExternalConfig(t *testing.T) {
+	cmdOut = "v20.2.0-2-g6e73c0a88\n"
 	cfg, err := NewConfig(
 		RuntimeSettings{ConfigFilePath: "test/valid_captive_core.toml"})
 	require.NoError(t, err)
+	require.Equal(t, cfg.CoreVersion, "")
 
 	ccConfig, err := cfg.GenerateCaptiveCoreConfig()
 	require.NoError(t, err)
@@ -114,9 +122,11 @@ func TestValidCaptiveCoreConfig(t *testing.T) {
 	require.Equal(t, ccConfig.NetworkPassphrase, "test")
 	require.Len(t, ccConfig.Toml.Validators, 1)
 	require.Equal(t, ccConfig.Toml.Validators[0].Name, "local_core")
+	require.Equal(t, cfg.CoreVersion, "v20.2.0-2-g6e73c0a88")
 }
 
-func TestInvalidCaptiveCoreConfig(t *testing.T) {
+func TestInvalidCaptiveCoreExternalConfig(t *testing.T) {
+	cmdOut = "v20.2.0-2-g6e73c0a88\n"
 	cfg, err := NewConfig(
 		RuntimeSettings{ConfigFilePath: "test/invalid_captive_core.toml"})
 	require.NoError(t, err)
@@ -375,15 +385,20 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	return cmd
 }
 
+func init() {
+	execCommand = fakeExecCommand
+}
+
 func TestExecCmdHelperProcess(t *testing.T) {
 	if os.Getenv("GO_EXEC_CMD_HELPER_PROCESS") != "1" {
 		return
 	}
-	fmt.Fprintf(os.Stdout, os.Getenv("CMD_OUT"))
+	fmt.Fprint(os.Stdout, os.Getenv("CMD_OUT"))
 	os.Exit(0)
 }
 
 func TestSetCoreVersionInfo(t *testing.T) {
+	execCommand = fakeExecCommand
 	tests := []struct {
 		name            string
 		commandOutput   string
@@ -417,9 +432,7 @@ func TestSetCoreVersionInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := Config{}
-
 			cmdOut = tt.commandOutput
-			execCommand = fakeExecCommand
 			err := config.setCoreVersionInfo()
 
 			if tt.expectedError != nil {

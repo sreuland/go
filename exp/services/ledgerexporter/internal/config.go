@@ -172,8 +172,8 @@ func (config *Config) GenerateCaptiveCoreConfig() (ledgerbackend.CaptiveCoreConf
 
 	default:
 		return ledgerbackend.CaptiveCoreConfig{}, errors.New("invalid captive core config, " +
-			"preconfigured_network must be pubnet or testnet or network_passphrase, history_archive_urls," +
-			" captive_core_toml_path must be defined")
+			"preconfigured_network must be set to 'pubnet' or 'testnet' or network_passphrase, history_archive_urls," +
+			" and captive_core_toml_path must be set")
 	}
 
 	params := ledgerbackend.CaptiveCoreTomlParams{
@@ -240,7 +240,7 @@ func (config *Config) processToml(tomlPath string) error {
 	}
 
 	if config.NetworkName == "" {
-		return errors.Errorf("Invalid config file, network_name, must be set")
+		return errors.Errorf("Invalid config file, network_name must be set")
 	}
 
 	// validate TOML data

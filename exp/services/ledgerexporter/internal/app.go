@@ -193,8 +193,9 @@ func (a *App) Run(runtimeSettings RuntimeSettings) error {
 			logger.Info("Shutting down ledger-exporter")
 			return dataAlreadyExported
 		}
-		logger.WithError(err).Error("Stopping ledger-exporter")
-		return err
+		// log this out as info, it's expected
+		logger.Infof("Stopping ledger-exporter, %v", dataAlreadyExported.Error())
+		return nil
 	}
 	defer a.close()
 

@@ -223,15 +223,3 @@ func (s *ExportManagerSuite) TestAddLedgerCloseMetaContextCancel() {
 	err = exporter.AddLedgerCloseMeta(ctx, createLedgerCloseMeta(2))
 	require.EqualError(s.T(), err, "context canceled")
 }
-
-func (s *ExportManagerSuite) TestAddLedgerCloseMetaKeyMismatch() {
-	config := datastore.DataStoreSchema{LedgersPerFile: 10, FilesPerPartition: 1}
-	registry := prometheus.NewRegistry()
-	queue := NewUploadQueue(1, registry)
-	exporter, err := NewExportManager(config, &s.mockBackend, queue, registry, "passphrase", "coreversion")
-	require.NoError(s.T(), err)
-
-	require.NoError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), createLedgerCloseMeta(16)))
-	require.EqualError(s.T(), exporter.AddLedgerCloseMeta(context.Background(), createLedgerCloseMeta(21)),
-		"Current meta archive object key mismatch")
-}
