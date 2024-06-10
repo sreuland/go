@@ -50,7 +50,7 @@ func TestFlagsOutput(t *testing.T) {
 			expectedErrOutput: "",
 			appRunner:         appRunnerSuccess,
 			expectedSettings: RuntimeSettings{
-				StartLedger:    2,
+				StartLedger:    0,
 				EndLedger:      0,
 				ConfigFilePath: "myfile",
 				Mode:           Append,
@@ -80,7 +80,7 @@ func TestFlagsOutput(t *testing.T) {
 			expectedErrOutput: "",
 			appRunner:         appRunnerSuccess,
 			expectedSettings: RuntimeSettings{
-				StartLedger:    2,
+				StartLedger:    0,
 				EndLedger:      0,
 				ConfigFilePath: "myfile",
 				Mode:           ScanFill,

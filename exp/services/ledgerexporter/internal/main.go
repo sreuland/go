@@ -62,12 +62,12 @@ func defineCommands() {
 	rootCmd.AddCommand(scanAndFillCmd)
 	rootCmd.AddCommand(appendCmd)
 
-	scanAndFillCmd.PersistentFlags().Uint32("start", 2, "Starting ledger (inclusive), must be set to a value greater than 1")
+	scanAndFillCmd.PersistentFlags().Uint32("start", 0, "Starting ledger (inclusive), must be set to a value greater than 1")
 	scanAndFillCmd.PersistentFlags().Uint32("end", 0, "Ending ledger (inclusive), must be set to value greater than 'start' and less than 'latest checkpoint ledger from network history archives + (2 * checkpoint ledger frequency)'")
 	scanAndFillCmd.PersistentFlags().String("config-file", "config.toml", "Path to the TOML config file. Defaults to 'config.toml' on runtime working directory path.")
 	viper.BindPFlags(scanAndFillCmd.PersistentFlags())
 
-	appendCmd.PersistentFlags().Uint32("start", 2, "Starting ledger (inclusive), must be set to a value greater than 1")
+	appendCmd.PersistentFlags().Uint32("start", 0, "Starting ledger (inclusive), must be set to a value greater than 1")
 	appendCmd.PersistentFlags().Uint32("end", 0, "Ending ledger, optional, setting to non-zero means bounded mode, "+
 		"only export ledgers from 'start' up to 'end' value which must be greater than 'start' and less than 'latest checkpoint ledger from network history archives + (2 * checkpoint ledger frequency)'. "+
 		"If 'end' is absent or '0' means unbounded mode, exporter will continue to run indefintely and export the latest closed ledgers from network as they are generated in real time.")

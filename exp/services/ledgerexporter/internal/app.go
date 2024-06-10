@@ -110,7 +110,9 @@ func (a *App) init(ctx context.Context, runtimeSettings RuntimeSettings) error {
 	if archive, err = a.config.GenerateHistoryArchive(ctx); err != nil {
 		return err
 	}
-	a.config.ValidateAndSetLedgerRange(ctx, archive)
+	if err = a.config.ValidateAndSetLedgerRange(ctx, archive); err != nil {
+		return err
+	}
 
 	if a.dataStore, err = datastore.NewDataStore(ctx, a.config.DataStoreConfig, a.config.NetworkName); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
