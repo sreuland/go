@@ -6,4 +6,3 @@ preconfigured_network = "pubnet"
 
 [datastore_config.schema]
 ledgers_per_file = 64
-file_suffix = ".xdr.gz"

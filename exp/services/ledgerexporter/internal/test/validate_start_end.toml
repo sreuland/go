@@ -2,4 +2,3 @@ network_name = "test"
 
 [datastore_config.schema]
 ledgers_per_file = 1
-file_suffix = ".xdr.gz"

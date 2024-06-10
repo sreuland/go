@@ -9,7 +9,6 @@ destination_bucket_path = "exporter-test/ledgers"
 [datastore_config.schema]
 ledgers_per_file = 1
 files_per_partition = 64000
-file_suffix = ".xdr.gz"
 
 [stellar_core_config]
   preconfigured_network = "testnet"

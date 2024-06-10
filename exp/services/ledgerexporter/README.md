@@ -50,7 +50,6 @@ destination_bucket_path = "your-bucket-name/<optional_subpaths>"
 [datastore_config.schema]
 ledgers_per_file = 64
 files_per_partition = 10
-file_suffix = ".xdr.gz"
 
 [stellar_core_config]
   stellar_core_binary_path = "/my/path/to/stellar-core"
