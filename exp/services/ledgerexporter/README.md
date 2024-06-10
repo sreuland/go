@@ -37,7 +37,15 @@ ledgerexporter append --start <start_ledger> --config-file <config_file_path>
 ```
 
 ### Configuration (toml):
+The `stellar_core_config` supports two different ways to configure captive core:
+  - automatically based on stellar_core_config.preconfigured_network = `testnet|pubnet`.
+  - manually configure captive core by supplying external core config file and archive urls and passphrase:
+    `stellar_core_config.captive_core_toml_path`
+    `stellar_core_config.history_archive_urls`
+    `stellar_core_config.network_passphrase`
+  - Ensure you have stellar-core installed and accessible in your system's $PATH.
 
+An example config, demonstrating preconfigured captive core settings.
 ```toml
 network_name = "testnet"  
 
@@ -53,22 +61,17 @@ files_per_partition = 10
 
 [stellar_core_config]
   stellar_core_binary_path = "/my/path/to/stellar-core"
-  preconfigured_network = "testnet" # Options: `testnet` or `pubnet`
+  preconfigured_network = "testnet"
 
-or
-
+```
+Or to use your own custom captive core configuration for connecting to a Stellar network, change `stellar_core_config` to use these settings.
+```toml
 [stellar_core_config]
   captive_core_toml_path = "my-captive-core.cfg"
   stellar_core_binary_path = "/my/path/to/stellar-core"
   history_archive_urls = ["http://testarchiveurl1", "http://testarchiveurl2"]
   network_passphrase = "test"
-
 ```
-
-#### Stellar-core configuration:
-- The exporter automatically configures stellar-core based on stellar_core_config.preconfigured_network or directly with stellar_core_config.captive_core_toml_path,  
-stellar_core_config.history_archive_urls, and stellar_core_config.network_passphrase
-- Ensure you have stellar-core installed and accessible in your system's $PATH.
 
 ### Exported Files
 
