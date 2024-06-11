@@ -29,6 +29,7 @@ const (
 type Mode int
 
 const (
+	_        Mode = iota
 	ScanFill Mode = iota
 	Append
 )
