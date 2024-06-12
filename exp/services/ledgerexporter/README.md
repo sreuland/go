@@ -43,11 +43,15 @@ The `stellar_core_config` supports two ways for configuring captive core:
     `stellar_core_config.captive_core_toml_path`
     `stellar_core_config.history_archive_urls`
     `stellar_core_config.network_passphrase`
-  - Ensure you have stellar-core installed set `stellar_core_binary_path` to it's full path on o/s.
+
+Ensure you have stellar-core installed and set `stellar_core_config.stellar_core_binary_path` to it's path on o/s.
+
+Enable web service that will be bound to localhost post and publishes metrics by including `admin_port = {port}`
 
 An example config, demonstrating preconfigured captive core settings and gcs data store config.
 ```toml
- 
+admin_port = 6061
+
 [datastore_config]
 type = "GCS"
 
