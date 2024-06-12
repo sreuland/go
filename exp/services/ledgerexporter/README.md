@@ -32,6 +32,8 @@ Exports ledgers initially searching from --start, looking for the next absent le
 This feature requires ledgers to be present on the remote data store for some (possibly empty) prefix of the requested range and then absent for the (possibly empty) remainder. 
 
 In this mode, the --end ledger can be provided to stop the process once export has reached that ledger, or if absent or 0 it will result in continous exporting of new ledgers emitted from the network. 
+
+ It’s guaranteed that ledgers exported during `append` mode from `start` and up to the last logged ledger file `Uploaded {ledger file name}` were contiguous, meaning all ledgers within that range were exported to the data lake with no gaps or missing ledgers in between.
 ```bash
 ledgerexporter append --start <start_ledger> --config-file <config_file_path>
 ```
