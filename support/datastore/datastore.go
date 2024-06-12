@@ -25,14 +25,14 @@ type DataStore interface {
 }
 
 // NewDataStore factory, it creates a new DataStore based on the config type
-func NewDataStore(ctx context.Context, datastoreConfig DataStoreConfig, networkName string) (DataStore, error) {
+func NewDataStore(ctx context.Context, datastoreConfig DataStoreConfig) (DataStore, error) {
 	switch datastoreConfig.Type {
 	case "GCS":
 		destinationBucketPath, ok := datastoreConfig.Params["destination_bucket_path"]
 		if !ok {
 			return nil, errors.Errorf("Invalid GCS config, no destination_bucket_path")
 		}
-		return NewGCSDataStore(ctx, destinationBucketPath, networkName)
+		return NewGCSDataStore(ctx, destinationBucketPath)
 	default:
 		return nil, errors.Errorf("Invalid datastore type %v, not supported", datastoreConfig.Type)
 	}

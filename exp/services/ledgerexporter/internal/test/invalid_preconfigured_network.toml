@@ -1,6 +1,4 @@
-network_name = "test"
-
 [stellar_core_config]
 stellar_core_binary_path = "test/stellar-core"
-preconfigured_network = "invalid"  
+network = "invalid"  
 

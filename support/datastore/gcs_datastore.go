@@ -26,19 +26,19 @@ type GCSDataStore struct {
 	prefix string
 }
 
-func NewGCSDataStore(ctx context.Context, bucketPath string, networkName string) (DataStore, error) {
+func NewGCSDataStore(ctx context.Context, bucketPath string) (DataStore, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return FromGCSClient(ctx, client, bucketPath, networkName)
+	return FromGCSClient(ctx, client, bucketPath)
 }
 
-func FromGCSClient(ctx context.Context, client *storage.Client, bucketPath string, networkName string) (DataStore, error) {
+func FromGCSClient(ctx context.Context, client *storage.Client, bucketPath string) (DataStore, error) {
 	// append the gcs:// scheme to enable usage of the url package reliably to
 	// get parse bucket name which is first path segment as URL.Host
-	gcsBucketURL := fmt.Sprintf("gcs://%s/%s", bucketPath, networkName)
+	gcsBucketURL := fmt.Sprintf("gcs://%s", bucketPath)
 	parsed, err := url.Parse(gcsBucketURL)
 	if err != nil {
 		return nil, err

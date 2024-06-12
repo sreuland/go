@@ -114,12 +114,12 @@ func (a *App) init(ctx context.Context, runtimeSettings RuntimeSettings) error {
 		return err
 	}
 
-	if a.dataStore, err = datastore.NewDataStore(ctx, a.config.DataStoreConfig, a.config.NetworkName); err != nil {
+	if a.dataStore, err = datastore.NewDataStore(ctx, a.config.DataStoreConfig); err != nil {
 		return errors.Wrap(err, "Could not connect to destination data store")
 	}
 	if a.config.Resumable() {
 		if err = a.applyResumability(ctx,
-			datastore.NewResumableManager(a.dataStore, a.config.NetworkName, a.config.DataStoreConfig.Schema, archive)); err != nil {
+			datastore.NewResumableManager(a.dataStore, a.config.DataStoreConfig.Schema, archive)); err != nil {
 			return err
 		}
 	}

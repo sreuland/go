@@ -37,38 +37,31 @@ ledgerexporter append --start <start_ledger> --config-file <config_file_path>
 ```
 
 ### Configuration (toml):
-The `stellar_core_config` supports two different ways to configure captive core:
-  - automatically based on stellar_core_config.preconfigured_network = `testnet|pubnet`.
-  - manually configure captive core by supplying external core config file and archive urls and passphrase:
+The `stellar_core_config` supports two ways for configuring captive core:
+  - use prebuilt captive core config toml, archive urls, and passphrase based on `stellar_core_config.network = testnet|pubnet`.
+  - manually set the the captive core confg by supplying these core parameters which will override any defaults when `stellar_core_config.network` is present also:
     `stellar_core_config.captive_core_toml_path`
     `stellar_core_config.history_archive_urls`
     `stellar_core_config.network_passphrase`
-  - Ensure you have stellar-core installed and accessible in your system's $PATH.
+  - Ensure you have stellar-core installed set `stellar_core_binary_path` to it's full path on o/s.
 
-An example config, demonstrating preconfigured captive core settings.
+An example config, demonstrating preconfigured captive core settings and gcs data store config.
 ```toml
-network_name = "testnet"  
-
+ 
 [datastore_config]
 type = "GCS"
 
 [datastore_config.params]
-destination_bucket_path = "your-bucket-name/<optional_subpaths>"
+destination_bucket_path = "your-bucket-name/<optional_subpath1>/<optional_subpath2>/"
 
 [datastore_config.schema]
 ledgers_per_file = 64
 files_per_partition = 10
 
 [stellar_core_config]
+  network = "testnet"
   stellar_core_binary_path = "/my/path/to/stellar-core"
-  preconfigured_network = "testnet"
-
-```
-Or to use your own custom captive core configuration for connecting to a Stellar network, change `stellar_core_config` to use these settings.
-```toml
-[stellar_core_config]
   captive_core_toml_path = "my-captive-core.cfg"
-  stellar_core_binary_path = "/my/path/to/stellar-core"
   history_archive_urls = ["http://testarchiveurl1", "http://testarchiveurl2"]
   network_passphrase = "test"
 ```

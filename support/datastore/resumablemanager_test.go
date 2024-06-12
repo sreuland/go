@@ -19,7 +19,6 @@ func TestResumability(t *testing.T) {
 		dataStoreSchema   DataStoreSchema
 		absentLedger      uint32
 		findStartOk       bool
-		networkName       string
 		latestLedger      uint32
 		errorSnippet      string
 		archiveError      error
@@ -35,7 +34,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:       "test",
 			errorSnippet:      "archive error",
 			archiveError:      errors.New("archive error"),
 			registerMockCalls: func(store *MockDataStore) {},
@@ -50,7 +48,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFFF--0-9.xdr.zstd").Return(true, nil).Once()
 			},
@@ -65,7 +62,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFF5--10-19.xdr.zstd").Return(false, nil).Twice()
 			},
@@ -80,7 +76,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(100),
 				LedgersPerFile:    uint32(64),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFFF--0-6399/FFFFFFBF--64-127.xdr.zstd").Return(false, nil).Twice()
 			},
@@ -95,7 +90,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(100),
 				LedgersPerFile:    uint32(64),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFFF--0-6399/FFFFFF7F--128-191.xdr.zstd").Return(true, nil).Once()
 			},
@@ -110,7 +104,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(100),
 				LedgersPerFile:    uint32(64),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFFF--0-6399/FFFFFFBF--64-127.xdr.zstd").Return(true, nil).Once()
 				mockDataStore.On("Exists", ctx, "FFFFFFFF--0-6399/FFFFFFFF--0-63.xdr.zstd").Return(false, nil).Once()
@@ -126,7 +119,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:  "test",
 			errorSnippet: "datastore error happened",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFEB--20-29.xdr.zstd").Return(false, errors.New("datastore error happened")).Once()
@@ -142,7 +134,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFCD--50-59.xdr.zstd").Return(false, nil).Once()
 				mockDataStore.On("Exists", ctx, "FFFFFFE1--30-39.xdr.zstd").Return(true, nil).Once()
@@ -159,7 +150,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFFB9--70-79.xdr.zstd").Return(true, nil).Once()
 				mockDataStore.On("Exists", ctx, "FFFFFFAF--80-89.xdr.zstd").Return(false, nil).Twice()
@@ -175,7 +165,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFEFB--260-269.xdr.zstd").Return(true, nil).Once()
 				mockDataStore.On("Exists", ctx, "FFFFFEF1--270-279.xdr.zstd").Return(true, nil).Once()
@@ -191,7 +180,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName: "test",
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFFF87--120-129.xdr.zstd").Return(false, nil).Once()
 				mockDataStore.On("Exists", ctx, "FFFFFF91--110-119.xdr.zstd").Return(false, nil).Once()
@@ -209,7 +197,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:       "test",
 			errorSnippet:      "Invalid start value",
 			registerMockCalls: func(store *MockDataStore) {},
 		},
@@ -223,7 +210,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:  "test2",
 			latestLedger: uint32(2000),
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFF9A1--1630-1639.xdr.zstd").Return(false, nil).Once()
@@ -246,7 +232,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:  "test3",
 			latestLedger: uint32(3000),
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFF5B9--2630-2639.xdr.zstd").Return(false, nil).Once()
@@ -268,7 +253,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:  "test4",
 			latestLedger: uint32(4000),
 			registerMockCalls: func(mockDataStore *MockDataStore) {
 				mockDataStore.On("Exists", ctx, "FFFFF1D1--3630-3639.xdr.zstd").Return(true, nil).Once()
@@ -290,7 +274,6 @@ func TestResumability(t *testing.T) {
 				FilesPerPartition: uint32(1),
 				LedgersPerFile:    uint32(10),
 			},
-			networkName:       "test5",
 			latestLedger:      uint32(5000),
 			errorSnippet:      "Invalid start value of 5129, it is greater than network's latest ledger of 5128",
 			registerMockCalls: func(store *MockDataStore) {},
@@ -304,7 +287,7 @@ func TestResumability(t *testing.T) {
 			mockDataStore := &MockDataStore{}
 			tt.registerMockCalls(mockDataStore)
 
-			resumableManager := NewResumableManager(mockDataStore, tt.networkName, tt.dataStoreSchema, mockArchive)
+			resumableManager := NewResumableManager(mockDataStore, tt.dataStoreSchema, mockArchive)
 			absentLedger, ok, err := resumableManager.FindStart(ctx, tt.startLedger, tt.endLedger)
 			if tt.errorSnippet != "" {
 				require.ErrorContains(t, err, tt.errorSnippet)

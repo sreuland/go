@@ -42,7 +42,7 @@ type RuntimeSettings struct {
 }
 
 type StellarCoreConfig struct {
-	PreconfiguredNetwork  string   `toml:"preconfigured_network"`
+	Network               string   `toml:"network"`
 	NetworkPassphrase     string   `toml:"network_passphrase"`
 	HistoryArchiveUrls    []string `toml:"history_archive_urls"`
 	StellarCoreBinaryPath string   `toml:"stellar_core_binary_path"`
@@ -52,7 +52,6 @@ type StellarCoreConfig struct {
 type Config struct {
 	AdminPort int `toml:"admin_port"`
 
-	NetworkName       string                    `toml:"network_name"`
 	DataStoreConfig   datastore.DataStoreConfig `toml:"datastore_config"`
 	StellarCoreConfig StellarCoreConfig         `toml:"stellar_core_config"`
 	UserAgent         string                    `toml:"user_agent"`
@@ -61,7 +60,8 @@ type Config struct {
 	EndLedger   uint32
 	Mode        Mode
 
-	CoreVersion string
+	CoreVersion               string
+	SerializedCaptiveCoreToml []byte
 }
 
 // This will generate the config based on settings
@@ -82,7 +82,10 @@ func NewConfig(settings RuntimeSettings) (*Config, error) {
 	if err = config.processToml(settings.ConfigFilePath); err != nil {
 		return nil, err
 	}
-	logger.Infof("Config: %v", *config)
+	logger.Infof("Network Config Archive URLs: %v", config.StellarCoreConfig.HistoryArchiveUrls)
+    logger.Infof("Network Config Archive Passphrase: %v", config.StellarCoreConfig.NetworkPassphrase)
+	logger.Infof("Network Config Archive Stellar Core Binary Path: %v", config.StellarCoreConfig.StellarCoreBinaryPath)
+    logger.Infof("Network Config Archive Stellar Core Toml Config: %v", string(config.SerializedCaptiveCoreToml))
 
 	return config, nil
 }
@@ -130,9 +133,6 @@ func (config *Config) ValidateAndSetLedgerRange(ctx context.Context, archive his
 }
 
 func (config *Config) GenerateHistoryArchive(ctx context.Context) (historyarchive.ArchiveInterface, error) {
-	if config.StellarCoreConfig.PreconfiguredNetwork != "" {
-		return datastore.CreateHistoryArchiveFromNetworkName(ctx, config.StellarCoreConfig.PreconfiguredNetwork, config.UserAgent)
-	}
 	return historyarchive.NewArchivePool(config.StellarCoreConfig.HistoryArchiveUrls, historyarchive.ArchiveOptions{
 		ConnectOptions: storage.ConnectOptions{
 			UserAgent: config.UserAgent,
@@ -146,13 +146,9 @@ func (config *Config) GenerateHistoryArchive(ctx context.Context) (historyarchiv
 //	this will be used if StellarCoreConfig.StellarCoreBinaryPath is not specified
 func (config *Config) GenerateCaptiveCoreConfig(coreBinFromPath string) (ledgerbackend.CaptiveCoreConfig, error) {
 	var err error
-	if config.StellarCoreConfig.PreconfiguredNetwork == "" && (len(config.StellarCoreConfig.HistoryArchiveUrls) == 0 || config.StellarCoreConfig.NetworkPassphrase == "" || config.StellarCoreConfig.CaptiveCoreTomlPath == "") {
-		return ledgerbackend.CaptiveCoreConfig{}, errors.New("Invalid captive core config, the 'preconfigured_network' parameter must be set to pubnet or testnet or " +
-			"'stellar_core_config.history_archive_urls' and 'stellar_core_config.network_passphrase' and 'stellar_core_config.captive_core_toml_path' must be set.")
-	}
 
 	if config.StellarCoreConfig.StellarCoreBinaryPath == "" && coreBinFromPath == "" {
-		return ledgerbackend.CaptiveCoreConfig{}, errors.New("Invalid config, no stellar-core binary path was provided.")
+		return ledgerbackend.CaptiveCoreConfig{}, errors.New("Invalid captive core config, no stellar-core binary path was provided.")
 	}
 
 	if config.StellarCoreConfig.StellarCoreBinaryPath == "" {
@@ -163,36 +159,13 @@ func (config *Config) GenerateCaptiveCoreConfig(coreBinFromPath string) (ledgerb
 		return ledgerbackend.CaptiveCoreConfig{}, fmt.Errorf("failed to set stellar-core version info: %w", err)
 	}
 
-	var captiveCoreConfig []byte
-	switch config.StellarCoreConfig.PreconfiguredNetwork {
-	case "":
-		if captiveCoreConfig, err = os.ReadFile(config.StellarCoreConfig.CaptiveCoreTomlPath); err != nil {
-			return ledgerbackend.CaptiveCoreConfig{}, errors.Wrap(err, "Failed to load captive-core-toml-path file")
-		}
-
-	case Pubnet:
-		config.StellarCoreConfig.NetworkPassphrase = network.PublicNetworkPassphrase
-		config.StellarCoreConfig.HistoryArchiveUrls = network.PublicNetworkhistoryArchiveURLs
-		captiveCoreConfig = ledgerbackend.PubnetDefaultConfig
-
-	case Testnet:
-		config.StellarCoreConfig.NetworkPassphrase = network.TestNetworkPassphrase
-		config.StellarCoreConfig.HistoryArchiveUrls = network.TestNetworkhistoryArchiveURLs
-		captiveCoreConfig = ledgerbackend.TestnetDefaultConfig
-
-	default:
-		return ledgerbackend.CaptiveCoreConfig{}, errors.New("invalid captive core config, " +
-			"preconfigured_network must be set to 'pubnet' or 'testnet' or network_passphrase, history_archive_urls," +
-			" and captive_core_toml_path must be set")
-	}
-
 	params := ledgerbackend.CaptiveCoreTomlParams{
 		NetworkPassphrase:  config.StellarCoreConfig.NetworkPassphrase,
 		HistoryArchiveURLs: config.StellarCoreConfig.HistoryArchiveUrls,
 		UseDB:              true,
 	}
 
-	captiveCoreToml, err := ledgerbackend.NewCaptiveCoreTomlFromData(captiveCoreConfig, params)
+	captiveCoreToml, err := ledgerbackend.NewCaptiveCoreTomlFromData(config.SerializedCaptiveCoreToml, params)
 	if err != nil {
 		return ledgerbackend.CaptiveCoreConfig{}, errors.Wrap(err, "Failed to create captive-core toml")
 	}
@@ -237,7 +210,7 @@ func (config *Config) processToml(tomlPath string) error {
 	// Load config TOML file
 	cfg, err := toml.LoadFile(tomlPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "config file %v was not found", tomlPath)
 	}
 
 	// Unmarshal TOML data into the Config struct
@@ -249,8 +222,46 @@ func (config *Config) processToml(tomlPath string) error {
 		config.UserAgent = UserAgent
 	}
 
-	if config.NetworkName == "" {
-		return errors.Errorf("Invalid config file, network_name must be set")
+	if config.StellarCoreConfig.Network == "" && (len(config.StellarCoreConfig.HistoryArchiveUrls) == 0 || config.StellarCoreConfig.NetworkPassphrase == "" || config.StellarCoreConfig.CaptiveCoreTomlPath == "") {
+		return errors.New("Invalid captive core config, the 'network' parameter must be set to pubnet or testnet or " +
+			"'stellar_core_config.history_archive_urls' and 'stellar_core_config.network_passphrase' and 'stellar_core_config.captive_core_toml_path' must be set.")
+	}
+
+	// network config values are an overlay, with network preconfigured values being first if network is present
+	// and then toml settings specific for passphrase, archiveurls, core toml file can override lastly.
+	var networkPassPhrase string
+	var networkArchiveUrls []string
+	switch config.StellarCoreConfig.Network {
+	case "":
+
+	case Pubnet:
+		networkPassPhrase = network.PublicNetworkPassphrase
+		networkArchiveUrls = network.PublicNetworkhistoryArchiveURLs
+		config.SerializedCaptiveCoreToml = ledgerbackend.PubnetDefaultConfig
+
+	case Testnet:
+		networkPassPhrase = network.TestNetworkPassphrase
+		networkArchiveUrls = network.TestNetworkhistoryArchiveURLs
+		config.SerializedCaptiveCoreToml = ledgerbackend.TestnetDefaultConfig
+
+	default:
+		return errors.New("invalid captive core config, " +
+			"preconfigured_network must be set to 'pubnet' or 'testnet' or network_passphrase, history_archive_urls," +
+			" and captive_core_toml_path must be set")
+	}
+
+	if config.StellarCoreConfig.NetworkPassphrase == "" {
+		config.StellarCoreConfig.NetworkPassphrase = networkPassPhrase
+	}
+
+	if len(config.StellarCoreConfig.HistoryArchiveUrls) < 1 {
+		config.StellarCoreConfig.HistoryArchiveUrls = networkArchiveUrls
+	}
+
+	if config.StellarCoreConfig.CaptiveCoreTomlPath != "" {
+		if config.SerializedCaptiveCoreToml, err = os.ReadFile(config.StellarCoreConfig.CaptiveCoreTomlPath); err != nil {
+			return errors.Wrap(err, "Failed to load captive-core-toml-path file")
+		}
 	}
 
 	return nil
