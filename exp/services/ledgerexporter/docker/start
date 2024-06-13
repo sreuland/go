@@ -17,20 +17,19 @@ files_per_partition="${FILES_PER_PARTITION:-64000}"
 
 # Generate TOML configuration
 cat <<EOF > config.toml
-network_name = "${NETWORK}"
 
 [datastore_config]
 type = "GCS"
 
 [datastore_config.params]
-destination_bucket_path = "${ARCHIVE_TARGET}"
+destination_bucket_path = "${ARCHIVE_TARGET}/${NETWORK}"
 
 [datastore_config.schema]
   ledgers_per_file = $ledgers_per_file
   files_per_partition = $files_per_partition
 
 [stellar_core_config]
-  preconfigured_network = "pubnet"
+  network = "${NETWORK}"
 EOF
 
 # Check if START or END variables are set
