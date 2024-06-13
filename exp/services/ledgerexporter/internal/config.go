@@ -34,6 +34,16 @@ const (
 	Append
 )
 
+func (mode Mode) Name() string {
+	switch mode {
+	case ScanFill:
+		return "Scan and Fill"
+	case Append:
+		return "Append"
+	}
+	return "none"
+}
+
 type RuntimeSettings struct {
 	StartLedger    uint32
 	EndLedger      uint32
@@ -76,7 +86,7 @@ func NewConfig(settings RuntimeSettings) (*Config, error) {
 	config.EndLedger = uint32(settings.EndLedger)
 	config.Mode = settings.Mode
 
-	logger.Infof("Requested export mode of %v with start=%d, end=%d", settings.Mode, config.StartLedger, config.EndLedger)
+	logger.Infof("Requested export mode of %v with start=%d, end=%d", settings.Mode.Name(), config.StartLedger, config.EndLedger)
 
 	var err error
 	if err = config.processToml(settings.ConfigFilePath); err != nil {
