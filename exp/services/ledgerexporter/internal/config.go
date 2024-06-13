@@ -83,9 +83,9 @@ func NewConfig(settings RuntimeSettings) (*Config, error) {
 		return nil, err
 	}
 	logger.Infof("Network Config Archive URLs: %v", config.StellarCoreConfig.HistoryArchiveUrls)
-    logger.Infof("Network Config Archive Passphrase: %v", config.StellarCoreConfig.NetworkPassphrase)
+	logger.Infof("Network Config Archive Passphrase: %v", config.StellarCoreConfig.NetworkPassphrase)
 	logger.Infof("Network Config Archive Stellar Core Binary Path: %v", config.StellarCoreConfig.StellarCoreBinaryPath)
-    logger.Infof("Network Config Archive Stellar Core Toml Config: %v", string(config.SerializedCaptiveCoreToml))
+	logger.Infof("Network Config Archive Stellar Core Toml Config: %v", string(config.SerializedCaptiveCoreToml))
 
 	return config, nil
 }
@@ -214,7 +214,7 @@ func (config *Config) processToml(tomlPath string) error {
 	}
 
 	// Unmarshal TOML data into the Config struct
-	if err := cfg.Unmarshal(config); err != nil {
+	if err = cfg.Unmarshal(config); err != nil {
 		return errors.Wrap(err, "Error unmarshalling TOML config.")
 	}
 
