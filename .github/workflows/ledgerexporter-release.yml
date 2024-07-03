@@ -14,7 +14,7 @@ jobs:
       LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN: /usr/bin/stellar-core
       LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE: docker.io/stellar/quickstart:testing
       STELLAR_CORE_VERSION: 21.1.0-1921.b3aeb14cc.focal
-      VERSION: ${GITHUB_REF_NAME#ledgerexporter-v}  
+      VERSION: ${GITHUB_REF_NAME#ledgerexporter-v} 
     steps:
       - uses: actions/checkout@v3
         with:
