@@ -98,8 +98,8 @@ func NewConfig(settings RuntimeSettings, getCoreVersionFn ledgerbackend.CoreBuil
 	}
 	logger.Infof("Network Config Archive URLs: %v", config.StellarCoreConfig.HistoryArchiveUrls)
 	logger.Infof("Network Config Archive Passphrase: %v", config.StellarCoreConfig.NetworkPassphrase)
-	logger.Infof("Network Config Archive Stellar Core Binary Path: %v", config.StellarCoreConfig.StellarCoreBinaryPath)
-	logger.Infof("Network Config Archive Stellar Core Toml Config: %v", string(config.SerializedCaptiveCoreToml))
+	logger.Infof("Network Config Stellar Core Binary Path: %v", config.StellarCoreConfig.StellarCoreBinaryPath)
+	logger.Infof("Network Config Stellar Core Toml Config: %v", string(config.SerializedCaptiveCoreToml))
 
 	return config, nil
 }

@@ -154,6 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       STELLAR_CORE_VERSION: 21.0.0-1872.c6f474133.focal
+      LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED: "true"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -163,7 +164,7 @@ jobs:
         run: make -C exp/services/ledgerexporter docker-build
 
       - name: Run Ledger Exporter test
-        run: make -C exp/services/ledgerexporter docker-test
+        run: go test -v -race ./exp/services/ledgerexporter/... 
 
       # Push images
       - if: github.ref == 'refs/heads/master'
