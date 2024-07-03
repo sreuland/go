@@ -185,7 +185,7 @@ func (s *LedgerExporterTestSuite) mustStartCore(t *testing.T, quickstartImage st
 		t.Fatalf("could not create docker client, %v", err)
 	}
 
-	img, err := s.dockerCli.ImagePull(s.ctx, quickstartImage, image.PullOptions{})
+	img, err := s.dockerCli.ImagePull(s.ctx, quickstartImage, image.PullOptions{All: true})
 	if err != nil {
 		t.Fatalf("could not pull docker image, %v, %v", quickstartImage, err)
 	}
