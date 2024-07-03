@@ -39,6 +39,8 @@ The Dockerfile contains all the necessary dependencies (e.g., Stellar-core) requ
 
 - Run: For instructions on running the Docker container, refer to the [Installation Guide](./README.md).
 
+- Run ledgerexporter with a local, fake GCS backend: Requires `make docker-build` first, then run `make docker-test-fake-gcs`. This will run the ledger exporter against `testnet` and export to the 'fake' GCS instance started in the container.
+
 ## Running Integration Tests:
 from top directory of stellar/go repo, run go test to launch ledger exporter integration
 tests.
