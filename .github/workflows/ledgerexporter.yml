@@ -13,7 +13,7 @@ jobs:
       CAPTIVE_CORE_DEBIAN_PKG_VERSION: 21.1.0-1921.b3aeb14cc.focal
       LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED: "true"
       LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN: /usr/bin/stellar-core
-      LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE: stellar/quickstart:testing
+      LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE: docker.io/stellar/quickstart:testing
     steps:
       - name: Install captive core
         run: |
