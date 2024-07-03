@@ -28,9 +28,15 @@ jobs:
           sudo apt-get update && sudo apt-get install -y stellar-core="$CAPTIVE_CORE_DEBIAN_PKG_VERSION"
           echo "Using stellar core version $(stellar-core version)"
 
+      - name: Pull Quickstart image
+        shell: bash
+        run: |
+          docker pull "$LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE"
+
       - uses: actions/checkout@v3
         with:
           # For pull requests, build and test the PR head not a merge of the PR with the destination.
           ref:  ${{ github.event.pull_request.head.sha || github.ref }}
+          
       - name: Run Ledger Exporter test
         run: go test -v -race -run TestLedgerExporterTestSuite ./exp/services/ledgerexporter/... 
