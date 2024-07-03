@@ -48,7 +48,7 @@ tests to run.
 
 Optional, tests will try to run `stellar-core` from o/s PATH for captive core, if not resolvable, then set `LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN=/path/to/stellar-core` 
 
-Optional, can override the version of quickstart used to run standalone stellar network, p `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE=docker.io/stellar/quickstart:<tag>`. Ideally don't need to change this, but is available.
+Optional, can override the version of quickstart used to run standalone stellar network, `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE=docker.io/stellar/quickstart:<tag>`. Ideally don't need to change this, but is available.
 
 ```
 $ LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED=true go test -v -race -run TestLedgerExporterTestSuite ./exp/services/ledgerexporter/...
