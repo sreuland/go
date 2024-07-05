@@ -256,9 +256,9 @@ func (s *LedgerExporterTestSuite) mustStartCore(t *testing.T, quickstartImage st
 	}
 
 	if pullImage {
-		imgReader, err := s.dockerCli.ImagePull(s.ctx, quickstartImage, image.PullOptions{})
-		if err != nil {
-			t.Fatalf("could not pull docker image, %v, %v", quickstartImage, err)
+		imgReader, imgErr := s.dockerCli.ImagePull(s.ctx, quickstartImage, image.PullOptions{})
+		if imgErr != nil {
+			t.Fatalf("could not pull docker image, %v, %v", quickstartImage, imgErr)
 		}
 		// ImagePull is asynchronous.
 		// The reader needs to be read completely for the pull operation to complete.
