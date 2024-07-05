@@ -97,7 +97,7 @@ func TestFlagsOutput(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			// mock the ledger exporter's cmd runner to be this test's mock routine instead of real app
 			ledgerExporterCmdRunner = testCase.appRunner
-			defineCommands()
+			rootCmd := defineCommands()
 			rootCmd.SetArgs(testCase.commandArgs)
 			var errWriter io.Writer = &bytes.Buffer{}
 			var outWriter io.Writer = &bytes.Buffer{}

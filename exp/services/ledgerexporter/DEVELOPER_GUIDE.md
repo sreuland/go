@@ -50,7 +50,9 @@ tests to run.
 
 Optional, tests will try to run `stellar-core` from o/s PATH for captive core, if not resolvable, then set `LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN=/path/to/stellar-core` 
 
-Optional, can override the version of quickstart used to run standalone stellar network, `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE=docker.io/stellar/quickstart:<tag>`. Ideally don't need to change this, but is available.
+Optional, can override the version of quickstart used to run standalone stellar network, `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE=docker.io/stellar/quickstart:<tag>`. By default it will try to docker pull `stellar/quickstart:testing` image to local host's docker image store. Set `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE_PULL=false` to skip the pull, if you know host has up to date image.
+
+Note, the version of stellar core in `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE` and `LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN` needs to be on the same major rev or the captive core process may not be able to join or parse ledger meta from the `local` network created by `LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE`
 
 ```
 $ LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED=true go test -v -race -run TestLedgerExporterTestSuite ./exp/services/ledgerexporter/...

@@ -13,10 +13,12 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 
 	"github.com/pelletier/go-toml"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/fsouza/fake-gcs-server/fakestorage"
@@ -26,16 +28,20 @@ import (
 )
 
 const (
-	maxWaitForCoreStartup   = (30 * time.Second)
+	maxWaitForCoreStartup   = (180 * time.Second)
 	coreStartupPingInterval = time.Second
+	// set the max ledger we want the standalone network to emit
+	// tests then refer to ledger sequences only up to this, therefore
+	// don't have to do complex waiting within test for a sequence to exist.
+	waitForCoreLedgerSequence = 16
 )
 
 func TestLedgerExporterTestSuite(t *testing.T) {
+	os.Setenv("LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED", "true")
+
 	if os.Getenv("LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED") != "true" {
 		t.Skip("skipping integration test: LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED not true")
 	}
-
-	defineCommands()
 
 	ledgerExporterSuite := &LedgerExporterTestSuite{}
 	suite.Run(t, ledgerExporterSuite)
@@ -46,25 +52,26 @@ type LedgerExporterTestSuite struct {
 	tempConfigFile  string
 	ctx             context.Context
 	ctxStop         context.CancelFunc
-	coreContainerId string
-	coreHttpPort    int
+	coreContainerID string
 	dockerCli       *client.Client
 	gcsServer       *fakestorage.Server
+	finishedSetup   bool
 }
 
 func (s *LedgerExporterTestSuite) TestScanAndFill() {
 	require := s.Require()
 
+	rootCmd := defineCommands()
 	rootCmd.SetArgs([]string{"scan-and-fill", "--start", "4", "--end", "5", "--config-file", s.tempConfigFile})
-	var errWriter io.Writer = &bytes.Buffer{}
-	var outWriter io.Writer = &bytes.Buffer{}
-	rootCmd.SetErr(errWriter)
-	rootCmd.SetOut(outWriter)
+	var errWriter bytes.Buffer
+	var outWriter bytes.Buffer
+	rootCmd.SetErr(&errWriter)
+	rootCmd.SetOut(&outWriter)
 	err := rootCmd.ExecuteContext(s.ctx)
 	require.NoError(err)
 
-	output := outWriter.(*bytes.Buffer).String()
-	errOutput := errWriter.(*bytes.Buffer).String()
+	output := outWriter.String()
+	errOutput := errWriter.String()
 	s.T().Log(output)
 	s.T().Log(errOutput)
 
@@ -79,29 +86,64 @@ func (s *LedgerExporterTestSuite) TestAppend() {
 	require := s.Require()
 
 	// first populate ledgers 4-5
-	rootCmd.SetArgs([]string{"scan-and-fill", "--start", "4", "--end", "5", "--config-file", s.tempConfigFile})
+	rootCmd := defineCommands()
+	rootCmd.SetArgs([]string{"scan-and-fill", "--start", "6", "--end", "7", "--config-file", s.tempConfigFile})
 	err := rootCmd.ExecuteContext(s.ctx)
 	require.NoError(err)
 
-	// now run an append of overalapping range, it will resume past existing ledgers 4,5
-	rootCmd.SetArgs([]string{"append", "--start", "4", "--end", "7", "--config-file", s.tempConfigFile})
-	var errWriter io.Writer = &bytes.Buffer{}
-	var outWriter io.Writer = &bytes.Buffer{}
-	rootCmd.SetErr(errWriter)
-	rootCmd.SetOut(outWriter)
+	// now run an append of overalapping range, it will resume past existing ledgers
+	rootCmd.SetArgs([]string{"append", "--start", "6", "--end", "9", "--config-file", s.tempConfigFile})
+	var errWriter bytes.Buffer
+	var outWriter bytes.Buffer
+	rootCmd.SetErr(&errWriter)
+	rootCmd.SetOut(&outWriter)
 	err = rootCmd.ExecuteContext(s.ctx)
 	require.NoError(err)
 
-	output := outWriter.(*bytes.Buffer).String()
-	errOutput := errWriter.(*bytes.Buffer).String()
+	output := outWriter.String()
+	errOutput := errWriter.String()
 	s.T().Log(output)
 	s.T().Log(errOutput)
 
 	datastore, err := datastore.NewGCSDataStore(s.ctx, "integration-test/standalone")
 	require.NoError(err)
 
-	_, err = datastore.GetFile(s.ctx, "FFFFFFFF--0-9/FFFFFFF8--7.xdr.zstd")
+	_, err = datastore.GetFile(s.ctx, "FFFFFFFF--0-9/FFFFFFF6--9.xdr.zstd")
 	require.NoError(err)
+}
+
+func (s *LedgerExporterTestSuite) TestAppendUnbounded() {
+	require := s.Require()
+
+	rootCmd := defineCommands()
+	rootCmd.SetArgs([]string{"append", "--start", "10", "--config-file", s.tempConfigFile})
+	var errWriter bytes.Buffer
+	var outWriter bytes.Buffer
+	rootCmd.SetErr(&errWriter)
+	rootCmd.SetOut(&outWriter)
+
+	appendCtx, cancel := context.WithCancel(s.ctx)
+	syn := make(chan struct{})
+	defer func() { <-syn }()
+	defer cancel()
+	go func() {
+		defer close(syn)
+		require.NoError(rootCmd.ExecuteContext(appendCtx))
+		output := outWriter.String()
+		errOutput := errWriter.String()
+		s.T().Log(output)
+		s.T().Log(errOutput)
+	}()
+
+	datastore, err := datastore.NewGCSDataStore(s.ctx, "integration-test/standalone")
+	require.NoError(err)
+
+	require.EventuallyWithT(func(c *assert.CollectT) {
+		// this checks every 50ms up to 180s total
+		assert := assert.New(c)
+		_, err = datastore.GetFile(s.ctx, "FFFFFFF5--10-19/FFFFFFF0--15.xdr.zstd")
+		assert.NoError(err)
+	}, 180*time.Second, 50*time.Millisecond, "append unbounded did not work")
 }
 
 func (s *LedgerExporterTestSuite) SetupSuite() {
@@ -110,21 +152,31 @@ func (s *LedgerExporterTestSuite) SetupSuite() {
 
 	s.ctx, s.ctxStop = signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 
+	defer func() {
+		if !s.finishedSetup {
+			s.TearDownSuite()
+		}
+	}()
+
 	ledgerExporterConfigTemplate, err := toml.LoadFile("test/integration_config_template.toml")
 	if err != nil {
 		t.Fatalf("unable to load config template file %v", err)
 	}
 
-	// if LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN specified,
+	testTempDir := t.TempDir()
+
+	// if LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN not specified,
 	// ledgerexporter will attempt resolve core bin using 'stellar-core' from OS path
 	ledgerExporterConfigTemplate.Set("stellar_core_config.stellar_core_binary_path",
 		os.Getenv("LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN"))
+
+	ledgerExporterConfigTemplate.Set("stellar_core_config.storage_path", filepath.Join(testTempDir, "captive-core"))
 
 	tomlBytes, err := toml.Marshal(ledgerExporterConfigTemplate)
 	if err != nil {
 		t.Fatalf("unable to load config file %v", err)
 	}
-	testTempDir := t.TempDir()
+
 	tempSeedDataPath := filepath.Join(testTempDir, "data")
 	if err = os.MkdirAll(filepath.Join(tempSeedDataPath, "integration-test"), 0777); err != nil {
 		t.Fatalf("unable to create seed data in temp path, %v", err)
@@ -160,16 +212,34 @@ func (s *LedgerExporterTestSuite) SetupSuite() {
 	if quickstartImage == "" {
 		quickstartImage = "stellar/quickstart:testing"
 	}
-	s.mustStartCore(t, quickstartImage)
+	pullQuickStartImage := true
+	if os.Getenv("LEDGEREXPORTER_INTEGRATION_TESTS_QUICKSTART_IMAGE_PULL") == "false" {
+		pullQuickStartImage = false
+	}
+
+	s.mustStartCore(t, quickstartImage, pullQuickStartImage)
 	s.mustWaitForCore(t, ledgerExporterConfigTemplate.GetArray("stellar_core_config.history_archive_urls").([]string),
 		ledgerExporterConfigTemplate.Get("stellar_core_config.network_passphrase").(string))
+	s.finishedSetup = true
 }
 
 func (s *LedgerExporterTestSuite) TearDownSuite() {
-	if s.coreContainerId != "" {
-		if err := s.dockerCli.ContainerStop(context.Background(), s.coreContainerId, container.StopOptions{}); err != nil {
-			s.T().Logf("unable to stop core container, %v, %v", s.coreContainerId, err)
+	if s.coreContainerID != "" {
+		s.T().Logf("Stopping the quickstart container %v", s.coreContainerID)
+		containerLogs, err := s.dockerCli.ContainerLogs(s.ctx, s.coreContainerID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+
+		if err == nil {
+			var errWriter bytes.Buffer
+			var outWriter bytes.Buffer
+			stdcopy.StdCopy(&outWriter, &errWriter, containerLogs)
+			s.T().Log(outWriter.String())
+			s.T().Log(errWriter.String())
 		}
+		if err := s.dockerCli.ContainerStop(context.Background(), s.coreContainerID, container.StopOptions{}); err != nil {
+			s.T().Logf("unable to stop core container, %v, %v", s.coreContainerID, err)
+		}
+	}
+	if s.dockerCli != nil {
 		s.dockerCli.Close()
 	}
 	if s.gcsServer != nil {
@@ -178,25 +248,35 @@ func (s *LedgerExporterTestSuite) TearDownSuite() {
 	s.ctxStop()
 }
 
-func (s *LedgerExporterTestSuite) mustStartCore(t *testing.T, quickstartImage string) {
+func (s *LedgerExporterTestSuite) mustStartCore(t *testing.T, quickstartImage string, pullImage bool) {
 	var err error
 	s.dockerCli, err = client.NewClientWithOpts(client.WithAPIVersionNegotiation())
 	if err != nil {
 		t.Fatalf("could not create docker client, %v", err)
 	}
 
-	img, err := s.dockerCli.ImagePull(s.ctx, quickstartImage, image.PullOptions{All: true})
-	if err != nil {
-		t.Fatalf("could not pull docker image, %v, %v", quickstartImage, err)
+	if pullImage {
+		imgReader, err := s.dockerCli.ImagePull(s.ctx, quickstartImage, image.PullOptions{})
+		if err != nil {
+			t.Fatalf("could not pull docker image, %v, %v", quickstartImage, err)
+		}
+		// ImagePull is asynchronous.
+		// The reader needs to be read completely for the pull operation to complete.
+		_, err = io.Copy(io.Discard, imgReader)
+		if err != nil {
+			t.Fatalf("could not pull docker image, %v, %v", quickstartImage, err)
+		}
+
+		err = imgReader.Close()
+		if err != nil {
+			t.Fatalf("could not download all of docker image bytes after pull, %v, %v", quickstartImage, err)
+		}
 	}
-	img.Close()
 
 	resp, err := s.dockerCli.ContainerCreate(s.ctx,
 		&container.Config{
-			Image:        quickstartImage,
-			Cmd:          []string{"--enable", "core", "--local"},
-			AttachStdout: true,
-			AttachStderr: true,
+			Image: quickstartImage,
+			Cmd:   []string{"--enable", "core", "--local"},
 			ExposedPorts: nat.PortSet{
 				nat.Port("1570/tcp"):  {},
 				nat.Port("11625/tcp"): {},
@@ -215,16 +295,16 @@ func (s *LedgerExporterTestSuite) mustStartCore(t *testing.T, quickstartImage st
 	if err != nil {
 		t.Fatalf("could not create quickstart docker container, %v, error %v", quickstartImage, err)
 	}
-	s.coreContainerId = resp.ID
+	s.coreContainerID = resp.ID
 
 	if err := s.dockerCli.ContainerStart(s.ctx, resp.ID, container.StartOptions{}); err != nil {
 		t.Fatalf("could not run quickstart docker container, %v, error %v", quickstartImage, err)
 	}
+	t.Logf("Started quickstart container %v", s.coreContainerID)
 }
 
 func (s *LedgerExporterTestSuite) mustWaitForCore(t *testing.T, archiveUrls []string, passphrase string) {
 	t.Log("Waiting for core to be up...")
-	//coreClient := &stellarcore.Client{URL: "http://localhost:" + strconv.Itoa(s.coreHttpPort)}
 	startTime := time.Now()
 	infoTime := startTime
 	archive, err := historyarchive.NewArchivePool(archiveUrls, historyarchive.ArchiveOptions{
@@ -252,7 +332,7 @@ func (s *LedgerExporterTestSuite) mustWaitForCore(t *testing.T, archiveUrls []st
 			continue
 		}
 		latestCheckpoint := has.CurrentLedger
-		if latestCheckpoint > 1 {
+		if latestCheckpoint >= waitForCoreLedgerSequence {
 			return
 		}
 	}
