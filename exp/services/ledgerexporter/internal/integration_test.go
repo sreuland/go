@@ -37,8 +37,6 @@ const (
 )
 
 func TestLedgerExporterTestSuite(t *testing.T) {
-	os.Setenv("LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED", "true")
-
 	if os.Getenv("LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED") != "true" {
 		t.Skip("skipping integration test: LEDGEREXPORTER_INTEGRATION_TESTS_ENABLED not true")
 	}
