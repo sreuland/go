@@ -62,6 +62,7 @@ func (s *LedgerExporterTestSuite) TestScanAndFill() {
 	require := s.Require()
 
 	rootCmd := defineCommands()
+
 	rootCmd.SetArgs([]string{"scan-and-fill", "--start", "4", "--end", "5", "--config-file", s.tempConfigFile})
 	var errWriter bytes.Buffer
 	var outWriter bytes.Buffer
@@ -157,13 +158,12 @@ func (s *LedgerExporterTestSuite) SetupSuite() {
 			s.TearDownSuite()
 		}
 	}()
+	testTempDir := t.TempDir()
 
 	ledgerExporterConfigTemplate, err := toml.LoadFile("test/integration_config_template.toml")
 	if err != nil {
 		t.Fatalf("unable to load config template file %v", err)
 	}
-
-	testTempDir := t.TempDir()
 
 	// if LEDGEREXPORTER_INTEGRATION_TESTS_CAPTIVE_CORE_BIN not specified,
 	// ledgerexporter will attempt resolve core bin using 'stellar-core' from OS path
