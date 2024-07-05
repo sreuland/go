@@ -274,7 +274,9 @@ func (s *LedgerExporterTestSuite) mustStartCore(t *testing.T, quickstartImage st
 	resp, err := s.dockerCli.ContainerCreate(s.ctx,
 		&container.Config{
 			Image: quickstartImage,
-			Cmd:   []string{"--enable", "core", "--local"},
+			// only run tge core service(no horizon, rpc, etc) and don't spend any time upgrading
+			// the core with newer soroban limits
+			Cmd:   []string{"--enable", "core", "--limits", "default", "--local"},
 			ExposedPorts: nat.PortSet{
 				nat.Port("1570/tcp"):  {},
 				nat.Port("11625/tcp"): {},
