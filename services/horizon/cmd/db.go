@@ -480,7 +480,7 @@ var dbFillGapsCmd = &cobra.Command{
 			hlog.Infof("found gaps %v", gaps)
 		}
 
-		return runDBReingestRange(gaps, reingestForce, parallelWorkers, *globalConfig, storageBackendConfig)
+		return runDBReingestRangeFn(gaps, reingestForce, parallelWorkers, *globalConfig, storageBackendConfig)
 	},
 }
 
