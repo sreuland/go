@@ -27,6 +27,8 @@ import (
 	hlog "github.com/stellar/go/support/log"
 )
 
+var runDBReingestRangeFn = runDBReingestRange
+
 var dbCmd = &cobra.Command{
 	Use:   "db [command]",
 	Short: "commands to manage horizon's postgres db",
@@ -390,13 +392,18 @@ var dbReingestRangeCmd = &cobra.Command{
 			}
 			storageBackendConfig.BufferedStorageBackendFactory = ledgerbackend.NewBufferedStorageBackend
 			storageBackendConfig.DataStoreFactory = datastore.NewDataStore
+			// when using buffered storage, performance observations have noted optimal parallel batch size
+			// of 100, apply that as default if the flag was absent.
+			if !viper.IsSet("parallel-job-size") {
+				parallelJobSize = 100
+			}
 		}
 
 		err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false, AlwaysIngest: false})
 		if err != nil {
 			return err
 		}
-		return runDBReingestRange(
+		return runDBReingestRangeFn(
 			[]history.LedgerRange{{StartSequence: argsUInt32[0], EndSequence: argsUInt32[1]}},
 			reingestForce,
 			parallelWorkers,
