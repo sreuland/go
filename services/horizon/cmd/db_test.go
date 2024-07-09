@@ -55,6 +55,7 @@ func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForCaptiveBackend() {
 		"db", "reingest", "range",
 		"--db-url", s.dsn,
 		"--network", "testnet",
+		"--stellar-core-binary-path", "/test/core/bin/path",
 		"--parallel-workers", "2",
 		"--ledgerbackend", "captive-core",
 		"2",
@@ -64,14 +65,31 @@ func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForCaptiveBackend() {
 	require.Equal(s.T(), parallelJobSize, uint32(100_000))
 }
 
-func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSet() {
+func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForCaptive() {
+	RootCmd.SetArgs([]string{
+		"db", "reingest", "range",
+		"--db-url", s.dsn,
+		"--network", "testnet",
+		"--stellar-core-binary-path", "/test/core/bin/path",
+		"--parallel-workers", "2",
+		"--parallel-job-size", "5",
+		"--ledgerbackend", "captive-core",
+		"2",
+		"10"})
+
+	require.NoError(s.T(), RootCmd.Execute())
+	require.Equal(s.T(), parallelJobSize, uint32(5))
+}
+
+func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForBuffered() {
 	RootCmd.SetArgs([]string{
 		"db", "reingest", "range",
 		"--db-url", s.dsn,
 		"--network", "testnet",
 		"--parallel-workers", "2",
 		"--parallel-job-size", "5",
-		"--ledgerbackend", "captive-core",
+		"--ledgerbackend", "datastore",
+		"--datastore-config", "../config.storagebackend.toml",
 		"2",
 		"10"})
 
