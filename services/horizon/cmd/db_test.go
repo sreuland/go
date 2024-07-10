@@ -18,7 +18,7 @@ func TestDBCommandsTestSuite(t *testing.T) {
 
 type DBCommandsTestSuite struct {
 	suite.Suite
-	dsn string
+	db *dbtest.DB
 }
 
 func (s *DBCommandsTestSuite) SetupSuite() {
@@ -27,18 +27,21 @@ func (s *DBCommandsTestSuite) SetupSuite() {
 		return nil
 	}
 
-	newDB := dbtest.Postgres(s.T())
-	s.dsn = newDB.DSN
+	s.db = dbtest.Postgres(s.T())
 
 	RootCmd.SetArgs([]string{
-		"db", "migrate", "up", "--db-url", s.dsn})
+		"db", "migrate", "up", "--db-url", s.db.DSN})
 	require.NoError(s.T(), RootCmd.Execute())
+}
+
+func (s *DBCommandsTestSuite) TearDownSuite() {
+	s.db.Close()
 }
 
 func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForBufferedBackend() {
 	RootCmd.SetArgs([]string{
 		"db", "reingest", "range",
-		"--db-url", s.dsn,
+		"--db-url", s.db.DSN,
 		"--network", "testnet",
 		"--parallel-workers", "2",
 		"--ledgerbackend", "datastore",
@@ -53,7 +56,7 @@ func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForBufferedBackend() {
 func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForCaptiveBackend() {
 	RootCmd.SetArgs([]string{
 		"db", "reingest", "range",
-		"--db-url", s.dsn,
+		"--db-url", s.db.DSN,
 		"--network", "testnet",
 		"--stellar-core-binary-path", "/test/core/bin/path",
 		"--parallel-workers", "2",
@@ -68,7 +71,7 @@ func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForCaptiveBackend() {
 func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForCaptive() {
 	RootCmd.SetArgs([]string{
 		"db", "reingest", "range",
-		"--db-url", s.dsn,
+		"--db-url", s.db.DSN,
 		"--network", "testnet",
 		"--stellar-core-binary-path", "/test/core/bin/path",
 		"--parallel-workers", "2",
@@ -84,7 +87,7 @@ func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForCaptive() {
 func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForBuffered() {
 	RootCmd.SetArgs([]string{
 		"db", "reingest", "range",
-		"--db-url", s.dsn,
+		"--db-url", s.db.DSN,
 		"--network", "testnet",
 		"--parallel-workers", "2",
 		"--parallel-job-size", "5",

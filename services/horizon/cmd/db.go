@@ -101,6 +101,7 @@ func migrate(dir schema.MigrateDir, count int) error {
 	if err != nil {
 		return err
 	}
+	defer dbConn.Close()
 
 	numMigrationsRun, err := schema.Migrate(dbConn.DB.DB, dir, count)
 	if err != nil {

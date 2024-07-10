@@ -3,12 +3,16 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/fsouza/fake-gcs-server/fakestorage"
+	cp "github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/historyarchive"
@@ -549,6 +553,67 @@ func TestReingestDB(t *testing.T) {
 	tt.NoError(horizoncmd.RootCmd.Execute(), "Repeat the same reingest range against db, should not have errors.")
 }
 
+func TestReingestDatastore(t *testing.T) {
+	os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
+
+	if os.Getenv("HORIZON_INTEGRATION_TESTS_ENABLED") == "" {
+		t.Skip("skipping integration test: HORIZON_INTEGRATION_TESTS_ENABLED not set")
+	}
+
+	newDB := dbtest.Postgres(t)
+	defer newDB.Close()
+	horizoncmd.RootCmd.SetArgs([]string{
+		"db", "migrate", "up", "--db-url", newDB.DSN})
+	require.NoError(t, horizoncmd.RootCmd.Execute())
+
+	testTempDir := t.TempDir()
+	tempSeedDataPath := filepath.Join(testTempDir, "data")
+	tempSeedBucketPath := filepath.Join(tempSeedDataPath, "path", "to", "my", "bucket")
+	tempSeedBucketFolder := filepath.Join(tempSeedBucketPath, "FFFFFFFF--0-63999")
+	if err := os.MkdirAll(tempSeedBucketFolder, 0777); err != nil {
+		t.Fatalf("unable to create seed data in temp path, %v", err)
+	}
+
+	err := cp.Copy("./testdata/testbucket", tempSeedBucketFolder)
+	if err != nil {
+		t.Fatalf("unable to copy seed data files for fake gcs, %v", err)
+	}
+
+	testWriter := &testWriter{test: t}
+	opts := fakestorage.Options{
+		Scheme:      "http",
+		Host:        "127.0.0.1",
+		Port:        uint16(0),
+		Writer:      testWriter,
+		Seed:        tempSeedDataPath,
+		StorageRoot: filepath.Join(testTempDir, "bucket"),
+		PublicHost:  "127.0.0.1",
+	}
+
+	gcsServer, err := fakestorage.NewServerWithOptions(opts)
+
+	if err != nil {
+		t.Fatalf("couldn't start the fake gcs http server %v", err)
+	}
+
+	defer gcsServer.Stop()
+	t.Logf("fake gcs server started at %v", gcsServer.URL())
+	t.Setenv("STORAGE_EMULATOR_HOST", gcsServer.URL())
+
+	horizoncmd.RootCmd.SetArgs([]string{"db",
+		"reingest",
+		"range",
+		"--db-url", newDB.DSN,
+		"--network", "testnet",
+		"--parallel-workers", "1",
+		"--ledgerbackend", "datastore",
+		"--datastore-config", "../../config.storagebackend.toml",
+		"997",
+		"999"})
+
+	require.NoError(t, horizoncmd.RootCmd.Execute())
+}
+
 func TestReingestDBWithFilterRules(t *testing.T) {
 	itest, _ := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
@@ -904,4 +969,13 @@ func TestResumeFromInitializedDB(t *testing.T) {
 	}
 
 	tt.Eventually(successfullyResumed, 1*time.Minute, 1*time.Second)
+}
+
+type testWriter struct {
+	test *testing.T
+}
+
+func (w *testWriter) Write(p []byte) (n int, err error) {
+	w.test.Log(string(p))
+	return len(p), nil
 }
