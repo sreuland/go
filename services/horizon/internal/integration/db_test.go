@@ -559,8 +559,6 @@ func TestReingestDB(t *testing.T) {
 }
 
 func TestReingestDatastore(t *testing.T) {
-	os.Setenv("HORIZON_INTEGRATION_TESTS_ENABLED", "true")
-
 	if os.Getenv("HORIZON_INTEGRATION_TESTS_ENABLED") == "" {
 		t.Skip("skipping integration test: HORIZON_INTEGRATION_TESTS_ENABLED not set")
 	}
