@@ -547,6 +547,7 @@ func TestReingestDB(t *testing.T) {
 		"captive-core-reingest-range-integration-tests.cfg",
 	)
 
+	horizoncmd.ResetCommandArgs()
 	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
 		"range",
@@ -605,6 +606,7 @@ func TestReingestDatastore(t *testing.T) {
 	t.Logf("fake gcs server started at %v", gcsServer.URL())
 	t.Setenv("STORAGE_EMULATOR_HOST", gcsServer.URL())
 
+	horizoncmd.ResetCommandArgs()
 	horizoncmd.RootCmd.SetArgs([]string{"db",
 		"reingest",
 		"range",
@@ -689,7 +691,6 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	itest, _ := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
-	horizoncmd.ResetCommandArgs()
 	archive, err := historyarchive.Connect(
 		itest.GetHorizonIngestConfig().HistoryArchiveURLs[0],
 		historyarchive.ArchiveOptions{
@@ -785,6 +786,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	itest.StopHorizon()
 
 	// clear the db with reaping all ledgers
+	horizoncmd.ResetCommandArgs()
 	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reap",
 		"--history-retention-count=1",
@@ -793,6 +795,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 
 	// repopulate the db with reingestion which should catchup using core reapply filter rules
 	// correctly on reingestion ranged
+	horizoncmd.ResetCommandArgs()
 	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reingest",
 		"range",
