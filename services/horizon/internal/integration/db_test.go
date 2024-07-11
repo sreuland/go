@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,12 +12,15 @@ import (
 
 	"github.com/fsouza/fake-gcs-server/fakestorage"
 	cp "github.com/otiai10/copy"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/stellar/go/clients/horizonclient"
+	sdk "github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/historyarchive"
 	"github.com/stellar/go/keypair"
+	"github.com/stellar/go/network"
 	hProtocol "github.com/stellar/go/protocols/horizon"
 	horizoncmd "github.com/stellar/go/services/horizon/cmd"
 	horizon "github.com/stellar/go/services/horizon/internal"
@@ -29,6 +33,7 @@ import (
 	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
+	"github.com/stellar/throttled"
 )
 
 func submitLiquidityPoolOps(itest *integration.Test, tt *assert.Assertions) (submittedOperations []txnbuild.Operation, lastLedger int32) {
@@ -612,6 +617,72 @@ func TestReingestDatastore(t *testing.T) {
 		"999"})
 
 	require.NoError(t, horizoncmd.RootCmd.Execute())
+
+	listener, webApp, webPort, err := dynamicHorizonWeb(newDB.DSN)
+	if err != nil {
+		t.Fatalf("couldn't create and start horizon web app on dynamic port %v", err)
+	}
+
+	webAppDone := make(chan struct{})
+	go func() {
+		defer close(webAppDone)
+		if err = listener.Close(); err != nil {
+			return
+		}
+		webApp.Serve()
+	}()
+
+	defer func() {
+		webApp.Close()
+		select {
+		case <-webAppDone:
+			return
+		default:
+		}
+	}()
+
+	horizonClient := &sdk.Client{
+		HorizonURL: fmt.Sprintf("http://localhost:%v", webPort),
+	}
+
+	// wait until the web server is up before continuing to test requests
+	require.Eventually(t, func() bool {
+		if _, err := horizonClient.Root(); err != nil {
+			return false
+		}
+		return true
+	}, time.Second*15, time.Millisecond*100)
+
+	_, err = horizonClient.LedgerDetail(998)
+	require.NoError(t, err)
+}
+
+func dynamicHorizonWeb(dsn string) (net.Listener, *horizon.App, uint, error) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	webPort := uint(listener.Addr().(*net.TCPAddr).Port)
+
+	webApp, err := horizon.NewApp(horizon.Config{
+		DatabaseURL:       dsn,
+		Port:              webPort,
+		NetworkPassphrase: network.TestNetworkPassphrase,
+		LogLevel:          logrus.InfoLevel,
+		DisableTxSub:      true,
+		Ingest:            false,
+		ConnectionTimeout: 10 * time.Second,
+		RateQuota: &throttled.RateQuota{
+			MaxRate:  throttled.PerHour(1000),
+			MaxBurst: 100,
+		},
+	})
+	if err != nil {
+		listener.Close()
+		return nil, nil, 0, err
+	}
+
+	return listener, webApp, webPort, nil
 }
 
 func TestReingestDBWithFilterRules(t *testing.T) {
