@@ -645,7 +645,7 @@ func TestReingestDatastore(t *testing.T) {
 
 	// wait until the web server is up before continuing to test requests
 	require.Eventually(t, func() bool {
-		if _, err := horizonClient.Root(); err != nil {
+		if _, horizonErr := horizonClient.Root(); horizonErr != nil {
 			return false
 		}
 		return true
