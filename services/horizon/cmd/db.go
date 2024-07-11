@@ -608,6 +608,21 @@ func runDBDetectGapsInRange(config horizon.Config, start, end uint32) ([]history
 	return q.GetLedgerGapsInRange(context.Background(), start, end)
 }
 
+func ResetCommandArgs() {
+
+	var commands []*cobra.Command
+	commands = append(commands, RootCmd)
+
+	for len(commands) > 0 {
+		// deque the next
+		command := commands[0]
+		commands = commands[1:]
+
+		command.SetArgs(nil)
+		commands = append(commands, command.Commands()...)
+	}
+}
+
 func init() {
 	if err := dbReingestRangeCmdOpts.Init(dbReingestRangeCmd); err != nil {
 		log.Fatal(err.Error())

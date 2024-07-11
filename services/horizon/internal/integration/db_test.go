@@ -492,6 +492,7 @@ func TestReingestDB(t *testing.T) {
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
+	horizoncmd.ResetCommandArgs()
 	horizonConfig := itest.GetHorizonIngestConfig()
 	t.Run("validate parallel range", func(t *testing.T) {
 		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
@@ -563,6 +564,7 @@ func TestReingestDatastore(t *testing.T) {
 		t.Skip("skipping integration test: HORIZON_INTEGRATION_TESTS_ENABLED not set")
 	}
 
+	horizoncmd.ResetCommandArgs()
 	newDB := dbtest.Postgres(t)
 	defer newDB.Close()
 	horizoncmd.RootCmd.SetArgs([]string{
@@ -687,6 +689,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	itest, _ := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
+	horizoncmd.ResetCommandArgs()
 	archive, err := historyarchive.Connect(
 		itest.GetHorizonIngestConfig().HistoryArchiveURLs[0],
 		historyarchive.ArchiveOptions{
@@ -907,6 +910,7 @@ func TestFillGaps(t *testing.T) {
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
+	horizoncmd.ResetCommandArgs()
 	// Create a fresh Horizon database
 	newDB := dbtest.Postgres(t)
 	freshHorizonPostgresURL := newDB.DSN

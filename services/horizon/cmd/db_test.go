@@ -38,6 +38,10 @@ func (s *DBCommandsTestSuite) TearDownSuite() {
 	s.db.Close()
 }
 
+func (s *DBCommandsTestSuite) BeforeTest() {
+	ResetCommandArgs()
+}
+
 func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForBufferedBackend() {
 	RootCmd.SetArgs([]string{
 		"db", "reingest", "range",
