@@ -983,21 +983,25 @@ func TestFillGaps(t *testing.T) {
 		filepath.Dir(horizonConfig.CaptiveCoreConfigPath),
 		"captive-core-reingest-range-integration-tests.cfg",
 	)
-	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "--parallel-workers=1"))
-	tt.NoError(horizoncmd.RootCmd.Execute())
+
+	rootCmd := horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "--parallel-workers=1"))
+	tt.NoError(rootCmd.Execute())
 
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.Equal(int64(0), latestLedger)
 
-	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "3", "4"))
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "3", "4"))
+	tt.NoError(rootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.Equal(int64(3), oldestLedger)
 	tt.Equal(int64(4), latestLedger)
 
-	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "6", "7"))
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "6", "7"))
+	tt.NoError(rootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.Equal(int64(3), oldestLedger)
@@ -1007,8 +1011,9 @@ func TestFillGaps(t *testing.T) {
 	tt.NoError(err)
 	tt.Equal([]history.LedgerRange{{StartSequence: 5, EndSequence: 5}}, gaps)
 
-	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps"))
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps"))
+	tt.NoError(rootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.Equal(int64(3), oldestLedger)
@@ -1017,8 +1022,9 @@ func TestFillGaps(t *testing.T) {
 	tt.NoError(err)
 	tt.Empty(gaps)
 
-	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "2", "8"))
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "2", "8"))
+	tt.NoError(rootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.Equal(int64(2), oldestLedger)
