@@ -76,13 +76,13 @@ func requireAndSetFlags(horizonFlags config.ConfigOptions, names ...string) erro
 	return fmt.Errorf("could not find %s flags", strings.Join(missing, ","))
 }
 
-func migrate(dir schema.MigrateDir, count int) error {
-	if !globalConfig.Ingest {
+func migrate(dir schema.MigrateDir, count int, horizonConfig *horizon.Config) error {
+	if !horizonConfig.Ingest {
 		log.Println("Skipping migrations because ingest flag is not enabled")
 		return nil
 	}
 
-	dbConn, err := db.Open("postgres", globalConfig.DatabaseURL)
+	dbConn, err := db.Open("postgres", horizonConfig.DatabaseURL)
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func DefineDBCommands(rootCmd *cobra.Command, horizonConfig *horizon.Config, hor
 				return ErrUsage{cmd}
 			}
 
-			return migrate(schema.MigrateDown, count)
+			return migrate(schema.MigrateDown, count, horizonConfig)
 		},
 	}
 
@@ -359,7 +359,7 @@ func DefineDBCommands(rootCmd *cobra.Command, horizonConfig *horizon.Config, hor
 				return ErrUsage{cmd}
 			}
 
-			return migrate(schema.MigrateRedo, count)
+			return migrate(schema.MigrateRedo, count, horizonConfig)
 		},
 	}
 
@@ -417,7 +417,7 @@ func DefineDBCommands(rootCmd *cobra.Command, horizonConfig *horizon.Config, hor
 				}
 			}
 
-			return migrate(schema.MigrateUp, count)
+			return migrate(schema.MigrateUp, count, horizonConfig)
 		},
 	}
 

@@ -803,7 +803,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 		fmt.Sprintf("%d", reachedLedger),
 	))
 
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	tt.NoError(rootCmd.Execute())
 
 	// bring up horizon, just the api server no ingestion, to query
 	// for tx's that should have been repopulated on db from reingestion per
