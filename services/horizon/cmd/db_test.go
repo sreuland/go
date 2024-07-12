@@ -24,20 +24,6 @@ type DBCommandsTestSuite struct {
 	rootCmd *cobra.Command
 }
 
-func (s *DBCommandsTestSuite) SetupTest() {
-	resetFlags()
-}
-
-func resetFlags() {
-	RootCmd.ResetFlags()
-	dbFillGapsCmd.ResetFlags()
-	dbReingestRangeCmd.ResetFlags()
-
-	globalFlags.Init(RootCmd)
-	dbFillGapsCmdOpts.Init(dbFillGapsCmd)
-	dbReingestRangeCmdOpts.Init(dbReingestRangeCmd)
-}
-
 func (s *DBCommandsTestSuite) SetupSuite() {
 	runDBReingestRangeFn = func([]history.LedgerRange, bool, uint,
 		horizon.Config, ingest.StorageBackendConfig) error {
@@ -258,21 +244,21 @@ func (s *DBCommandsTestSuite) TestDbReingestAndFillGapsCmds() {
 	for _, command := range commands {
 		for _, tt := range tests {
 			s.T().Run(tt.name+"_"+command.name, func(t *testing.T) {
-				resetFlags()
 
+				rootCmd := NewRootCmd()
 				var args []string
 				args = append(command.cmd, tt.args...)
-				RootCmd.SetArgs(append([]string{
-					"--db-url", s.dsn,
+				rootCmd.SetArgs(append([]string{
+					"--db-url", s.db.DSN,
 					"--stellar-core-binary-path", "/test/core/bin/path",
 				}, args...))
 
 				if tt.expectError {
-					err := RootCmd.Execute()
+					err := rootCmd.Execute()
 					require.Error(t, err)
 					require.Contains(t, err.Error(), tt.errorMessage)
 				} else {
-					require.NoError(t, RootCmd.Execute())
+					require.NoError(t, rootCmd.Execute())
 				}
 			})
 		}
