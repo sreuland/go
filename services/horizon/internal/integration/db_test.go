@@ -492,10 +492,10 @@ func TestReingestDB(t *testing.T) {
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
-	horizoncmd.ResetCmds()
 	horizonConfig := itest.GetHorizonIngestConfig()
 	t.Run("validate parallel range", func(t *testing.T) {
-		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
+		var rootCmd = horizoncmd.NewRootCmd()
+		rootCmd.SetArgs(command(t, horizonConfig,
 			"db",
 			"reingest",
 			"range",
@@ -504,7 +504,7 @@ func TestReingestDB(t *testing.T) {
 			"2",
 		))
 
-		assert.EqualError(t, horizoncmd.RootCmd.Execute(), "Invalid range: {10 2} from > to")
+		assert.EqualError(t, rootCmd.Execute(), "Invalid range: {10 2} from > to")
 	})
 
 	t.Logf("reached ledger is %v", reachedLedger)
@@ -547,8 +547,8 @@ func TestReingestDB(t *testing.T) {
 		"captive-core-reingest-range-integration-tests.cfg",
 	)
 
-	horizoncmd.ResetCmds()
-	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db",
+	var rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
 		"range",
 		"--parallel-workers=1",
@@ -556,8 +556,8 @@ func TestReingestDB(t *testing.T) {
 		fmt.Sprintf("%d", toLedger),
 	))
 
-	tt.NoError(horizoncmd.RootCmd.Execute())
-	tt.NoError(horizoncmd.RootCmd.Execute(), "Repeat the same reingest range against db, should not have errors.")
+	tt.NoError(rootCmd.Execute())
+	tt.NoError(rootCmd.Execute(), "Repeat the same reingest range against db, should not have errors.")
 }
 
 func TestReingestDatastore(t *testing.T) {
@@ -567,10 +567,10 @@ func TestReingestDatastore(t *testing.T) {
 
 	newDB := dbtest.Postgres(t)
 	defer newDB.Close()
-	horizoncmd.ResetCmds()
-	horizoncmd.RootCmd.SetArgs([]string{
+	var rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs([]string{
 		"db", "migrate", "up", "--db-url", newDB.DSN})
-	require.NoError(t, horizoncmd.RootCmd.Execute())
+	require.NoError(t, rootCmd.Execute())
 
 	testTempDir := t.TempDir()
 	tempSeedDataPath := filepath.Join(testTempDir, "data")
@@ -606,8 +606,8 @@ func TestReingestDatastore(t *testing.T) {
 	t.Logf("fake gcs server started at %v", gcsServer.URL())
 	t.Setenv("STORAGE_EMULATOR_HOST", gcsServer.URL())
 
-	horizoncmd.ResetCmds()
-	horizoncmd.RootCmd.SetArgs([]string{"db",
+	rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs([]string{"db",
 		"reingest",
 		"range",
 		"--db-url", newDB.DSN,
@@ -618,7 +618,7 @@ func TestReingestDatastore(t *testing.T) {
 		"997",
 		"999"})
 
-	require.NoError(t, horizoncmd.RootCmd.Execute())
+	require.NoError(t, rootCmd.Execute())
 
 	listener, webApp, webPort, err := dynamicHorizonWeb(newDB.DSN)
 	if err != nil {
@@ -786,17 +786,17 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	itest.StopHorizon()
 
 	// clear the db with reaping all ledgers
-	horizoncmd.ResetCmds()
-	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
+	var rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reap",
 		"--history-retention-count=1",
 	))
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	tt.NoError(rootCmd.Execute())
 
 	// repopulate the db with reingestion which should catchup using core reapply filter rules
 	// correctly on reingestion ranged
-	horizoncmd.ResetCmds()
-	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
+	rootCmd = horizoncmd.NewRootCmd()
+	rootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reingest",
 		"range",
 		"1",
@@ -941,9 +941,9 @@ func TestFillGaps(t *testing.T) {
 		})
 	tt.NoError(err)
 
-	horizoncmd.ResetCmds()
 	t.Run("validate parallel range", func(t *testing.T) {
-		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
+		var rootCmd = horizoncmd.NewRootCmd()
+		rootCmd.SetArgs(command(t, horizonConfig,
 			"db",
 			"fill-gaps",
 			"--parallel-workers=2",
@@ -951,7 +951,7 @@ func TestFillGaps(t *testing.T) {
 			"2",
 		))
 
-		assert.EqualError(t, horizoncmd.RootCmd.Execute(), "Invalid range: {10 2} from > to")
+		assert.EqualError(t, rootCmd.Execute(), "Invalid range: {10 2} from > to")
 	})
 
 	// make sure a full checkpoint has elapsed otherwise there will be nothing to reingest

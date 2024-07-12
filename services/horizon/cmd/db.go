@@ -20,6 +20,7 @@ import (
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/db2/schema"
 	"github.com/stellar/go/services/horizon/internal/ingest"
+	"github.com/stellar/go/support/config"
 	support "github.com/stellar/go/support/config"
 	"github.com/stellar/go/support/datastore"
 	"github.com/stellar/go/support/db"
@@ -51,12 +52,12 @@ var (
 	ledgerBackendType        ingest.LedgerBackendType
 )
 
-func requireAndSetFlags(names ...string) error {
+func requireAndSetFlags(horizonFlags config.ConfigOptions, names ...string) error {
 	set := map[string]bool{}
 	for _, name := range names {
 		set[name] = true
 	}
-	for _, flag := range globalFlags {
+	for _, flag := range horizonFlags {
 		if set[flag.Name] {
 			flag.Require()
 			if err := flag.SetValue(); err != nil {
@@ -275,7 +276,7 @@ func runDBDetectGapsInRange(config horizon.Config, start, end uint32) ([]history
 	return q.GetLedgerGapsInRange(context.Background(), start, end)
 }
 
-func DefineDBCommands() {
+func DefineDBCommands(rootCmd *cobra.Command, horizonConfig *horizon.Config, horizonFlags config.ConfigOptions) {
 	dbCmd = &cobra.Command{
 		Use:   "db [command]",
 		Short: "commands to manage horizon's postgres db",
@@ -291,11 +292,11 @@ func DefineDBCommands() {
 		Short: "install schema",
 		Long:  "init initializes the postgres database used by horizon.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+			if err := requireAndSetFlags(horizonFlags, horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
 				return err
 			}
 
-			db, err := sql.Open("postgres", globalConfig.DatabaseURL)
+			db, err := sql.Open("postgres", horizonConfig.DatabaseURL)
 			if err != nil {
 				return err
 			}
@@ -319,7 +320,7 @@ func DefineDBCommands() {
 		Short: "run downwards db schema migrations",
 		Long:  "performs a downards schema migration command",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+			if err := requireAndSetFlags(horizonFlags, horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
 				return err
 			}
 
@@ -343,7 +344,7 @@ func DefineDBCommands() {
 		Short: "redo db schema migrations",
 		Long:  "performs a redo schema migration command",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+			if err := requireAndSetFlags(horizonFlags, horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
 				return err
 			}
 
@@ -367,7 +368,7 @@ func DefineDBCommands() {
 		Short: "print current database migration status",
 		Long:  "print current database migration status",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := requireAndSetFlags(horizon.DatabaseURLFlagName); err != nil {
+			if err := requireAndSetFlags(horizonFlags, horizon.DatabaseURLFlagName); err != nil {
 				return err
 			}
 
@@ -377,7 +378,7 @@ func DefineDBCommands() {
 				return ErrUsage{cmd}
 			}
 
-			dbConn, err := db.Open("postgres", globalConfig.DatabaseURL)
+			dbConn, err := db.Open("postgres", horizonConfig.DatabaseURL)
 			if err != nil {
 				return err
 			}
@@ -397,7 +398,7 @@ func DefineDBCommands() {
 		Short: "run upwards db schema migrations",
 		Long:  "performs an upwards schema migration command",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+			if err := requireAndSetFlags(horizonFlags, horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
 				return err
 			}
 
@@ -426,12 +427,12 @@ func DefineDBCommands() {
 		Long:  "reap removes any historical data that is earlier than the configured retention cutoff",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false})
+			err := horizon.ApplyFlags(horizonConfig, horizonFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false})
 			if err != nil {
 				return err
 			}
 
-			session, err := db.Open("postgres", globalConfig.DatabaseURL)
+			session, err := db.Open("postgres", horizonConfig.DatabaseURL)
 			if err != nil {
 				return fmt.Errorf("cannot open Horizon DB: %v", err)
 			}
@@ -439,8 +440,8 @@ func DefineDBCommands() {
 
 			reaper := ingest.NewReaper(
 				ingest.ReapConfig{
-					RetentionCount: uint32(globalConfig.HistoryRetentionCount),
-					BatchSize:      uint32(globalConfig.HistoryRetentionReapCount),
+					RetentionCount: uint32(horizonConfig.HistoryRetentionCount),
+					BatchSize:      uint32(horizonConfig.HistoryRetentionReapCount),
 				},
 				session,
 			)
@@ -506,7 +507,7 @@ func DefineDBCommands() {
 				options.NoCaptiveCore = true
 			}
 
-			err := horizon.ApplyFlags(globalConfig, globalFlags, options)
+			err := horizon.ApplyFlags(horizonConfig, horizonFlags, options)
 			if err != nil {
 				return err
 			}
@@ -514,7 +515,7 @@ func DefineDBCommands() {
 				[]history.LedgerRange{{StartSequence: argsUInt32[0], EndSequence: argsUInt32[1]}},
 				reingestForce,
 				parallelWorkers,
-				*globalConfig,
+				*horizonConfig,
 				storageBackendConfig,
 			)
 		},
@@ -569,26 +570,26 @@ func DefineDBCommands() {
 				options.NoCaptiveCore = true
 			}
 
-			err := horizon.ApplyFlags(globalConfig, globalFlags, options)
+			err := horizon.ApplyFlags(horizonConfig, horizonFlags, options)
 			if err != nil {
 				return err
 			}
 			var gaps []history.LedgerRange
 			if withRange {
-				gaps, err = runDBDetectGapsInRange(*globalConfig, uint32(start), uint32(end))
+				gaps, err = runDBDetectGapsInRange(*horizonConfig, uint32(start), uint32(end))
 				if err != nil {
 					return err
 				}
 				hlog.Infof("found gaps %v within range [%v, %v]", gaps, start, end)
 			} else {
-				gaps, err = runDBDetectGaps(*globalConfig)
+				gaps, err = runDBDetectGaps(*horizonConfig)
 				if err != nil {
 					return err
 				}
 				hlog.Infof("found gaps %v", gaps)
 			}
 
-			return runDBReingestRangeFn(gaps, reingestForce, parallelWorkers, *globalConfig, storageBackendConfig)
+			return runDBReingestRangeFn(gaps, reingestForce, parallelWorkers, *horizonConfig, storageBackendConfig)
 		},
 	}
 
@@ -597,14 +598,14 @@ func DefineDBCommands() {
 		Short: "detects ingestion gaps in Horizon's database",
 		Long:  "detects ingestion gaps in Horizon's database and prints a list of reingest commands needed to fill the gaps",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := requireAndSetFlags(horizon.DatabaseURLFlagName); err != nil {
+			if err := requireAndSetFlags(horizonFlags, horizon.DatabaseURLFlagName); err != nil {
 				return err
 			}
 
 			if len(args) != 0 {
 				return ErrUsage{cmd}
 			}
-			gaps, err := runDBDetectGaps(*globalConfig)
+			gaps, err := runDBDetectGaps(*horizonConfig)
 			if err != nil {
 				return err
 			}
@@ -631,7 +632,7 @@ func DefineDBCommands() {
 	viper.BindPFlags(dbReingestRangeCmd.PersistentFlags())
 	viper.BindPFlags(dbFillGapsCmd.PersistentFlags())
 
-	RootCmd.AddCommand(dbCmd)
+	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(
 		dbInitCmd,
 		dbMigrateCmd,
@@ -650,5 +651,5 @@ func DefineDBCommands() {
 }
 
 func init() {
-	DefineDBCommands()
+	DefineDBCommands(RootCmd, globalConfig, globalFlags)
 }

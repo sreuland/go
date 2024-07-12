@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/spf13/cobra"
 	horizon "github.com/stellar/go/services/horizon/internal"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/ingest"
@@ -18,7 +19,8 @@ func TestDBCommandsTestSuite(t *testing.T) {
 
 type DBCommandsTestSuite struct {
 	suite.Suite
-	db *dbtest.DB
+	db      *dbtest.DB
+	rootCmd *cobra.Command
 }
 
 func (s *DBCommandsTestSuite) SetupSuite() {
@@ -38,12 +40,12 @@ func (s *DBCommandsTestSuite) TearDownSuite() {
 	s.db.Close()
 }
 
-func (s *DBCommandsTestSuite) BeforeTest() {
-	ResetCmds()
+func (s *DBCommandsTestSuite) BeforeTest(suiteName string, testName string) {
+	s.rootCmd = NewRootCmd()
 }
 
 func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForBufferedBackend() {
-	RootCmd.SetArgs([]string{
+	s.rootCmd.SetArgs([]string{
 		"db", "reingest", "range",
 		"--db-url", s.db.DSN,
 		"--network", "testnet",
@@ -53,12 +55,12 @@ func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForBufferedBackend() {
 		"2",
 		"10"})
 
-	require.NoError(s.T(), dbReingestRangeCmd.Execute())
+	require.NoError(s.T(), s.rootCmd.Execute())
 	require.Equal(s.T(), parallelJobSize, uint32(100))
 }
 
 func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForCaptiveBackend() {
-	RootCmd.SetArgs([]string{
+	s.rootCmd.SetArgs([]string{
 		"db", "reingest", "range",
 		"--db-url", s.db.DSN,
 		"--network", "testnet",
@@ -68,12 +70,12 @@ func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForCaptiveBackend() {
 		"2",
 		"10"})
 
-	require.NoError(s.T(), RootCmd.Execute())
+	require.NoError(s.T(), s.rootCmd.Execute())
 	require.Equal(s.T(), parallelJobSize, uint32(100_000))
 }
 
 func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForCaptive() {
-	RootCmd.SetArgs([]string{
+	s.rootCmd.SetArgs([]string{
 		"db", "reingest", "range",
 		"--db-url", s.db.DSN,
 		"--network", "testnet",
@@ -84,12 +86,12 @@ func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForCaptive() {
 		"2",
 		"10"})
 
-	require.NoError(s.T(), RootCmd.Execute())
+	require.NoError(s.T(), s.rootCmd.Execute())
 	require.Equal(s.T(), parallelJobSize, uint32(5))
 }
 
 func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForBuffered() {
-	RootCmd.SetArgs([]string{
+	s.rootCmd.SetArgs([]string{
 		"db", "reingest", "range",
 		"--db-url", s.db.DSN,
 		"--network", "testnet",
@@ -100,6 +102,6 @@ func (s *DBCommandsTestSuite) TestUsesParallelJobSizeWhenSetForBuffered() {
 		"2",
 		"10"})
 
-	require.NoError(s.T(), RootCmd.Execute())
+	require.NoError(s.T(), s.rootCmd.Execute())
 	require.Equal(s.T(), parallelJobSize, uint32(5))
 }
