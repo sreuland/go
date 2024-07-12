@@ -12,7 +12,13 @@ import (
 var (
 	globalConfig, globalFlags = horizon.Flags()
 
-	RootCmd = &cobra.Command{
+	RootCmd           = createRootCmd()
+	originalHelpFunc  = RootCmd.HelpFunc()
+	originalUsageFunc = RootCmd.UsageFunc()
+)
+
+func createRootCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:           "horizon",
 		Short:         "client-facing api server for the Stellar network",
 		SilenceErrors: true,
@@ -30,9 +36,37 @@ var (
 			return app.Serve()
 		},
 	}
-	originalHelpFunc  = RootCmd.HelpFunc()
+}
+
+func initRootCmd() {
+	// override the default help output, apply further filtering on which global flags
+	// will be shown on the help outout dependent on the command help was issued upon.
+	RootCmd.SetHelpFunc(func(c *cobra.Command, args []string) {
+		enableGlobalOptionsInHelp(c, globalFlags)
+		originalHelpFunc(c, args)
+	})
+
+	RootCmd.SetUsageFunc(func(c *cobra.Command) error {
+		enableGlobalOptionsInHelp(c, globalFlags)
+		return originalUsageFunc(c)
+	})
+
+	err := globalFlags.Init(RootCmd)
+	if err != nil {
+		stdLog.Fatal(err.Error())
+	}
+}
+
+// intended for test purposes, recreates new instaces of whole command tree.
+// allows tests top execute same command multiple times with different args
+// in same process and avoid state carryover from prior command.
+func ResetCmds() {
+	RootCmd = createRootCmd()
+	originalHelpFunc = RootCmd.HelpFunc()
 	originalUsageFunc = RootCmd.UsageFunc()
-)
+	initRootCmd()
+	DefineDBCommands()
+}
 
 // ErrUsage indicates we should print the usage string and exit with code 1
 type ErrUsage struct {
@@ -51,23 +85,7 @@ func (e ErrExitCode) Error() string {
 }
 
 func init() {
-
-	// override the default help output, apply further filtering on which global flags
-	// will be shown on the help outout dependent on the command help was issued upon.
-	RootCmd.SetHelpFunc(func(c *cobra.Command, args []string) {
-		enableGlobalOptionsInHelp(c, globalFlags)
-		originalHelpFunc(c, args)
-	})
-
-	RootCmd.SetUsageFunc(func(c *cobra.Command) error {
-		enableGlobalOptionsInHelp(c, globalFlags)
-		return originalUsageFunc(c)
-	})
-
-	err := globalFlags.Init(RootCmd)
-	if err != nil {
-		stdLog.Fatal(err.Error())
-	}
+	initRootCmd()
 }
 
 func Execute() error {

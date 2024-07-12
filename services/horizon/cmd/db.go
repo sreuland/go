@@ -27,17 +27,29 @@ import (
 	hlog "github.com/stellar/go/support/log"
 )
 
-var runDBReingestRangeFn = runDBReingestRange
-
-var dbCmd = &cobra.Command{
-	Use:   "db [command]",
-	Short: "commands to manage horizon's postgres db",
-}
-
-var dbMigrateCmd = &cobra.Command{
-	Use:   "migrate [command]",
-	Short: "commands to run schema migrations on horizon's postgres db",
-}
+var (
+	runDBReingestRangeFn     = runDBReingestRange
+	dbCmd                    *cobra.Command
+	dbMigrateCmd             *cobra.Command
+	dbInitCmd                *cobra.Command
+	dbMigrateDownCmd         *cobra.Command
+	dbMigrateRedoCmd         *cobra.Command
+	dbMigrateStatusCmd       *cobra.Command
+	dbMigrateUpCmd           *cobra.Command
+	dbReapCmd                *cobra.Command
+	dbReingestCmd            *cobra.Command
+	dbReingestRangeCmd       *cobra.Command
+	dbFillGapsCmd            *cobra.Command
+	dbDetectGapsCmd          *cobra.Command
+	reingestForce            bool
+	parallelWorkers          uint
+	parallelJobSize          uint32
+	retries                  uint
+	retryBackoffSeconds      uint
+	ledgerBackendStr         string
+	storageBackendConfigPath string
+	ledgerBackendType        ingest.LedgerBackendType
+)
 
 func requireAndSetFlags(names ...string) error {
 	set := map[string]bool{}
@@ -61,34 +73,6 @@ func requireAndSetFlags(names ...string) error {
 		missing = append(missing, name)
 	}
 	return fmt.Errorf("could not find %s flags", strings.Join(missing, ","))
-}
-
-var dbInitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "install schema",
-	Long:  "init initializes the postgres database used by horizon.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
-			return err
-		}
-
-		db, err := sql.Open("postgres", globalConfig.DatabaseURL)
-		if err != nil {
-			return err
-		}
-
-		numMigrationsRun, err := schema.Migrate(db, schema.MigrateUp, 0)
-		if err != nil {
-			return err
-		}
-
-		if numMigrationsRun == 0 {
-			log.Println("No migrations applied.")
-		} else {
-			log.Printf("Successfully applied %d migrations.\n", numMigrationsRun)
-		}
-		return nil
-	},
 }
 
 func migrate(dir schema.MigrateDir, count int) error {
@@ -115,163 +99,6 @@ func migrate(dir schema.MigrateDir, count int) error {
 	}
 	return nil
 }
-
-var dbMigrateDownCmd = &cobra.Command{
-	Use:   "down COUNT",
-	Short: "run downwards db schema migrations",
-	Long:  "performs a downards schema migration command",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
-			return err
-		}
-
-		// Only allow invocations with 1 args.
-		if len(args) != 1 {
-			return ErrUsage{cmd}
-		}
-
-		count, err := strconv.Atoi(args[0])
-		if err != nil {
-			log.Println(err)
-			return ErrUsage{cmd}
-		}
-
-		return migrate(schema.MigrateDown, count)
-	},
-}
-
-var dbMigrateRedoCmd = &cobra.Command{
-	Use:   "redo COUNT",
-	Short: "redo db schema migrations",
-	Long:  "performs a redo schema migration command",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
-			return err
-		}
-
-		// Only allow invocations with 1 args.
-		if len(args) != 1 {
-			return ErrUsage{cmd}
-		}
-
-		count, err := strconv.Atoi(args[0])
-		if err != nil {
-			log.Println(err)
-			return ErrUsage{cmd}
-		}
-
-		return migrate(schema.MigrateRedo, count)
-	},
-}
-
-var dbMigrateStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "print current database migration status",
-	Long:  "print current database migration status",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAndSetFlags(horizon.DatabaseURLFlagName); err != nil {
-			return err
-		}
-
-		// Only allow invocations with 0 args.
-		if len(args) != 0 {
-			fmt.Println(args)
-			return ErrUsage{cmd}
-		}
-
-		dbConn, err := db.Open("postgres", globalConfig.DatabaseURL)
-		if err != nil {
-			return err
-		}
-
-		status, err := schema.Status(dbConn.DB.DB)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(status)
-		return nil
-	},
-}
-
-var dbMigrateUpCmd = &cobra.Command{
-	Use:   "up [COUNT]",
-	Short: "run upwards db schema migrations",
-	Long:  "performs an upwards schema migration command",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
-			return err
-		}
-
-		// Only allow invocations with 0-1 args.
-		if len(args) > 1 {
-			return ErrUsage{cmd}
-		}
-
-		count := 0
-		if len(args) == 1 {
-			var err error
-			count, err = strconv.Atoi(args[0])
-			if err != nil {
-				log.Println(err)
-				return ErrUsage{cmd}
-			}
-		}
-
-		return migrate(schema.MigrateUp, count)
-	},
-}
-
-var dbReapCmd = &cobra.Command{
-	Use:   "reap",
-	Short: "reaps (i.e. removes) any reapable history data",
-	Long:  "reap removes any historical data that is earlier than the configured retention cutoff",
-	RunE: func(cmd *cobra.Command, args []string) error {
-
-		err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false})
-		if err != nil {
-			return err
-		}
-
-		session, err := db.Open("postgres", globalConfig.DatabaseURL)
-		if err != nil {
-			return fmt.Errorf("cannot open Horizon DB: %v", err)
-		}
-		defer session.Close()
-
-		reaper := ingest.NewReaper(
-			ingest.ReapConfig{
-				RetentionCount: uint32(globalConfig.HistoryRetentionCount),
-				BatchSize:      uint32(globalConfig.HistoryRetentionReapCount),
-			},
-			session,
-		)
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
-		defer cancel()
-		return reaper.DeleteUnretainedHistory(ctx)
-	},
-}
-
-var dbReingestCmd = &cobra.Command{
-	Use:   "reingest",
-	Short: "reingest commands",
-	Long:  "reingest ingests historical data for every ledger or ledgers specified by subcommand",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Use one of the subcomands...")
-		return ErrUsage{cmd}
-	},
-}
-
-var (
-	reingestForce            bool
-	parallelWorkers          uint
-	parallelJobSize          uint32
-	retries                  uint
-	retryBackoffSeconds      uint
-	ledgerBackendStr         string
-	storageBackendConfigPath string
-	ledgerBackendType        ingest.LedgerBackendType
-)
 
 func ingestRangeCmdOpts() support.ConfigOptions {
 	return support.ConfigOptions{
@@ -356,138 +183,7 @@ func ingestRangeCmdOpts() support.ConfigOptions {
 }
 
 var dbReingestRangeCmdOpts = ingestRangeCmdOpts()
-var dbReingestRangeCmd = &cobra.Command{
-	Use:   "range [Start sequence number] [End sequence number]",
-	Short: "reingests ledgers within a range",
-	Long:  "reingests ledgers between X and Y sequence number (closed intervals)",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := dbReingestRangeCmdOpts.RequireE(); err != nil {
-			return err
-		}
-		if err := dbReingestRangeCmdOpts.SetValues(); err != nil {
-			return err
-		}
-
-		if len(args) != 2 {
-			return ErrUsage{cmd}
-		}
-
-		argsUInt32 := make([]uint32, 2)
-		for i, arg := range args {
-			if seq, err := strconv.ParseUint(arg, 10, 32); err != nil {
-				cmd.Usage()
-				return fmt.Errorf(`invalid sequence number "%s"`, arg)
-			} else {
-				argsUInt32[i] = uint32(seq)
-			}
-		}
-
-		var storageBackendConfig ingest.StorageBackendConfig
-		options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false}
-		if ledgerBackendType == ingest.BufferedStorageBackend {
-			cfg, err := toml.LoadFile(storageBackendConfigPath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file %v: %w", storageBackendConfigPath, err)
-			}
-			if err = cfg.Unmarshal(&storageBackendConfig); err != nil {
-				return fmt.Errorf("error unmarshalling TOML config: %w", err)
-			}
-			storageBackendConfig.BufferedStorageBackendFactory = ledgerbackend.NewBufferedStorageBackend
-			storageBackendConfig.DataStoreFactory = datastore.NewDataStore
-			// when using buffered storage, performance observations have noted optimal parallel batch size
-			// of 100, apply that as default if the flag was absent.
-			if !viper.IsSet("parallel-job-size") {
-				parallelJobSize = 100
-			}
-			options.NoCaptiveCore = true
-		}
-
-		err := horizon.ApplyFlags(globalConfig, globalFlags, options)
-		if err != nil {
-			return err
-		}
-		return runDBReingestRangeFn(
-			[]history.LedgerRange{{StartSequence: argsUInt32[0], EndSequence: argsUInt32[1]}},
-			reingestForce,
-			parallelWorkers,
-			*globalConfig,
-			storageBackendConfig,
-		)
-	},
-}
-
 var dbFillGapsCmdOpts = ingestRangeCmdOpts()
-var dbFillGapsCmd = &cobra.Command{
-	Use:   "fill-gaps [Start sequence number] [End sequence number]",
-	Short: "Ingests any gaps found in the horizon db",
-	Long:  "Ingests any gaps found in the horizon db. The command takes an optional start and end parameters which restrict the range of ledgers ingested.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := dbFillGapsCmdOpts.RequireE(); err != nil {
-			return err
-		}
-		if err := dbFillGapsCmdOpts.SetValues(); err != nil {
-			return err
-		}
-
-		if len(args) != 0 && len(args) != 2 {
-			hlog.Errorf("Expected either 0 arguments or 2 but found %v arguments", len(args))
-			return ErrUsage{cmd}
-		}
-
-		var start, end uint64
-		var withRange bool
-		if len(args) == 2 {
-			var err error
-			start, err = strconv.ParseUint(args[0], 10, 32)
-			if err != nil {
-				cmd.Usage()
-				return fmt.Errorf(`invalid sequence number "%s"`, args[0])
-			}
-			end, err = strconv.ParseUint(args[1], 10, 32)
-			if err != nil {
-				cmd.Usage()
-				return fmt.Errorf(`invalid sequence number "%s"`, args[1])
-			}
-			withRange = true
-		}
-
-		var storageBackendConfig ingest.StorageBackendConfig
-		options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false}
-		if ledgerBackendType == ingest.BufferedStorageBackend {
-			cfg, err := toml.LoadFile(storageBackendConfigPath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file %v: %w", storageBackendConfigPath, err)
-			}
-			if err = cfg.Unmarshal(&storageBackendConfig); err != nil {
-				return fmt.Errorf("error unmarshalling TOML config: %w", err)
-			}
-			storageBackendConfig.BufferedStorageBackendFactory = ledgerbackend.NewBufferedStorageBackend
-			storageBackendConfig.DataStoreFactory = datastore.NewDataStore
-			options.NoCaptiveCore = true
-		}
-
-		err := horizon.ApplyFlags(globalConfig, globalFlags, options)
-		if err != nil {
-			return err
-		}
-		var gaps []history.LedgerRange
-		if withRange {
-			gaps, err = runDBDetectGapsInRange(*globalConfig, uint32(start), uint32(end))
-			if err != nil {
-				return err
-			}
-			hlog.Infof("found gaps %v within range [%v, %v]", gaps, start, end)
-		} else {
-			gaps, err = runDBDetectGaps(*globalConfig)
-			if err != nil {
-				return err
-			}
-			hlog.Infof("found gaps %v", gaps)
-		}
-
-		return runDBReingestRangeFn(gaps, reingestForce, parallelWorkers, *globalConfig, storageBackendConfig)
-	},
-}
 
 func runDBReingestRange(ledgerRanges []history.LedgerRange, reingestForce bool, parallelWorkers uint, config horizon.Config, storageBackendConfig ingest.StorageBackendConfig) error {
 	var err error
@@ -559,35 +255,6 @@ the reingest command completes.`)
 	return nil
 }
 
-var dbDetectGapsCmd = &cobra.Command{
-	Use:   "detect-gaps",
-	Short: "detects ingestion gaps in Horizon's database",
-	Long:  "detects ingestion gaps in Horizon's database and prints a list of reingest commands needed to fill the gaps",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAndSetFlags(horizon.DatabaseURLFlagName); err != nil {
-			return err
-		}
-
-		if len(args) != 0 {
-			return ErrUsage{cmd}
-		}
-		gaps, err := runDBDetectGaps(*globalConfig)
-		if err != nil {
-			return err
-		}
-		if len(gaps) == 0 {
-			hlog.Info("No gaps found")
-			return nil
-		}
-		fmt.Println("Horizon commands to run in order to fill in the gaps:")
-		cmdname := os.Args[0]
-		for _, g := range gaps {
-			fmt.Printf("%s db reingest range %d %d\n", cmdname, g.StartSequence, g.EndSequence)
-		}
-		return nil
-	},
-}
-
 func runDBDetectGaps(config horizon.Config) ([]history.LedgerRange, error) {
 	horizonSession, err := db.Open("postgres", config.DatabaseURL)
 	if err != nil {
@@ -608,22 +275,352 @@ func runDBDetectGapsInRange(config horizon.Config, start, end uint32) ([]history
 	return q.GetLedgerGapsInRange(context.Background(), start, end)
 }
 
-func ResetCommandArgs() {
-
-	var commands []*cobra.Command
-	commands = append(commands, RootCmd)
-
-	for len(commands) > 0 {
-		// deque the next
-		command := commands[0]
-		commands = commands[1:]
-
-		command.SetArgs(nil)
-		commands = append(commands, command.Commands()...)
+func DefineDBCommands() {
+	dbCmd = &cobra.Command{
+		Use:   "db [command]",
+		Short: "commands to manage horizon's postgres db",
 	}
-}
 
-func init() {
+	dbMigrateCmd = &cobra.Command{
+		Use:   "migrate [command]",
+		Short: "commands to run schema migrations on horizon's postgres db",
+	}
+
+	dbInitCmd = &cobra.Command{
+		Use:   "init",
+		Short: "install schema",
+		Long:  "init initializes the postgres database used by horizon.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+				return err
+			}
+
+			db, err := sql.Open("postgres", globalConfig.DatabaseURL)
+			if err != nil {
+				return err
+			}
+
+			numMigrationsRun, err := schema.Migrate(db, schema.MigrateUp, 0)
+			if err != nil {
+				return err
+			}
+
+			if numMigrationsRun == 0 {
+				log.Println("No migrations applied.")
+			} else {
+				log.Printf("Successfully applied %d migrations.\n", numMigrationsRun)
+			}
+			return nil
+		},
+	}
+
+	dbMigrateDownCmd = &cobra.Command{
+		Use:   "down COUNT",
+		Short: "run downwards db schema migrations",
+		Long:  "performs a downards schema migration command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+				return err
+			}
+
+			// Only allow invocations with 1 args.
+			if len(args) != 1 {
+				return ErrUsage{cmd}
+			}
+
+			count, err := strconv.Atoi(args[0])
+			if err != nil {
+				log.Println(err)
+				return ErrUsage{cmd}
+			}
+
+			return migrate(schema.MigrateDown, count)
+		},
+	}
+
+	dbMigrateRedoCmd = &cobra.Command{
+		Use:   "redo COUNT",
+		Short: "redo db schema migrations",
+		Long:  "performs a redo schema migration command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+				return err
+			}
+
+			// Only allow invocations with 1 args.
+			if len(args) != 1 {
+				return ErrUsage{cmd}
+			}
+
+			count, err := strconv.Atoi(args[0])
+			if err != nil {
+				log.Println(err)
+				return ErrUsage{cmd}
+			}
+
+			return migrate(schema.MigrateRedo, count)
+		},
+	}
+
+	dbMigrateStatusCmd = &cobra.Command{
+		Use:   "status",
+		Short: "print current database migration status",
+		Long:  "print current database migration status",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := requireAndSetFlags(horizon.DatabaseURLFlagName); err != nil {
+				return err
+			}
+
+			// Only allow invocations with 0 args.
+			if len(args) != 0 {
+				fmt.Println(args)
+				return ErrUsage{cmd}
+			}
+
+			dbConn, err := db.Open("postgres", globalConfig.DatabaseURL)
+			if err != nil {
+				return err
+			}
+
+			status, err := schema.Status(dbConn.DB.DB)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(status)
+			return nil
+		},
+	}
+
+	dbMigrateUpCmd = &cobra.Command{
+		Use:   "up [COUNT]",
+		Short: "run upwards db schema migrations",
+		Long:  "performs an upwards schema migration command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := requireAndSetFlags(horizon.DatabaseURLFlagName, horizon.IngestFlagName); err != nil {
+				return err
+			}
+
+			// Only allow invocations with 0-1 args.
+			if len(args) > 1 {
+				return ErrUsage{cmd}
+			}
+
+			count := 0
+			if len(args) == 1 {
+				var err error
+				count, err = strconv.Atoi(args[0])
+				if err != nil {
+					log.Println(err)
+					return ErrUsage{cmd}
+				}
+			}
+
+			return migrate(schema.MigrateUp, count)
+		},
+	}
+
+	dbReapCmd = &cobra.Command{
+		Use:   "reap",
+		Short: "reaps (i.e. removes) any reapable history data",
+		Long:  "reap removes any historical data that is earlier than the configured retention cutoff",
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			err := horizon.ApplyFlags(globalConfig, globalFlags, horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false})
+			if err != nil {
+				return err
+			}
+
+			session, err := db.Open("postgres", globalConfig.DatabaseURL)
+			if err != nil {
+				return fmt.Errorf("cannot open Horizon DB: %v", err)
+			}
+			defer session.Close()
+
+			reaper := ingest.NewReaper(
+				ingest.ReapConfig{
+					RetentionCount: uint32(globalConfig.HistoryRetentionCount),
+					BatchSize:      uint32(globalConfig.HistoryRetentionReapCount),
+				},
+				session,
+			)
+			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+			defer cancel()
+			return reaper.DeleteUnretainedHistory(ctx)
+		},
+	}
+
+	dbReingestCmd = &cobra.Command{
+		Use:   "reingest",
+		Short: "reingest commands",
+		Long:  "reingest ingests historical data for every ledger or ledgers specified by subcommand",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("Use one of the subcomands...")
+			return ErrUsage{cmd}
+		},
+	}
+
+	dbReingestRangeCmd = &cobra.Command{
+		Use:   "range [Start sequence number] [End sequence number]",
+		Short: "reingests ledgers within a range",
+		Long:  "reingests ledgers between X and Y sequence number (closed intervals)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := dbReingestRangeCmdOpts.RequireE(); err != nil {
+				return err
+			}
+			if err := dbReingestRangeCmdOpts.SetValues(); err != nil {
+				return err
+			}
+
+			if len(args) != 2 {
+				return ErrUsage{cmd}
+			}
+
+			argsUInt32 := make([]uint32, 2)
+			for i, arg := range args {
+				if seq, err := strconv.ParseUint(arg, 10, 32); err != nil {
+					cmd.Usage()
+					return fmt.Errorf(`invalid sequence number "%s"`, arg)
+				} else {
+					argsUInt32[i] = uint32(seq)
+				}
+			}
+
+			var storageBackendConfig ingest.StorageBackendConfig
+			options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false}
+			if ledgerBackendType == ingest.BufferedStorageBackend {
+				cfg, err := toml.LoadFile(storageBackendConfigPath)
+				if err != nil {
+					return fmt.Errorf("failed to load config file %v: %w", storageBackendConfigPath, err)
+				}
+				if err = cfg.Unmarshal(&storageBackendConfig); err != nil {
+					return fmt.Errorf("error unmarshalling TOML config: %w", err)
+				}
+				storageBackendConfig.BufferedStorageBackendFactory = ledgerbackend.NewBufferedStorageBackend
+				storageBackendConfig.DataStoreFactory = datastore.NewDataStore
+				// when using buffered storage, performance observations have noted optimal parallel batch size
+				// of 100, apply that as default if the flag was absent.
+				if !viper.IsSet("parallel-job-size") {
+					parallelJobSize = 100
+				}
+				options.NoCaptiveCore = true
+			}
+
+			err := horizon.ApplyFlags(globalConfig, globalFlags, options)
+			if err != nil {
+				return err
+			}
+			return runDBReingestRangeFn(
+				[]history.LedgerRange{{StartSequence: argsUInt32[0], EndSequence: argsUInt32[1]}},
+				reingestForce,
+				parallelWorkers,
+				*globalConfig,
+				storageBackendConfig,
+			)
+		},
+	}
+
+	dbFillGapsCmd = &cobra.Command{
+		Use:   "fill-gaps [Start sequence number] [End sequence number]",
+		Short: "Ingests any gaps found in the horizon db",
+		Long:  "Ingests any gaps found in the horizon db. The command takes an optional start and end parameters which restrict the range of ledgers ingested.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := dbFillGapsCmdOpts.RequireE(); err != nil {
+				return err
+			}
+			if err := dbFillGapsCmdOpts.SetValues(); err != nil {
+				return err
+			}
+
+			if len(args) != 0 && len(args) != 2 {
+				hlog.Errorf("Expected either 0 arguments or 2 but found %v arguments", len(args))
+				return ErrUsage{cmd}
+			}
+
+			var start, end uint64
+			var withRange bool
+			if len(args) == 2 {
+				var err error
+				start, err = strconv.ParseUint(args[0], 10, 32)
+				if err != nil {
+					cmd.Usage()
+					return fmt.Errorf(`invalid sequence number "%s"`, args[0])
+				}
+				end, err = strconv.ParseUint(args[1], 10, 32)
+				if err != nil {
+					cmd.Usage()
+					return fmt.Errorf(`invalid sequence number "%s"`, args[1])
+				}
+				withRange = true
+			}
+
+			var storageBackendConfig ingest.StorageBackendConfig
+			options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false}
+			if ledgerBackendType == ingest.BufferedStorageBackend {
+				cfg, err := toml.LoadFile(storageBackendConfigPath)
+				if err != nil {
+					return fmt.Errorf("failed to load config file %v: %w", storageBackendConfigPath, err)
+				}
+				if err = cfg.Unmarshal(&storageBackendConfig); err != nil {
+					return fmt.Errorf("error unmarshalling TOML config: %w", err)
+				}
+				storageBackendConfig.BufferedStorageBackendFactory = ledgerbackend.NewBufferedStorageBackend
+				storageBackendConfig.DataStoreFactory = datastore.NewDataStore
+				options.NoCaptiveCore = true
+			}
+
+			err := horizon.ApplyFlags(globalConfig, globalFlags, options)
+			if err != nil {
+				return err
+			}
+			var gaps []history.LedgerRange
+			if withRange {
+				gaps, err = runDBDetectGapsInRange(*globalConfig, uint32(start), uint32(end))
+				if err != nil {
+					return err
+				}
+				hlog.Infof("found gaps %v within range [%v, %v]", gaps, start, end)
+			} else {
+				gaps, err = runDBDetectGaps(*globalConfig)
+				if err != nil {
+					return err
+				}
+				hlog.Infof("found gaps %v", gaps)
+			}
+
+			return runDBReingestRangeFn(gaps, reingestForce, parallelWorkers, *globalConfig, storageBackendConfig)
+		},
+	}
+
+	dbDetectGapsCmd = &cobra.Command{
+		Use:   "detect-gaps",
+		Short: "detects ingestion gaps in Horizon's database",
+		Long:  "detects ingestion gaps in Horizon's database and prints a list of reingest commands needed to fill the gaps",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := requireAndSetFlags(horizon.DatabaseURLFlagName); err != nil {
+				return err
+			}
+
+			if len(args) != 0 {
+				return ErrUsage{cmd}
+			}
+			gaps, err := runDBDetectGaps(*globalConfig)
+			if err != nil {
+				return err
+			}
+			if len(gaps) == 0 {
+				hlog.Info("No gaps found")
+				return nil
+			}
+			fmt.Println("Horizon commands to run in order to fill in the gaps:")
+			cmdname := os.Args[0]
+			for _, g := range gaps {
+				fmt.Printf("%s db reingest range %d %d\n", cmdname, g.StartSequence, g.EndSequence)
+			}
+			return nil
+		},
+	}
+
 	if err := dbReingestRangeCmdOpts.Init(dbReingestRangeCmd); err != nil {
 		log.Fatal(err.Error())
 	}
@@ -650,4 +647,8 @@ func init() {
 		dbMigrateUpCmd,
 	)
 	dbReingestCmd.AddCommand(dbReingestRangeCmd)
+}
+
+func init() {
+	DefineDBCommands()
 }

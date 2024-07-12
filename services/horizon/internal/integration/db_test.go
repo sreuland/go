@@ -492,7 +492,7 @@ func TestReingestDB(t *testing.T) {
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
-	horizoncmd.ResetCommandArgs()
+	horizoncmd.ResetCmds()
 	horizonConfig := itest.GetHorizonIngestConfig()
 	t.Run("validate parallel range", func(t *testing.T) {
 		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
@@ -547,7 +547,7 @@ func TestReingestDB(t *testing.T) {
 		"captive-core-reingest-range-integration-tests.cfg",
 	)
 
-	horizoncmd.ResetCommandArgs()
+	horizoncmd.ResetCmds()
 	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
 		"range",
@@ -565,9 +565,9 @@ func TestReingestDatastore(t *testing.T) {
 		t.Skip("skipping integration test: HORIZON_INTEGRATION_TESTS_ENABLED not set")
 	}
 
-	horizoncmd.ResetCommandArgs()
 	newDB := dbtest.Postgres(t)
 	defer newDB.Close()
+	horizoncmd.ResetCmds()
 	horizoncmd.RootCmd.SetArgs([]string{
 		"db", "migrate", "up", "--db-url", newDB.DSN})
 	require.NoError(t, horizoncmd.RootCmd.Execute())
@@ -606,7 +606,7 @@ func TestReingestDatastore(t *testing.T) {
 	t.Logf("fake gcs server started at %v", gcsServer.URL())
 	t.Setenv("STORAGE_EMULATOR_HOST", gcsServer.URL())
 
-	horizoncmd.ResetCommandArgs()
+	horizoncmd.ResetCmds()
 	horizoncmd.RootCmd.SetArgs([]string{"db",
 		"reingest",
 		"range",
@@ -786,7 +786,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	itest.StopHorizon()
 
 	// clear the db with reaping all ledgers
-	horizoncmd.ResetCommandArgs()
+	horizoncmd.ResetCmds()
 	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reap",
 		"--history-retention-count=1",
@@ -795,7 +795,7 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 
 	// repopulate the db with reingestion which should catchup using core reapply filter rules
 	// correctly on reingestion ranged
-	horizoncmd.ResetCommandArgs()
+	horizoncmd.ResetCmds()
 	horizoncmd.RootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
 		"reingest",
 		"range",
@@ -913,7 +913,6 @@ func TestFillGaps(t *testing.T) {
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
-	horizoncmd.ResetCommandArgs()
 	// Create a fresh Horizon database
 	newDB := dbtest.Postgres(t)
 	freshHorizonPostgresURL := newDB.DSN
@@ -942,6 +941,7 @@ func TestFillGaps(t *testing.T) {
 		})
 	tt.NoError(err)
 
+	horizoncmd.ResetCmds()
 	t.Run("validate parallel range", func(t *testing.T) {
 		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
 			"db",

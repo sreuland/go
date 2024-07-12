@@ -39,7 +39,7 @@ func (s *DBCommandsTestSuite) TearDownSuite() {
 }
 
 func (s *DBCommandsTestSuite) BeforeTest() {
-	ResetCommandArgs()
+	ResetCmds()
 }
 
 func (s *DBCommandsTestSuite) TestDefaultParallelJobSizeForBufferedBackend() {
