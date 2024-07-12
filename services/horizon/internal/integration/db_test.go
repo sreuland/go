@@ -873,12 +873,13 @@ func TestMigrateIngestIsTrueByDefault(t *testing.T) {
 	newDB := dbtest.Postgres(t)
 	freshHorizonPostgresURL := newDB.DSN
 
-	horizoncmd.RootCmd.SetArgs([]string{
+	rootCmd := horizoncmd.NewRootCmd()
+	rootCmd.SetArgs([]string{
 		// ingest is set to true by default
 		"--db-url", freshHorizonPostgresURL,
 		"db", "migrate", "up",
 	})
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	tt.NoError(rootCmd.Execute())
 
 	dbConn, err := db.Open("postgres", freshHorizonPostgresURL)
 	tt.NoError(err)
@@ -894,12 +895,13 @@ func TestMigrateChecksIngestFlag(t *testing.T) {
 	newDB := dbtest.Postgres(t)
 	freshHorizonPostgresURL := newDB.DSN
 
-	horizoncmd.RootCmd.SetArgs([]string{
+	rootCmd := horizoncmd.NewRootCmd()
+	rootCmd.SetArgs([]string{
 		"--ingest=false",
 		"--db-url", freshHorizonPostgresURL,
 		"db", "migrate", "up",
 	})
-	tt.NoError(horizoncmd.RootCmd.Execute())
+	tt.NoError(rootCmd.Execute())
 
 	dbConn, err := db.Open("postgres", freshHorizonPostgresURL)
 	tt.NoError(err)
