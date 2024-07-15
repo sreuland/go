@@ -153,9 +153,10 @@ Run the `db reingest` sub-command, configured to import tx meta from your GCS bu
   ```$ DATABASE_URL=<your db host dsn> \
      NETWORK=testnet \
      stellar-horizon db reingest range \
-		   --parallel-workers, 2 \
-		   --ledgerbackend, "datastore" \
-		   --datastore-config, "config.storagebackend.toml",
+		   --parallel-workers 2 \
+		   --ledgerbackend "datastore" \
+		   --datastore-config "config.storagebackend.toml" \
+       100 200
   ```  
 Notice, even though we no longer need to provide stellar-core related config for binary or config file, we do still need to provide network related config, using convenience parameter `NETWORK=testnet|pubnet` or directly with `NETWORK_PASSPHRASE` and `HISTORY_ARCHIVE_URLS`
 
