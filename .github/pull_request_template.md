@@ -23,8 +23,7 @@ change is, and why it is being made, with enough context for anyone to understan
 
 ### Release planning
 
-* [ ] I've updated the relevant CHANGELOG ([here](services/horizon/CHANGELOG.md) for Horizon) if
-  needed with deprecations, added features, breaking changes, and DB schema changes.
+* [ ] I've reviewed the changes in this PR and if I consider them worthwhile for being mentioned on release notes then I have updated the relevant CHANGELOG ([here](services/horizon/CHANGELOG.md) for Horizon) with a new line item describing the change and reference to this PR. If I don't update the CHANGELOG, I acknowledge this PR's change may not be mentioned in release notes.  
 * [ ] I've decided if this PR requires a new major/minor version according to
   [semver](https://semver.org/), or if it's mainly a patch change. The PR is targeted at the next
   release branch if it's not a patch change.
