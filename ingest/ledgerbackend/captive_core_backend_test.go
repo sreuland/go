@@ -32,8 +32,8 @@ func (m *stellarCoreRunnerMock) context() context.Context {
 	return a.Get(0).(context.Context)
 }
 
-func (m *stellarCoreRunnerMock) catchup(from, to uint32) error {
-	a := m.Called(from, to)
+func (m *stellarCoreRunnerMock) catchup(from, to uint32, toLedgerHash string) error {
+	a := m.Called(from, to, toLedgerHash)
 	return a.Error(0)
 }
 

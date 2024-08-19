@@ -11,7 +11,7 @@ import (
 )
 
 type stellarCoreRunnerInterface interface {
-	catchup(from, to uint32) error
+	catchup(from, to uint32, toLedgerHash string) error
 	runFrom(from uint32, hash string) error
 	getMetaPipe() (<-chan metaResult, bool)
 	context() context.Context
@@ -108,8 +108,8 @@ func (r *stellarCoreRunner) runFrom(from uint32, hash string) error {
 }
 
 // catchup executes the catchup command on the captive core subprocess
-func (r *stellarCoreRunner) catchup(from, to uint32) error {
-	return r.startMetaStream(newCatchupStream(r, from, to))
+func (r *stellarCoreRunner) catchup(from, to uint32, toLedgerHash string) error {
+	return r.startMetaStream(newCatchupStream(r, from, to, toLedgerHash))
 }
 
 type metaStream interface {

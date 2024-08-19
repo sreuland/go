@@ -537,11 +537,6 @@ func TestReingestDB(t *testing.T) {
 	// subprocesses to conflict.
 	itest.StopHorizon()
 
-	horizonConfig.CaptiveCoreConfigPath = filepath.Join(
-		filepath.Dir(horizonConfig.CaptiveCoreConfigPath),
-		"captive-core-reingest-range-integration-tests.cfg",
-	)
-
 	var rootCmd = horizoncmd.NewRootCmd()
 	rootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
@@ -924,11 +919,6 @@ func TestFillGaps(t *testing.T) {
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	_, err = historyQ.DeleteRangeAll(context.Background(), oldestLedger, latestLedger)
 	tt.NoError(err)
-
-	horizonConfig.CaptiveCoreConfigPath = filepath.Join(
-		filepath.Dir(horizonConfig.CaptiveCoreConfigPath),
-		"captive-core-reingest-range-integration-tests.cfg",
-	)
 
 	rootCmd := horizoncmd.NewRootCmd()
 	rootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "--parallel-workers=1"))

@@ -327,6 +327,49 @@ func (c *CaptiveStellarCore) getLatestCheckpointSequence() (uint32, error) {
 	return has.CurrentLedger, nil
 }
 
+// Obtain hash for a ledger sequence from a live connection with network.
+// Will NOT use history archives for hash retrieval.
+// Returns the requested ledger sequence or the closest one to it that could be replayed
+// and its associated trusted hash.
+func (c *CaptiveStellarCore) getTrustedHashForLedger(sequence uint32) (uint32, string, error) {
+	// clone the current captive config but with unique context and hash store refs.
+	// create ad-hoc captive core instance to run unbounded range with requested sequence as start,
+	// this will trigger captive core online replay mode, obtaining the tx-meta and hash for the requested sequence
+	// first, direct from network which is considered trusted, after which the captive core instance is closed.
+	captiveConfigTrustedHash := c.config
+	captiveConfigTrustedHash.LedgerHashStore = nil
+	captiveConfigTrustedHash.Context = context.Background()
+	captiveTrustedHash, err := NewCaptive(captiveConfigTrustedHash)
+
+	if sequence <= 2 {
+		// The line below is to support minimum edge case for streaming ledgers from core in run 'from'
+		// earliest ledger it will emit on pipe will be 3.
+		sequence = 3
+	}
+
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "error creating captive to get hash from network for Ledger %v", sequence)
+	}
+
+	defer func() {
+		if closeErr := captiveTrustedHash.Close(); closeErr != nil {
+			captiveTrustedHash.config.Log.Error("error when closing captive core for network hash", closeErr)
+		}
+	}()
+
+	err = captiveTrustedHash.PrepareRange(captiveTrustedHash.config.Context, UnboundedRange(sequence))
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "error preparing to get network hash for Ledger %v", sequence)
+	}
+
+	networkLCM, err := captiveTrustedHash.GetLedger(captiveTrustedHash.config.Context, sequence)
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "error getting network hash for Ledger %v", sequence)
+	}
+
+	return sequence, networkLCM.LedgerHash().HexString(), nil
+}
+
 func (c *CaptiveStellarCore) openOfflineReplaySubprocess(from, to uint32) error {
 	latestCheckpointSequence, err := c.getLatestCheckpointSequence()
 	if err != nil {
@@ -349,8 +392,12 @@ func (c *CaptiveStellarCore) openOfflineReplaySubprocess(from, to uint32) error 
 		)
 	}
 
+	toLedger, toLedgerHash, err := c.getTrustedHashForLedger(to)
+	if err != nil {
+		return err
+	}
 	stellarCoreRunner := c.stellarCoreRunnerFactory()
-	if err = stellarCoreRunner.catchup(from, to); err != nil {
+	if err = stellarCoreRunner.catchup(from, toLedger, toLedgerHash); err != nil {
 		return errors.Wrap(err, "error running stellar-core")
 	}
 	c.stellarCoreRunner = stellarCoreRunner
@@ -517,9 +564,6 @@ func (c *CaptiveStellarCore) startPreparingRange(ctx context.Context, ledgerRang
 //   - For BoundedRange it will start Stellar-Core in catchup mode.
 //   - For UnboundedRange it will first catchup to starting ledger and then run
 //     it normally (including connecting to the Stellar network).
-//
-// Please note that using a BoundedRange, currently, requires a full-trust on
-// history archive. This issue is being fixed in Stellar-Core.
 func (c *CaptiveStellarCore) PrepareRange(ctx context.Context, ledgerRange Range) error {
 	if alreadyPrepared, err := c.startPreparingRange(ctx, ledgerRange); err != nil {
 		return errors.Wrap(err, "error starting prepare range")

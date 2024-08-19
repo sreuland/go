@@ -11,12 +11,13 @@ type catchupStream struct {
 	dir            workingDir
 	from           uint32
 	to             uint32
+	toLedgerHash   string
 	coreCmdFactory coreCmdFactory
 	log            *log.Entry
 	useDB          bool
 }
 
-func newCatchupStream(r *stellarCoreRunner, from, to uint32) catchupStream {
+func newCatchupStream(r *stellarCoreRunner, from, to uint32, toLedgerHash string) catchupStream {
 	// We want to use ephemeral directories in running the catchup command
 	// (used for the reingestion use case) because it's possible to run parallel
 	// reingestion where multiple captive cores are active on the same machine.
@@ -27,6 +28,7 @@ func newCatchupStream(r *stellarCoreRunner, from, to uint32) catchupStream {
 		dir:            dir,
 		from:           from,
 		to:             to,
+		toLedgerHash:   toLedgerHash,
 		coreCmdFactory: newCoreCmdFactory(r, dir),
 		log:            r.log,
 		useDB:          r.useDB,
@@ -58,6 +60,8 @@ func (s catchupStream) start(ctx context.Context) (cmdI, pipe, error) {
 		if err = cmd.Run(); err != nil {
 			return nil, pipe{}, fmt.Errorf("error initializing core db: %w", err)
 		}
+
+		params = append(params, "--trusted-hash", s.toLedgerHash)
 	} else {
 		params = append(params, "--in-memory")
 	}

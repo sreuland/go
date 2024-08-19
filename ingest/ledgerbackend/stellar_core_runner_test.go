@@ -51,7 +51,7 @@ func TestCloseOffline(t *testing.T) {
 	scMock.On("removeAll", mock.Anything).Return(nil).Once()
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.catchup(100, 200))
+	assert.NoError(t, runner.catchup(100, 200, ""))
 	assert.NoError(t, runner.close())
 }
 
@@ -192,7 +192,7 @@ func TestCloseConcurrency(t *testing.T) {
 	scMock.On("removeAll", mock.Anything).Return(nil).Once()
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.catchup(100, 200))
+	assert.NoError(t, runner.catchup(100, 200, ""))
 
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
