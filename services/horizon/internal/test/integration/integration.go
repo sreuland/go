@@ -553,6 +553,7 @@ const coreStartupPingInterval = time.Second
 
 // Wait for core to be up and manually close the first ledger
 func (i *Test) waitForCore() {
+	integrationYaml := filepath.Join(i.composePath, "docker-compose.integration-tests.yml")
 	i.t.Log("Waiting for core to be up...")
 	startTime := time.Now()
 	for time.Since(startTime) < maxWaitForCoreStartup {
@@ -565,6 +566,13 @@ func (i *Test) waitForCore() {
 			// sleep up to a second between consecutive calls.
 			if durationSince := time.Since(infoTime); durationSince < coreStartupPingInterval {
 				time.Sleep(coreStartupPingInterval - durationSince)
+			}
+			cmdline := []string{"-f", integrationYaml, "logs", "core"}
+			cmdline = append([]string{"compose"}, cmdline...)
+			cmd := exec.Command("docker", cmdline...)
+			out, _ := cmd.Output()
+			if len(out) > 0 {
+				fmt.Printf("core container logs:\n%s\n", string(out))
 			}
 			continue
 		}
