@@ -339,9 +339,10 @@ func (c *CaptiveStellarCore) getTrustedHashForLedger(sequence uint32) (uint32, s
 	// create ad-hoc captive core instance to run unbounded range with requested sequence as start,
 	// this will trigger captive core online replay mode, obtaining the tx-meta and hash for the requested sequence
 	// first, direct from network which is considered trusted, after which the captive core instance is closed.
+	var trustedHashCancel context.CancelFunc
 	captiveConfigTrustedHash := c.config
 	captiveConfigTrustedHash.LedgerHashStore = nil
-	captiveConfigTrustedHash.Context, _ = context.WithCancel(c.config.Context)
+	captiveConfigTrustedHash.Context, trustedHashCancel = context.WithCancel(c.config.Context)
 	captiveTrustedHash, err := c.trustedHashBackendFactory(captiveConfigTrustedHash)
 
 	if sequence <= 2 {
@@ -351,10 +352,12 @@ func (c *CaptiveStellarCore) getTrustedHashForLedger(sequence uint32) (uint32, s
 	}
 
 	if err != nil {
+		trustedHashCancel()
 		return 0, "", errors.Wrapf(err, "error creating captive to get hash from network for Ledger %v", sequence)
 	}
 
 	defer func() {
+		trustedHashCancel()
 		if closeErr := captiveTrustedHash.Close(); closeErr != nil {
 			captiveConfigTrustedHash.Log.Error("error when closing captive core for network hash", closeErr)
 		}
