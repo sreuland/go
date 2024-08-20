@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/services/horizon/internal/test/integration"
 	"github.com/stellar/go/txnbuild"
 )
@@ -55,39 +54,38 @@ func TestTxSub(t *testing.T) {
 }
 
 func TestTxSubLimitsBodySize(t *testing.T) {
-	if integration.GetCoreMaxSupportedProtocol() < 20 {
-		t.Skip("This test run does not support less than Protocol 20")
-	}
-
+	// the base64 tx blob posted for tx with just 'op1' is 289, with both ops, 365
+	// setup the test so that it given one active size threshold configured,
+	// it passes with just 'op1' and will fail with two ops that surpass size threshold.
 	itest := integration.NewTest(t, integration.Config{
-		EnableSorobanRPC: true,
 		HorizonEnvironment: map[string]string{
-			"MAX_HTTP_REQUEST_SIZE": "1800",
+			"MAX_HTTP_REQUEST_SIZE": "300",
+			"LOG_LEVEL":             "Debug",
 		},
 	})
 
-	// establish which account will be contract owner, and load it's current seq
-	sourceAccount, err := itest.Client().AccountDetail(horizonclient.AccountRequest{
-		AccountID: itest.Master().Address(),
-	})
-	require.NoError(t, err)
+	master := itest.Master()
+	op1 := txnbuild.Payment{
+		Destination: master.Address(),
+		Amount:      "10",
+		Asset:       txnbuild.NativeAsset{},
+	}
 
-	installContractOp := assembleInstallContractCodeOp(t, itest.Master().Address(), "soroban_sac_test.wasm")
-	preFlightOp, minFee := itest.PreflightHostFunctions(&sourceAccount, *installContractOp)
-	_, err = itest.SubmitOperationsWithFee(&sourceAccount, itest.Master(), minFee+txnbuild.MinBaseFee, &preFlightOp)
+	op2 := txnbuild.Payment{
+		Destination: master.Address(),
+		Amount:      "10",
+		Asset:       txnbuild.NativeAsset{},
+	}
+
+	_, err := itest.SubmitOperations(itest.MasterAccount(), master, &op1, &op2)
+
 	assert.EqualError(
 		t, err,
 		"horizon error: \"Transaction Malformed\" - check horizon.Error.Problem for more information",
 	)
 
-	sourceAccount, err = itest.Client().AccountDetail(horizonclient.AccountRequest{
-		AccountID: itest.Master().Address(),
-	})
-	require.NoError(t, err)
-
-	installContractOp = assembleInstallContractCodeOp(t, itest.Master().Address(), "soroban_add_u64.wasm")
-	preFlightOp, minFee = itest.PreflightHostFunctions(&sourceAccount, *installContractOp)
-	tx, err := itest.SubmitOperationsWithFee(&sourceAccount, itest.Master(), minFee+txnbuild.MinBaseFee, &preFlightOp)
+	// assert that the single op payload is under the limit and still works.
+	tx, err := itest.SubmitOperations(itest.MasterAccount(), master, &op1)
 	require.NoError(t, err)
 	require.True(t, tx.Successful)
 }
