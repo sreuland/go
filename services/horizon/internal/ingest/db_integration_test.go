@@ -82,7 +82,7 @@ type DBTestSuite struct {
 	sampleFile     string
 	sequence       uint32
 	checkpointHash xdr.Hash
-	ledgerBackend  *ledgerbackend.MockDatabaseBackend
+	ledgerBackend  *ledgerbackend.MockLedgerBackend
 	historyAdapter *mockHistoryArchiveAdapter
 	system         *system
 	tt             *test.T
@@ -98,7 +98,7 @@ func (s *DBTestSuite) SetupTest() {
 	// and commit the new file to the git repo.
 	s.sampleFile = filepath.Join("testdata", "sample-changes.xdr")
 	s.checkpointHash = xdr.Hash{1, 2, 3}
-	s.ledgerBackend = &ledgerbackend.MockDatabaseBackend{}
+	s.ledgerBackend = &ledgerbackend.MockLedgerBackend{}
 	s.historyAdapter = &mockHistoryArchiveAdapter{}
 
 	var err error

@@ -95,7 +95,8 @@ type CaptiveStellarCore struct {
 	stellarCoreLock sync.RWMutex
 
 	// For testing
-	stellarCoreRunnerFactory func() stellarCoreRunnerInterface
+	stellarCoreRunnerFactory  func() stellarCoreRunnerInterface
+	trustedHashBackendFactory func(config CaptiveCoreConfig) (LedgerBackend, error)
 
 	// cachedMeta keeps that ledger data of the last fetched ledger. Updated in GetLedger().
 	cachedMeta *xdr.LedgerCloseMeta
@@ -163,7 +164,7 @@ type CaptiveCoreConfig struct {
 }
 
 // NewCaptive returns a new CaptiveStellarCore instance.
-func NewCaptive(config CaptiveCoreConfig) (*CaptiveStellarCore, error) {
+func NewCaptive(config CaptiveCoreConfig) (LedgerBackend, error) {
 	// Here we set defaults in the config. Because config is not a pointer this code should
 	// not mutate the original CaptiveCoreConfig instance which was passed into NewCaptive()
 
@@ -232,6 +233,8 @@ func NewCaptive(config CaptiveCoreConfig) (*CaptiveStellarCore, error) {
 		c.setCoreVersion()
 		return newStellarCoreRunner(config)
 	}
+
+	c.trustedHashBackendFactory = NewCaptive
 
 	if config.Toml != nil && config.Toml.HTTPPort != 0 {
 		c.stellarCoreClient = &stellarcore.Client{
@@ -338,8 +341,8 @@ func (c *CaptiveStellarCore) getTrustedHashForLedger(sequence uint32) (uint32, s
 	// first, direct from network which is considered trusted, after which the captive core instance is closed.
 	captiveConfigTrustedHash := c.config
 	captiveConfigTrustedHash.LedgerHashStore = nil
-	captiveConfigTrustedHash.Context = context.Background()
-	captiveTrustedHash, err := NewCaptive(captiveConfigTrustedHash)
+	captiveConfigTrustedHash.Context, _ = context.WithCancel(c.config.Context)
+	captiveTrustedHash, err := c.trustedHashBackendFactory(captiveConfigTrustedHash)
 
 	if sequence <= 2 {
 		// The line below is to support minimum edge case for streaming ledgers from core in run 'from'
@@ -353,16 +356,16 @@ func (c *CaptiveStellarCore) getTrustedHashForLedger(sequence uint32) (uint32, s
 
 	defer func() {
 		if closeErr := captiveTrustedHash.Close(); closeErr != nil {
-			captiveTrustedHash.config.Log.Error("error when closing captive core for network hash", closeErr)
+			captiveConfigTrustedHash.Log.Error("error when closing captive core for network hash", closeErr)
 		}
 	}()
 
-	err = captiveTrustedHash.PrepareRange(captiveTrustedHash.config.Context, UnboundedRange(sequence))
+	err = captiveTrustedHash.PrepareRange(captiveConfigTrustedHash.Context, UnboundedRange(sequence))
 	if err != nil {
 		return 0, "", errors.Wrapf(err, "error preparing to get network hash for Ledger %v", sequence)
 	}
 
-	networkLCM, err := captiveTrustedHash.GetLedger(captiveTrustedHash.config.Context, sequence)
+	networkLCM, err := captiveTrustedHash.GetLedger(captiveConfigTrustedHash.Context, sequence)
 	if err != nil {
 		return 0, "", errors.Wrapf(err, "error getting network hash for Ledger %v", sequence)
 	}

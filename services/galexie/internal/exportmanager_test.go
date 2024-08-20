@@ -46,12 +46,12 @@ func TestExporterSuite(t *testing.T) {
 type ExportManagerSuite struct {
 	suite.Suite
 	ctx         context.Context
-	mockBackend ledgerbackend.MockDatabaseBackend
+	mockBackend ledgerbackend.MockLedgerBackend
 }
 
 func (s *ExportManagerSuite) SetupTest() {
 	s.ctx = context.Background()
-	s.mockBackend = ledgerbackend.MockDatabaseBackend{}
+	s.mockBackend = ledgerbackend.MockLedgerBackend{}
 }
 
 func (s *ExportManagerSuite) TearDownTest() {

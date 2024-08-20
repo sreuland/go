@@ -24,7 +24,7 @@ type IngestHistoryRangeStateTestSuite struct {
 	ctx            context.Context
 	historyQ       *mockDBQ
 	historyAdapter *mockHistoryArchiveAdapter
-	ledgerBackend  *ledgerbackend.MockDatabaseBackend
+	ledgerBackend  *ledgerbackend.MockLedgerBackend
 	runner         *mockProcessorsRunner
 	system         *system
 }
@@ -32,7 +32,7 @@ type IngestHistoryRangeStateTestSuite struct {
 func (s *IngestHistoryRangeStateTestSuite) SetupTest() {
 	s.ctx = context.Background()
 	s.historyQ = &mockDBQ{}
-	s.ledgerBackend = &ledgerbackend.MockDatabaseBackend{}
+	s.ledgerBackend = &ledgerbackend.MockLedgerBackend{}
 	s.historyAdapter = &mockHistoryArchiveAdapter{}
 	s.runner = &mockProcessorsRunner{}
 	s.system = &system{
@@ -57,7 +57,7 @@ func (s *IngestHistoryRangeStateTestSuite) TearDownTest() {
 }
 
 func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeInvalidRange() {
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	next, err := historyRangeState{fromLedger: 0, toLedger: 0}.run(s.system)
 	s.Assert().Error(err)
@@ -81,7 +81,7 @@ func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeInvalidRange() {
 }
 
 func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeInvalidMaxFlush() {
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.system.maxLedgerPerFlush = 0
 	next, err := historyRangeState{fromLedger: 100, toLedger: 200}.run(s.system)
@@ -91,7 +91,7 @@ func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeInvalidMaxFlush() {
 }
 
 func (s *IngestHistoryRangeStateTestSuite) TestHistoryRangeFailPrepare() {
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(100)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(100)).Return(errors.New("my error")).Once()
 

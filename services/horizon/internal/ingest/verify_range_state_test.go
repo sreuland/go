@@ -32,7 +32,7 @@ func TestVerifyRangeStateTestSuite(t *testing.T) {
 type VerifyRangeStateTestSuite struct {
 	suite.Suite
 	ctx            context.Context
-	ledgerBackend  *ledgerbackend.MockDatabaseBackend
+	ledgerBackend  *ledgerbackend.MockLedgerBackend
 	historyQ       *mockDBQ
 	historyAdapter *mockHistoryArchiveAdapter
 	runner         *mockProcessorsRunner
@@ -41,7 +41,7 @@ type VerifyRangeStateTestSuite struct {
 
 func (s *VerifyRangeStateTestSuite) SetupTest() {
 	s.ctx = context.Background()
-	s.ledgerBackend = &ledgerbackend.MockDatabaseBackend{}
+	s.ledgerBackend = &ledgerbackend.MockLedgerBackend{}
 	s.historyQ = &mockDBQ{}
 	s.historyAdapter = &mockHistoryArchiveAdapter{}
 	s.runner = &mockProcessorsRunner{}

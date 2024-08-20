@@ -22,7 +22,7 @@ func TestResumeTestTestSuite(t *testing.T) {
 type ResumeTestTestSuite struct {
 	suite.Suite
 	ctx               context.Context
-	ledgerBackend     *ledgerbackend.MockDatabaseBackend
+	ledgerBackend     *ledgerbackend.MockLedgerBackend
 	historyQ          *mockDBQ
 	historyAdapter    *mockHistoryArchiveAdapter
 	runner            *mockProcessorsRunner
@@ -32,7 +32,7 @@ type ResumeTestTestSuite struct {
 
 func (s *ResumeTestTestSuite) SetupTest() {
 	s.ctx = context.Background()
-	s.ledgerBackend = &ledgerbackend.MockDatabaseBackend{}
+	s.ledgerBackend = &ledgerbackend.MockLedgerBackend{}
 	s.historyQ = &mockDBQ{}
 	s.historyAdapter = &mockHistoryArchiveAdapter{}
 	s.runner = &mockProcessorsRunner{}
@@ -78,7 +78,7 @@ func (s *ResumeTestTestSuite) TearDownTest() {
 func (s *ResumeTestTestSuite) TestInvalidParam() {
 	// Recreate mock in this single test to remove Rollback assertion.
 	*s.historyQ = mockDBQ{}
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	next, err := resumeState{latestSuccessfullyProcessedLedger: 0}.run(s.system)
 	s.Assert().Error(err)
@@ -92,7 +92,7 @@ func (s *ResumeTestTestSuite) TestInvalidParam() {
 func (s *ResumeTestTestSuite) TestRangeNotPreparedFailPrepare() {
 	// Recreate mock in this single test to remove Rollback assertion.
 	*s.historyQ = mockDBQ{}
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(101)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(101)).Return(errors.New("my error")).Once()
@@ -109,7 +109,7 @@ func (s *ResumeTestTestSuite) TestRangeNotPreparedFailPrepare() {
 func (s *ResumeTestTestSuite) TestRangeNotPreparedSuccessPrepareGetLedgerFail() {
 	// Recreate mock in this single test to remove Rollback assertion.
 	*s.historyQ = mockDBQ{}
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(101)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(101)).Return(nil).Once()
@@ -286,7 +286,7 @@ func (s *ResumeTestTestSuite) mockSuccessfulIngestion() {
 	s.historyQ.On("GetExpStateInvalid", s.ctx).Return(false, nil).Once()
 }
 func (s *ResumeTestTestSuite) TestBumpIngestLedger() {
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(100)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(100)).Return(nil).Once()

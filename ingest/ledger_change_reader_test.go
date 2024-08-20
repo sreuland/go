@@ -23,7 +23,7 @@ const (
 
 func TestNewLedgerChangeReaderFails(t *testing.T) {
 	ctx := context.Background()
-	mock := &ledgerbackend.MockDatabaseBackend{}
+	mock := &ledgerbackend.MockLedgerBackend{}
 	seq := uint32(123)
 	mock.On("GetLedger", ctx, seq).Return(
 		xdr.LedgerCloseMeta{},
@@ -39,7 +39,7 @@ func TestNewLedgerChangeReaderFails(t *testing.T) {
 
 func TestNewLedgerChangeReaderSucceeds(t *testing.T) {
 	ctx := context.Background()
-	mock := &ledgerbackend.MockDatabaseBackend{}
+	mock := &ledgerbackend.MockLedgerBackend{}
 	seq := uint32(123)
 
 	header := xdr.LedgerHeaderHistoryEntry{
@@ -146,7 +146,7 @@ func assertChangesEqual(
 
 func TestLedgerChangeReaderOrder(t *testing.T) {
 	ctx := context.Background()
-	mock := &ledgerbackend.MockDatabaseBackend{}
+	mock := &ledgerbackend.MockLedgerBackend{}
 	seq := uint32(123)
 
 	src := xdr.MustAddress("GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON")
@@ -353,7 +353,7 @@ func TestLedgerChangeReaderOrder(t *testing.T) {
 
 func TestLedgerChangeLedgerCloseMetaV2(t *testing.T) {
 	ctx := context.Background()
-	mock := &ledgerbackend.MockDatabaseBackend{}
+	mock := &ledgerbackend.MockLedgerBackend{}
 	seq := uint32(123)
 
 	src := xdr.MustAddress("GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON")
@@ -600,7 +600,7 @@ func TestLedgerChangeLedgerCloseMetaV2(t *testing.T) {
 
 func TestLedgerChangeLedgerCloseMetaV2Empty(t *testing.T) {
 	ctx := context.Background()
-	mock := &ledgerbackend.MockDatabaseBackend{}
+	mock := &ledgerbackend.MockLedgerBackend{}
 	seq := uint32(123)
 
 	baseFee := xdr.Int64(100)

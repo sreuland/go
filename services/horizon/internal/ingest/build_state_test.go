@@ -22,7 +22,7 @@ type BuildStateTestSuite struct {
 	ctx               context.Context
 	historyQ          *mockDBQ
 	historyAdapter    *mockHistoryArchiveAdapter
-	ledgerBackend     *ledgerbackend.MockDatabaseBackend
+	ledgerBackend     *ledgerbackend.MockLedgerBackend
 	system            *system
 	runner            *mockProcessorsRunner
 	stellarCoreClient *mockStellarCoreClient
@@ -35,7 +35,7 @@ func (s *BuildStateTestSuite) SetupTest() {
 	s.historyQ = &mockDBQ{}
 	s.runner = &mockProcessorsRunner{}
 	s.historyAdapter = &mockHistoryArchiveAdapter{}
-	s.ledgerBackend = &ledgerbackend.MockDatabaseBackend{}
+	s.ledgerBackend = &ledgerbackend.MockLedgerBackend{}
 	s.stellarCoreClient = &mockStellarCoreClient{}
 	s.checkpointLedger = uint32(63)
 	s.lastLedger = 0
@@ -87,7 +87,7 @@ func (s *BuildStateTestSuite) mockCommonHistoryQ() {
 func (s *BuildStateTestSuite) TestCheckPointLedgerIsZero() {
 	// Recreate mock in this single test to remove assertions.
 	*s.historyQ = mockDBQ{}
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	next, err := buildState{checkpointLedger: 0}.run(s.system)
 	s.Assert().Error(err)
@@ -98,7 +98,7 @@ func (s *BuildStateTestSuite) TestCheckPointLedgerIsZero() {
 func (s *BuildStateTestSuite) TestRangeNotPreparedFailPrepare() {
 	// Recreate mock in this single test to remove assertions.
 	*s.historyQ = mockDBQ{}
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(63)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(63)).Return(errors.New("my error")).Once()
@@ -113,7 +113,7 @@ func (s *BuildStateTestSuite) TestRangeNotPreparedFailPrepare() {
 func (s *BuildStateTestSuite) TestRangeNotPreparedSuccessPrepareGetLedgerFail() {
 	// Recreate mock in this single test to remove assertions.
 	*s.historyQ = mockDBQ{}
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.ledgerBackend.On("IsPrepared", s.ctx, ledgerbackend.UnboundedRange(63)).Return(false, nil).Once()
 	s.ledgerBackend.On("PrepareRange", s.ctx, ledgerbackend.UnboundedRange(63)).Return(nil).Once()
@@ -218,7 +218,7 @@ func (s *BuildStateTestSuite) TestRunHistoryArchiveIngestionReturnsError() {
 
 func (s *BuildStateTestSuite) TestRunHistoryArchiveIngestionGenesisReturnsError() {
 	// Recreate mock in this single test to remove assertions.
-	*s.ledgerBackend = ledgerbackend.MockDatabaseBackend{}
+	*s.ledgerBackend = ledgerbackend.MockLedgerBackend{}
 
 	s.historyQ.On("GetLastLedgerIngest", s.ctx).Return(uint32(0), nil).Once()
 	s.historyQ.On("GetIngestVersion", s.ctx).Return(CurrentVersion, nil).Once()
