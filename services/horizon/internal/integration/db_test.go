@@ -537,6 +537,8 @@ func TestReingestDB(t *testing.T) {
 	// subprocesses to conflict.
 	itest.StopHorizon()
 
+	var disableCaptiveHTTPPort = uint(0)
+	horizonConfig.CaptiveCoreTomlParams.HTTPPort = &disableCaptiveHTTPPort
 	var rootCmd = horizoncmd.NewRootCmd()
 	rootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
@@ -735,7 +737,11 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 	// repopulate the db with reingestion which should catchup using core reapply filter rules
 	// correctly on reingestion ranged
 	rootCmd = horizoncmd.NewRootCmd()
-	rootCmd.SetArgs(command(t, itest.GetHorizonIngestConfig(), "db",
+
+	horizonConfig := itest.GetHorizonIngestConfig()
+	var disableCaptiveHTTPPort = uint(0)
+	horizonConfig.CaptiveCoreTomlParams.HTTPPort = &disableCaptiveHTTPPort
+	rootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
 		"range",
 		"1",
@@ -782,6 +788,12 @@ func TestReingestDBWithFilterRules(t *testing.T) {
 }
 
 func command(t *testing.T, horizonConfig horizon.Config, args ...string) []string {
+
+	coreHttpPort := "0"
+	if horizonConfig.CaptiveCoreTomlParams.HTTPPort != nil {
+		coreHttpPort = strconv.FormatUint(uint64(*horizonConfig.CaptiveCoreTomlParams.HTTPPort), 10)
+	}
+
 	return append([]string{
 		"--stellar-core-url",
 		horizonConfig.StellarCoreURL,
@@ -800,6 +812,8 @@ func command(t *testing.T, horizonConfig horizon.Config, args ...string) []strin
 		// due to ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING
 		"--checkpoint-frequency",
 		"8",
+		"--captive-core-http-port",
+		coreHttpPort,
 		// Create the storage directory outside of the source repo,
 		// otherwise it will break Golang test caching.
 		"--captive-core-storage-path=" + t.TempDir(),
@@ -914,6 +928,8 @@ func TestFillGaps(t *testing.T) {
 	// subprocesses to conflict.
 	itest.StopHorizon()
 
+	var disableCaptiveHTTPPort = uint(0)
+	horizonConfig.CaptiveCoreTomlParams.HTTPPort = &disableCaptiveHTTPPort
 	var oldestLedger, latestLedger int64
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
