@@ -22,8 +22,8 @@ sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
 
 if [ $FROM -eq 0 ] && [ $TO -eq 0 ]; then
     RECENTSMALLRANGE=$(curl -s "$HISTORY_ARCHIVE_URLS/.well-known/stellar-history.json" | jq -r --exit-status 'if .currentLedger < 64 then "0;63" else "\(.currentLedger-64);\(.currentLedger)" end' | tr ";" "\n")
-    export FROM=$RECENTSMALLRANGE[0]
-	export TO=$RECENTSMALLRANGE[1]
+    export FROM=${RECENTSMALLRANGE[0]}
+	export TO=${RECENTSMALLRANGE[1]}
 fi  
 
 # Calculate params for AWS Batch
