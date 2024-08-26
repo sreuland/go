@@ -134,7 +134,10 @@ func newCoreCmdFactory(r *stellarCoreRunner, dir workingDir) coreCmdFactory {
 	}
 }
 
-func (c coreCmdFactory) newCmd(ctx context.Context, mode stellarCoreRunnerMode, redirectOutputToLogs bool, params ...string) (cmdI, error) {
+func (c coreCmdFactory) newCmd(ctx context.Context,
+	mode stellarCoreRunnerMode,
+	redirectOutputToLogs bool,
+	params ...string) (cmdI, error) {
 	if err := c.dir.createIfNotExists(); err != nil {
 		return nil, err
 	}

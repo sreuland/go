@@ -11,8 +11,7 @@ import (
 )
 
 type stellarCoreRunnerInterface interface {
-	catchup(from, to uint32, toLedgerHash string) error
-	runFrom(from uint32, hash string) error
+	runFrom(from uint32, hash string, runnerMode stellarCoreRunnerMode) error
 	getMetaPipe() (<-chan metaResult, bool)
 	context() context.Context
 	getProcessExitError() (error, bool)
@@ -23,8 +22,8 @@ type stellarCoreRunnerMode int
 
 const (
 	_ stellarCoreRunnerMode = iota // unset
-	stellarCoreRunnerModeOnline
-	stellarCoreRunnerModeOffline
+	stellarCoreRunnerModeActive
+	stellarCoreRunnerModePassive
 )
 
 // stellarCoreRunner uses a named pipe ( https://en.wikipedia.org/wiki/Named_pipe ) to stream ledgers directly
@@ -103,13 +102,12 @@ func (r *stellarCoreRunner) context() context.Context {
 }
 
 // runFrom executes the run command with a starting ledger on the captive core subprocess
-func (r *stellarCoreRunner) runFrom(from uint32, hash string) error {
-	return r.startMetaStream(newRunFromStream(r, from, hash))
-}
-
-// catchup executes the catchup command on the captive core subprocess
-func (r *stellarCoreRunner) catchup(from, to uint32, toLedgerHash string) error {
-	return r.startMetaStream(newCatchupStream(r, from, to, toLedgerHash))
+func (r *stellarCoreRunner) runFrom(from uint32, hash string, runnerMode stellarCoreRunnerMode) error {
+	runFromStream, err := newRunFromStream(r, from, hash, runnerMode)
+	if err != nil {
+		return err
+	}
+	return r.startMetaStream(runFromStream)
 }
 
 type metaStream interface {

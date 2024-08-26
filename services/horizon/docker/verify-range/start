@@ -1,6 +1,13 @@
 #! /usr/bin/env bash
 set -e
 
+# pubnet horizon config
+export NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"
+export HISTORY_ARCHIVE_URLS="https://s3-eu-west-1.amazonaws.com/history.stellar.org/prd/core-live/core_live_001"
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable"
+export CAPTIVE_CORE_CONFIG_APPEND_PATH="/captive-core-pubnet.cfg"
+export STELLAR_CORE_BINARY_PATH="/usr/bin/stellar-core"
+
 # configure postgres
 if [ -z "${PGDATA}" ]; then
     export PGDATA="/data"
@@ -12,6 +19,12 @@ sudo -u postgres --preserve-env=PGDATA /usr/lib/postgresql/14/bin/initdb
 sudo -u postgres --preserve-env=PGDATA /usr/lib/postgresql/14/bin/pg_ctl start
 sudo -u postgres createdb horizon
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+
+if [ $FROM -eq 0 ] && [ $TO -eq 0 ]; then
+    RECENTSMALLRANGE=$(curl -s "$HISTORY_ARCHIVE_URLS/.well-known/stellar-history.json" | jq -r --exit-status 'if .currentLedger < 64 then "0;63" else "\(.currentLedger-64);\(.currentLedger)" end' | tr ";" "\n")
+    export FROM=RECENTSMALLRANGE[0]
+	export TO=RECENTSMALLRANGE[1]
+fi  
 
 # Calculate params for AWS Batch
 if [ ! -z "$AWS_BATCH_JOB_ARRAY_INDEX" ]; then
@@ -71,13 +84,6 @@ dump_horizon_db() {
 	echo "dumping history_transaction_participants"
 	psql "postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable" -t -A -F"," --variable="FETCH_COUNT=100" -c "select history_transaction_id, address from history_transaction_participants left join history_accounts on history_accounts.id = history_transaction_participants.history_account_id order by history_transaction_id, address" > "${1}_transaction_participants"
 }
-
-# pubnet horizon config
-export NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"
-export HISTORY_ARCHIVE_URLS="https://s3-eu-west-1.amazonaws.com/history.stellar.org/prd/core-live/core_live_001"
-export DATABASE_URL="postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable"
-export CAPTIVE_CORE_CONFIG_APPEND_PATH="/captive-core-pubnet.cfg"
-export STELLAR_CORE_BINARY_PATH="/usr/bin/stellar-core"
 
 cd stellar-go
 git pull origin

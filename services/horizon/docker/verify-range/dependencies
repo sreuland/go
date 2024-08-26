@@ -2,7 +2,7 @@
 set -e
 
 apt-get update
-apt-get install -y curl git libpq-dev libsqlite3-dev libsasl2-dev postgresql-client postgresql postgresql-contrib sudo vim zlib1g-dev wget gnupg2 lsb-release
+apt-get install -y curl git libpq-dev libsqlite3-dev libsasl2-dev postgresql-client postgresql postgresql-contrib sudo vim zlib1g-dev wget jq gnupg2 lsb-release
 apt-get clean
 
 wget -qO - https://apt.stellar.org/SDF.asc | apt-key add -

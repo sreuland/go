@@ -15,46 +15,6 @@ import (
 	"github.com/stellar/go/support/log"
 )
 
-func TestCloseOffline(t *testing.T) {
-	captiveCoreToml, err := NewCaptiveCoreToml(CaptiveCoreTomlParams{})
-	assert.NoError(t, err)
-
-	runner := newStellarCoreRunner(CaptiveCoreConfig{
-		BinaryPath:         "/usr/bin/stellar-core",
-		HistoryArchiveURLs: []string{"http://localhost"},
-		Log:                log.New(),
-		Context:            context.Background(),
-		Toml:               captiveCoreToml,
-		StoragePath:        "/tmp/captive-core",
-	})
-
-	cmdMock := simpleCommandMock()
-	cmdMock.On("Wait").Return(nil)
-
-	// Replace system calls with a mock
-	scMock := &mockSystemCaller{}
-	defer scMock.AssertExpectations(t)
-	scMock.On("stat", mock.Anything).Return(isDirImpl(true), nil)
-	scMock.On("writeFile", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	scMock.On("command",
-		runner.ctx,
-		"/usr/bin/stellar-core",
-		"--conf",
-		mock.Anything,
-		"--console",
-		"catchup",
-		"200/101",
-		"--metadata-output-stream",
-		"fd:3",
-		"--in-memory",
-	).Return(cmdMock)
-	scMock.On("removeAll", mock.Anything).Return(nil).Once()
-	runner.systemCaller = scMock
-
-	assert.NoError(t, runner.catchup(100, 200, ""))
-	assert.NoError(t, runner.close())
-}
-
 func TestCloseOnline(t *testing.T) {
 	captiveCoreToml, err := NewCaptiveCoreToml(CaptiveCoreTomlParams{})
 	assert.NoError(t, err)
@@ -95,7 +55,7 @@ func TestCloseOnline(t *testing.T) {
 	).Return(cmdMock)
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.runFrom(100, "hash"))
+	assert.NoError(t, runner.runFrom(100, "hash", stellarCoreRunnerModeActive))
 	assert.NoError(t, runner.close())
 }
 
@@ -140,7 +100,7 @@ func TestCloseOnlineWithError(t *testing.T) {
 	scMock.On("removeAll", mock.Anything).Return(nil).Once()
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.runFrom(100, "hash"))
+	assert.NoError(t, runner.runFrom(100, "hash", stellarCoreRunnerModeActive))
 
 	// Wait with calling close until r.processExitError is set to Wait() error
 	for {
@@ -183,16 +143,19 @@ func TestCloseConcurrency(t *testing.T) {
 		"--conf",
 		mock.Anything,
 		"--console",
-		"catchup",
-		"200/101",
+		"run",
+		"--in-memory",
+		"--start-at-ledger",
+		"100",
+		"--start-at-hash",
+		"",
 		"--metadata-output-stream",
 		"fd:3",
-		"--in-memory",
 	).Return(cmdMock)
 	scMock.On("removeAll", mock.Anything).Return(nil).Once()
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.catchup(100, 200, ""))
+	assert.NoError(t, runner.runFrom(100, "", stellarCoreRunnerModeActive))
 
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
@@ -261,7 +224,7 @@ func TestRunFromUseDBLedgersMatch(t *testing.T) {
 	// removeAll not called
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.runFrom(100, "hash"))
+	assert.NoError(t, runner.runFrom(100, "hash", stellarCoreRunnerModeActive))
 	assert.NoError(t, runner.close())
 }
 
@@ -323,7 +286,7 @@ func TestRunFromUseDBLedgersBehind(t *testing.T) {
 	).Return(cmdMock)
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.runFrom(100, "hash"))
+	assert.NoError(t, runner.runFrom(100, "hash", stellarCoreRunnerModeActive))
 	assert.NoError(t, runner.close())
 }
 
@@ -389,6 +352,7 @@ func TestRunFromUseDBLedgersInFront(t *testing.T) {
 		mock.Anything,
 		"--console",
 		"catchup",
+		"--force-untrusted-catchup",
 		"99/0",
 	).Return(catchupCmdMock)
 	scMock.On("command",
@@ -403,6 +367,6 @@ func TestRunFromUseDBLedgersInFront(t *testing.T) {
 	).Return(cmdMock)
 	runner.systemCaller = scMock
 
-	assert.NoError(t, runner.runFrom(100, "hash"))
+	assert.NoError(t, runner.runFrom(100, "hash", stellarCoreRunnerModeActive))
 	assert.NoError(t, runner.close())
 }

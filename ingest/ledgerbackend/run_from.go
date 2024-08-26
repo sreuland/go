@@ -13,26 +13,39 @@ import (
 type runFromStream struct {
 	dir            workingDir
 	from           uint32
-	hash           string
+	fromHash       string
+	runnerMode     stellarCoreRunnerMode
 	coreCmdFactory coreCmdFactory
 	log            *log.Entry
 	useDB          bool
 }
 
-func newRunFromStream(r *stellarCoreRunner, from uint32, hash string) runFromStream {
-	// We only use ephemeral directories on windows because there is
+// all ledger tx meta emitted on pipe from this function will have trusted hashes, as it is built
+// from core's online replay
+// r - the core runner
+// from - the ledger sequnce to start streaming additional ledgers there after
+// fromHash - the hash of from ledger
+// runnerMode - stellarCoreRunnerModePassive or stellarCoreRunnerModeActive
+//
+//	core toml settings, such as for offline, it will disable http port of core as it's not needed.
+func newRunFromStream(r *stellarCoreRunner, from uint32, fromHash string, runnerMode stellarCoreRunnerMode) (runFromStream, error) {
+	// Use ephemeral directories on windows because there is
 	// no way to terminate captive core gracefully on windows.
 	// Having an ephemeral directory ensures that it is wiped out
-	// whenever we terminate captive core
-	dir := newWorkingDir(r, runtime.GOOS == "windows")
+	// whenever captive core is terminated.
+	dir, err := newWorkingDir(r, runnerMode == stellarCoreRunnerModePassive || runtime.GOOS == "windows")
+	if err != nil {
+		return runFromStream{}, err
+	}
 	return runFromStream{
 		dir:            dir,
 		from:           from,
-		hash:           hash,
+		fromHash:       fromHash,
+		runnerMode:     runnerMode,
 		coreCmdFactory: newCoreCmdFactory(r, dir),
 		log:            r.log,
 		useDB:          r.useDB,
-	}
+	}, nil
 }
 
 func (s runFromStream) getWorkingDir() workingDir {
@@ -40,7 +53,7 @@ func (s runFromStream) getWorkingDir() workingDir {
 }
 
 func (s runFromStream) offlineInfo(ctx context.Context) (stellarcore.InfoResponse, error) {
-	cmd, err := s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModeOnline, false, "offline-info")
+	cmd, err := s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModePassive, false, "offline-info")
 	if err != nil {
 		return stellarcore.InfoResponse{}, fmt.Errorf("error creating offline-info cmd: %w", err)
 	}
@@ -83,7 +96,7 @@ func (s runFromStream) start(ctx context.Context) (cmd cmdI, captiveCorePipe pip
 				return nil, pipe{}, fmt.Errorf("error removing existing storage-dir contents: %w", err)
 			}
 
-			cmd, err = s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModeOnline, true, "new-db")
+			cmd, err = s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModePassive, true, "new-db")
 			if err != nil {
 				return nil, pipe{}, fmt.Errorf("error creating command: %w", err)
 			}
@@ -92,38 +105,45 @@ func (s runFromStream) start(ctx context.Context) (cmd cmdI, captiveCorePipe pip
 				return nil, pipe{}, fmt.Errorf("error initializing core db: %w", err)
 			}
 
-			// Do a quick catch-up to set the LCL in core to be our expected starting
-			// point.
+			// This catchup is only run to set LCL on core's local storage to be our expected starting point.
+			// No ledgers are emitted or collected from pipe during this execution.
 			if s.from > 2 {
-				cmd, err = s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModeOnline, true, "catchup", fmt.Sprintf("%d/0", s.from-1))
-			} else {
-				cmd, err = s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModeOnline, true, "catchup", "2/0")
-			}
-			if err != nil {
-				return nil, pipe{}, fmt.Errorf("error creating command: %w", err)
-			}
+				cmd, err = s.coreCmdFactory.newCmd(ctx, stellarCoreRunnerModePassive, true,
+					"catchup", "--force-untrusted-catchup", fmt.Sprintf("%d/0", s.from-1))
 
-			if err = cmd.Run(); err != nil {
-				return nil, pipe{}, fmt.Errorf("error runing stellar-core catchup: %w", err)
+				if err != nil {
+					return nil, pipe{}, fmt.Errorf("error creating catchup command to set LCL: %w", err)
+				}
+
+				if err = cmd.Run(); err != nil {
+					return nil, pipe{}, fmt.Errorf("error running stellar-core catchup to set LCL: %w", err)
+				}
+			} else {
+				// If the from is < 3, the caller wants ledger 2, to get that from core 'run'
+				// we don't run catchup to set LCL, leave it at empty, new db state with LCL=1
+				// and instead we set CATCHUP_COMPLETE=true, which will trigger core to emit ledger 2 first
+				s.dir.toml.CatchupComplete = true
 			}
 		}
 
-		cmd, err = s.coreCmdFactory.newCmd(
-			ctx,
-			stellarCoreRunnerModeOnline,
+		// this will emit ledgers on the pipe, starting with sequence LCL+1
+		cmd, err = s.coreCmdFactory.newCmd(ctx,
+			s.runnerMode,
 			true,
 			"run",
 			"--metadata-output-stream", s.coreCmdFactory.getPipeName(),
 		)
 	} else {
+		// TODO, remove, this is effectively obsolete production code path, only tests reach this, production code path
+		// only allows on-disk aka useDB mode.
 		cmd, err = s.coreCmdFactory.newCmd(
 			ctx,
-			stellarCoreRunnerModeOnline,
+			stellarCoreRunnerModeActive,
 			true,
 			"run",
 			"--in-memory",
 			"--start-at-ledger", fmt.Sprintf("%d", s.from),
-			"--start-at-hash", s.hash,
+			"--start-at-hash", s.fromHash,
 			"--metadata-output-stream", s.coreCmdFactory.getPipeName(),
 		)
 	}

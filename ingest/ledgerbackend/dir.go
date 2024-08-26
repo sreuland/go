@@ -18,20 +18,24 @@ type workingDir struct {
 	systemCaller systemCaller
 }
 
-func newWorkingDir(r *stellarCoreRunner, ephemeral bool) workingDir {
+func newWorkingDir(r *stellarCoreRunner, ephemeral bool) (workingDir, error) {
 	var path string
 	if ephemeral {
 		path = filepath.Join(r.storagePath, "captive-core-"+createRandomHexString(8))
 	} else {
 		path = filepath.Join(r.storagePath, "captive-core")
 	}
+	tomlClone, err := r.toml.clone()
+	if err != nil {
+		return workingDir{}, err
+	}
 	return workingDir{
 		ephemeral:    ephemeral,
 		path:         path,
 		log:          r.log,
-		toml:         r.toml,
+		toml:         tomlClone,
 		systemCaller: r.systemCaller,
-	}
+	}, nil
 }
 
 func (w workingDir) createIfNotExists() error {
@@ -72,9 +76,9 @@ func (w workingDir) remove() error {
 }
 
 func generateConfig(captiveCoreToml *CaptiveCoreToml, mode stellarCoreRunnerMode) ([]byte, error) {
-	if mode == stellarCoreRunnerModeOffline {
+	if mode == stellarCoreRunnerModePassive {
 		var err error
-		captiveCoreToml, err = captiveCoreToml.CatchupToml()
+		captiveCoreToml, err = captiveCoreToml.PassiveToml()
 		if err != nil {
 			return nil, fmt.Errorf("could not generate catch up config: %w", err)
 		}

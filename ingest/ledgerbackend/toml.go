@@ -87,6 +87,7 @@ type captiveCoreTomlValues struct {
 	// we cannot omitempty because 0 is a valid configuration for FAILURE_SAFETY
 	// and the default is -1
 	FailureSafety                         int                  `toml:"FAILURE_SAFETY"`
+	CatchupComplete                       bool                 `toml:"CATCHUP_COMPLETE,omitempty"`
 	UnsafeQuorum                          bool                 `toml:"UNSAFE_QUORUM,omitempty"`
 	RunStandalone                         bool                 `toml:"RUN_STANDALONE,omitempty"`
 	ArtificiallyAccelerateTimeForTesting  bool                 `toml:"ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING,omitempty"`
@@ -415,16 +416,16 @@ func (c *CaptiveCoreToml) clone() (*CaptiveCoreToml, error) {
 	return &cloned, nil
 }
 
-// CatchupToml returns a new CaptiveCoreToml instance based off the existing
+// PassiveToml returns a new CaptiveCoreToml instance based off the existing
 // instance with some modifications which are suitable for running
-// the catchup command on captive core.
-func (c *CaptiveCoreToml) CatchupToml() (*CaptiveCoreToml, error) {
+// the run command on captive core with some defaults to ensure startup
+// and disabling optional services like the http port.
+func (c *CaptiveCoreToml) PassiveToml() (*CaptiveCoreToml, error) {
 	offline, err := c.clone()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not clone toml")
 	}
 
-	offline.RunStandalone = true
 	offline.UnsafeQuorum = true
 	offline.PublicHTTPPort = false
 	offline.HTTPPort = 0
