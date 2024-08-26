@@ -26,8 +26,6 @@ type runFromStream struct {
 // from - the ledger sequnce to start streaming additional ledgers there after
 // fromHash - the hash of from ledger
 // runnerMode - stellarCoreRunnerModePassive or stellarCoreRunnerModeActive
-//
-//	core toml settings, such as for offline, it will disable http port of core as it's not needed.
 func newRunFromStream(r *stellarCoreRunner, from uint32, fromHash string, runnerMode stellarCoreRunnerMode) (runFromStream, error) {
 	// Use ephemeral directories on windows because there is
 	// no way to terminate captive core gracefully on windows.

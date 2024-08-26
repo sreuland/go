@@ -1,5 +1,13 @@
 # Changelog
 
+## Pending
+
+### Fixed
+* The Captive Core backend now performs 'online' stellar-core `run` for bounded modes of tx-meta retrieval. Refer to [runFrom.go](./ledgerbackend/run_from.go). Enables core to build, validate, and emit trusted ledger hashes in tx-meta stream from lastest of network for a bounded ledger range. The bounded mode will no longer do the 'offline' mode of running core `catchup` for getting tx-meta from just history archives, which does not guarantee verification of the ledger hashes to that of live network. ([#4538](https://github.com/stellar/go/pull/4538)).
+  * Note - due to the usage of `run` with LCL set to the `from` , there is now potential for longer run time execution durations due to core having to perform online replay from network latest ledger back to `from`. The longer runtime duration will be proportional to the older age of the `from` ledger. 
+
+
+
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Stellar Core Protocol 21 Configuration Update:

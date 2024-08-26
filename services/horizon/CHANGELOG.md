@@ -8,6 +8,9 @@ file. This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Horizon: not passing trusted hash to captive-core when configured to run catchup "on disk" ([4538](https://github.com/stellar/go/pull/4538))
+  * The Captive Core backend now performs 'online' stellar-core `run` for bounded modes of tx-meta retrieval, which will be used for `db reingest range` and `ingest verify-range` commands. Enables core to build, validate, and emit trusted ledger hashes in tx-meta stream for the requested ledger range. These bounded range commands will no longer do the 'offline' mode of running core `catchup` for getting tx-meta from just history archives, which does not guarantee verification of the ledger hashes to that of live network. ([#4538](https://github.com/stellar/go/pull/4538)).
+    * Note - due to the usage of `run` with LCL set to the `from` , there is now potential for longer run time `reingest` and `verify-range` execution durations due to core having to perform online replay from network latest ledger back to `from`. The longer runtime duration will be proportional to the older age of the `from` ledger. 
+
 
 ## 2.32.0
 
