@@ -1,11 +1,18 @@
 #! /usr/bin/env bash
 set -e
 
-# pubnet horizon config
-export NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"
-export HISTORY_ARCHIVE_URLS="https://s3-eu-west-1.amazonaws.com/history.stellar.org/prd/core-live/core_live_001"
+if [ -z "${TESTNET}" ]; then
+    export CAPTIVE_CORE_CONFIG_APPEND_PATH="/captive-core-pubnet.cfg"
+	export HISTORY_ARCHIVE_URLS="https://s3-eu-west-1.amazonaws.com/history.stellar.org/prd/core-live/core_live_001"
+	export NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"
+
+else
+    export HISTORY_ARCHIVE_URLS="http://history.stellar.org/prd/core-testnet/core_testnet_001"
+    export CAPTIVE_CORE_CONFIG_APPEND_PATH="/captive-core-testnet.cfg"
+    export NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
+fi
+
 export DATABASE_URL="postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable"
-export CAPTIVE_CORE_CONFIG_APPEND_PATH="/captive-core-pubnet.cfg"
 export STELLAR_CORE_BINARY_PATH="/usr/bin/stellar-core"
 
 # configure postgres
@@ -21,8 +28,13 @@ sudo -u postgres createdb horizon
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
 
 if [ $FROM -eq 0 ] && [ $TO -eq 0 ]; then
-    CURRENTHAS=$(curl -s "$HISTORY_ARCHIVE_URLS/.well-known/stellar-history.json" | jq -r --exit-status 'if .currentLedger < 64 then "0;63" else "\(.currentLedger-64);\(.currentLedger)" end')
-    IFS=';' read -a RECENTSMALLRANGE <<< "$CURRENTHAS"
+    echo "obtaining current ledger from archive url $HISTORY_ARCHIVE_URLS"
+    CURRENTHAS=$(curl -s "$HISTORY_ARCHIVE_URLS/.well-known/stellar-history.json" | jq -sr 'if (. | length) == 0 then null else .[0] end | select( . != null ) | if .currentLedger < 64 then "0;63" else "\(.currentLedger-64);\(.currentLedger)" end' 2> /dev/null)
+	if [ -z "$CURRENTHAS" ]; then
+        echo "unable to get current sequence from $HISTORY_ARCHIVE_URLS" 
+		exit 1
+	fi
+	IFS=';' read -a RECENTSMALLRANGE <<< "$CURRENTHAS"
     FROM=${RECENTSMALLRANGE[0]}
     TO=${RECENTSMALLRANGE[1]}
 fi  
@@ -140,7 +152,7 @@ function compare() {
   fi
 }
 
-BASE_BRANCH=${BASE_BRANCH:-horizon-v2.0.0}
+BASE_BRANCH=${BASE_BRANCH:-horizon-v2.32.0}
 
 rm -rf /data/compare
 mkdir /data/compare

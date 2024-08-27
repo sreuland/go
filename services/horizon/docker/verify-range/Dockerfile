@@ -10,8 +10,8 @@ ADD dependencies /
 RUN ["chmod", "+x", "/dependencies"]
 RUN /dependencies
 
-ADD stellar-core.cfg /
 ADD captive-core-pubnet.cfg /
+ADD captive-core-testnet.cfg /
 RUN mkdir -p /cc
 RUN mkdir -p /data
 
