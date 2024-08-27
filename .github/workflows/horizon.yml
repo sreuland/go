@@ -121,15 +121,11 @@ jobs:
 
   verify-range:
     name: Test (and push) verify-range image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest-4-cores
     env:
       STELLAR_CORE_VERSION: 21.3.1-2007.4ede19620.focal
       CAPTIVE_CORE_STORAGE_PATH: /tmp
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
       - uses: actions/checkout@v3
         with:
           # For pull requests, build and test the PR head not a merge of the PR with the destination.
