@@ -898,7 +898,7 @@ func setCaptiveCoreConfiguration(config *Config, options ApplyOptions) error {
 		}
 	} else if !options.RequireCaptiveCoreFullConfig {
 		// Creates a minimal captive-core config (without quorum information), just enough to run captive core.
-		// This is used by certain database commands, such as `reingest and fill-gaps, to reingest historical data.
+		// This is used by certain commands that don't depend on captive core 'run' which does live network peer connection.
 		config.CaptiveCoreToml, err = ledgerbackend.NewCaptiveCoreToml(config.CaptiveCoreTomlParams)
 		if err != nil {
 			return errors.Wrap(err, "invalid captive core toml file")

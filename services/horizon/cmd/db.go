@@ -481,7 +481,7 @@ func DefineDBCommands(rootCmd *cobra.Command, horizonConfig *horizon.Config, hor
 
 			var err error
 			var storageBackendConfig ingest.StorageBackendConfig
-			options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false}
+			options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: true}
 			if ledgerBackendType == ingest.BufferedStorageBackend {
 				if storageBackendConfig, err = loadStorageBackendConfig(storageBackendConfigPath); err != nil {
 					return err
@@ -543,7 +543,7 @@ func DefineDBCommands(rootCmd *cobra.Command, horizonConfig *horizon.Config, hor
 
 			var err error
 			var storageBackendConfig ingest.StorageBackendConfig
-			options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: false}
+			options := horizon.ApplyOptions{RequireCaptiveCoreFullConfig: true}
 			if ledgerBackendType == ingest.BufferedStorageBackend {
 				if storageBackendConfig, err = loadStorageBackendConfig(storageBackendConfigPath); err != nil {
 					return err

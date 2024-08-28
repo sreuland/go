@@ -121,6 +121,7 @@ func (s *DBCommandsTestSuite) TestDbReingestAndFillGapsCmds() {
 				"1", "100",
 				"--network-passphrase", "passphrase",
 				"--history-archive-urls", "[]",
+				"--captive-core-config-path", "core-test.cfg",
 			},
 			expectError: false,
 		},

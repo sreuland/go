@@ -421,27 +421,27 @@ func (c *CaptiveCoreToml) clone() (*CaptiveCoreToml, error) {
 // the run command on captive core with some defaults to ensure startup
 // and disabling optional services like the http port.
 func (c *CaptiveCoreToml) PassiveToml() (*CaptiveCoreToml, error) {
-	offline, err := c.clone()
+	passiveToml, err := c.clone()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not clone toml")
 	}
 
-	offline.UnsafeQuorum = true
-	offline.PublicHTTPPort = false
-	offline.HTTPPort = 0
-	offline.FailureSafety = 0
+	passiveToml.UnsafeQuorum = true
+	passiveToml.PublicHTTPPort = false
+	passiveToml.HTTPPort = 0
+	passiveToml.FailureSafety = 0
 
 	if !c.QuorumSetIsConfigured() {
 		// Add a fictional quorum -- necessary to convince core to start up;
 		// but not used at all for our purposes. Pubkey here is just random.
-		offline.QuorumSetEntries = map[string]QuorumSet{
+		passiveToml.QuorumSetEntries = map[string]QuorumSet{
 			"QUORUM_SET": {
 				ThresholdPercent: 100,
 				Validators:       []string{"GCZBOIAY4HLKAJVNJORXZOZRAY2BJDBZHKPBHZCRAIUR5IHC2UHBGCQR"},
 			},
 		}
 	}
-	return offline, nil
+	return passiveToml, nil
 }
 
 func (c *CaptiveCoreToml) setDefaults(params CaptiveCoreTomlParams) {
