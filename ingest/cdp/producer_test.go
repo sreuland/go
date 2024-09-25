@@ -55,7 +55,7 @@ func TestBSBProducerFn(t *testing.T) {
 	ledgerRange := ledgerbackend.BoundedRange(startLedger, endLedger)
 	mockDataStore := createMockdataStore(t, startLedger, endLedger, 64000)
 	dsConfig := datastore.DataStoreConfig{}
-	pubConfig := ledgerbackend.PublisherConfig{
+	pubConfig := PublisherConfig{
 		DataStoreConfig:       dsConfig,
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
@@ -107,7 +107,7 @@ func TestBSBProducerFn(t *testing.T) {
 func TestBSBProducerFnDataStoreError(t *testing.T) {
 	ctx := context.Background()
 	ledgerRange := ledgerbackend.BoundedRange(uint32(2), uint32(3))
-	pubConfig := ledgerbackend.PublisherConfig{
+	pubConfig := PublisherConfig{
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: ledgerbackend.BufferedStorageBackendConfig{},
 	}
@@ -141,7 +141,7 @@ func TestBSBProducerFnDataStoreError(t *testing.T) {
 func TestBSBProducerFnConfigError(t *testing.T) {
 	ctx := context.Background()
 	ledgerRange := ledgerbackend.BoundedRange(uint32(2), uint32(3))
-	pubConfig := ledgerbackend.PublisherConfig{
+	pubConfig := PublisherConfig{
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: ledgerbackend.BufferedStorageBackendConfig{},
 	}
@@ -173,7 +173,7 @@ func TestBSBProducerFnConfigError(t *testing.T) {
 
 func TestBSBProducerFnInvalidRange(t *testing.T) {
 	ctx := context.Background()
-	pubConfig := ledgerbackend.PublisherConfig{
+	pubConfig := PublisherConfig{
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
@@ -210,7 +210,7 @@ func TestBSBProducerFnInvalidRange(t *testing.T) {
 
 func TestBSBProducerFnGetLedgerError(t *testing.T) {
 	ctx := context.Background()
-	pubConfig := ledgerbackend.PublisherConfig{
+	pubConfig := PublisherConfig{
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
@@ -252,7 +252,7 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 
 func TestBSBProducerFnCallbackError(t *testing.T) {
 	ctx := context.Background()
-	pubConfig := ledgerbackend.PublisherConfig{
+	pubConfig := PublisherConfig{
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}

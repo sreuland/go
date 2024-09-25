@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/stellar/go/support/datastore"
-	"github.com/stellar/go/support/log"
 	"github.com/stellar/go/xdr"
 )
 
@@ -64,20 +62,6 @@ func NewBufferedStorageBackend(config BufferedStorageBackendConfig, dataStore da
 	}
 
 	return bsBackend, nil
-}
-
-type PublisherConfig struct {
-	// Registry, optional, include to capture buffered storage backend metrics
-	Registry *prometheus.Registry
-	// RegistryNamespace, optional, include to emit buffered storage backend
-	// under this namespace
-	RegistryNamespace string
-	// BufferedStorageConfig, required
-	BufferedStorageConfig BufferedStorageBackendConfig
-	//DataStoreConfig, required
-	DataStoreConfig datastore.DataStoreConfig
-	// Log, optional, if nil uses go default logger
-	Log *log.Entry
 }
 
 // GetLatestLedgerSequence returns the most recent ledger sequence number available in the buffer.

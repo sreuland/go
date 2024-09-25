@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stellar/go/ingest/ledgerbackend"
 	"github.com/stellar/go/support/datastore"
 	"github.com/stellar/go/support/errors"
@@ -50,6 +51,20 @@ func DefaultBufferedStorageBackendConfig(ledgersPerFile uint32) ledgerbackend.Bu
 	}
 }
 
+type PublisherConfig struct {
+	// Registry, optional, include to capture buffered storage backend metrics
+	Registry *prometheus.Registry
+	// RegistryNamespace, optional, include to emit buffered storage backend
+	// under this namespace
+	RegistryNamespace string
+	// BufferedStorageConfig, required
+	BufferedStorageConfig ledgerbackend.BufferedStorageBackendConfig
+	//DataStoreConfig, required
+	DataStoreConfig datastore.DataStoreConfig
+	// Log, optional, if nil uses go default logger
+	Log *log.Entry
+}
+
 // PublishFromBufferedStorageBackend is asynchronous.
 // Proceeds to create an internal instance of BufferedStorageBackend
 // using provided configs and emit ledgers asynchronously to the provided
@@ -76,7 +91,7 @@ func DefaultBufferedStorageBackendConfig(ledgersPerFile uint32) ledgerbackend.Bu
 // is unbounded, then the channel is never closed until an error
 // or caller cancels.
 func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
-	publisherConfig ledgerbackend.PublisherConfig,
+	publisherConfig PublisherConfig,
 	ctx context.Context,
 	callback func(xdr.LedgerCloseMeta) error) chan error {
 
