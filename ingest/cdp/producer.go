@@ -9,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stellar/go/ingest/ledgerbackend"
 	"github.com/stellar/go/support/datastore"
-	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/support/log"
 	"github.com/stellar/go/support/ordered"
 	"github.com/stellar/go/xdr"
@@ -102,6 +101,7 @@ func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
 	resultCh := make(chan error, 1)
 
 	go func() {
+		defer close(resultCh)
 		dataStore, err := datastoreFactory(ctx, publisherConfig.DataStoreConfig)
 		if err != nil {
 			resultCh <- fmt.Errorf("failed to create datastore: %w", err)
@@ -120,12 +120,12 @@ func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
 		}
 
 		if ledgerRange.Bounded() && ledgerRange.To() <= ledgerRange.From() {
-			resultCh <- errors.New("invalid end value for bounded range, must be greater than start")
+			resultCh <- fmt.Errorf("invalid end value for bounded range, must be greater than start")
 			return
 		}
 
 		if !ledgerRange.Bounded() && ledgerRange.To() > 0 {
-			resultCh <- errors.New("invalid end value for unbounded ranged, must be zero")
+			resultCh <- fmt.Errorf("invalid end value for unbounded range, must be zero")
 			return
 		}
 
@@ -145,7 +145,7 @@ func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
 			ledgerCloseMeta, err = ledgerBackend.GetLedger(ctx, ledgerSeq)
 
 			if err != nil {
-				resultCh <- errors.Wrap(err, "error getting ledger")
+				resultCh <- fmt.Errorf("error getting ledger, %w", err)
 				return
 			}
 
@@ -156,11 +156,10 @@ func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
 
 			err = callback(ledgerCloseMeta)
 			if err != nil {
-				resultCh <- errors.Wrap(err, "received an error from callback invocation")
+				resultCh <- fmt.Errorf("received an error from callback invocation: %w", err)
 				return
 			}
 		}
-		close(resultCh)
 	}()
 
 	return resultCh
