@@ -3,7 +3,6 @@ package cdp
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -130,14 +129,9 @@ func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
 		}
 
 		from := ordered.Max(2, ledgerRange.From())
-		to := ledgerRange.To()
-		if !ledgerRange.Bounded() {
-			to = math.MaxUint32
-		}
-
 		ledgerBackend.PrepareRange(ctx, ledgerRange)
 
-		for ledgerSeq := from; ledgerSeq <= to; ledgerSeq++ {
+		for ledgerSeq := from; ledgerSeq <= ledgerRange.To() || !ledgerRange.Bounded(); ledgerSeq++ {
 			var ledgerCloseMeta xdr.LedgerCloseMeta
 
 			logger.WithField("sequence", ledgerSeq).Info("Requesting ledger from the backend...")
