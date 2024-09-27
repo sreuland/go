@@ -160,7 +160,7 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
-	// we don't want to wait for retries, forece the first error to propagate
+	// we don't want to wait for retries, force the first error to propagate
 	pubConfig.BufferedStorageConfig.RetryLimit = 0
 	mockDataStore := new(datastore.MockDataStore)
 	mockDataStore.On("GetSchema").Return(datastore.DataStoreSchema{
@@ -181,6 +181,28 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 	assert.ErrorContains(t,
 		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
 		"error getting ledger")
+}
+
+func TestBSBProducerCallerCancelsCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	pubConfig := PublisherConfig{
+		DataStoreConfig:       datastore.DataStoreConfig{},
+		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
+	}
+	mockDataStore := createMockdataStore(t, 2, 3, 64000)
+
+	appCallback := func(lcm xdr.LedgerCloseMeta) error {
+		return nil
+	}
+
+	cancel()
+
+	datastoreFactory = func(_ context.Context, _ datastore.DataStoreConfig) (datastore.DataStore, error) {
+		return mockDataStore, nil
+	}
+	assert.ErrorIs(t,
+		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		context.Canceled)
 }
 
 func TestBSBProducerFnCallbackError(t *testing.T) {
