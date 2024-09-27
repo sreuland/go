@@ -63,98 +63,85 @@ type PublisherConfig struct {
 	Log *log.Entry
 }
 
-// PublishFromBufferedStorageBackend is asynchronous.
-// Proceeds to create an internal instance of BufferedStorageBackend
-// using provided configs and emit ledgers asynchronously to the provided
-// callback fn for all ledgers in the requested range.
+// PublishFromBufferedStorageBackend - create an internal instance
+// of BufferedStorageBackend using provided config and emit
+// ledger metadata for the requested range by invoking the provided callback
+// once per ledger.
 //
-// ledgerRange - the requested range. If bounded range, will close resultCh
-// after last ledger is emitted.
+// The function is blocking, it will only return when a bounded range
+// is completed, the ctx is canceled, or an error occurs.
+//
+// ledgerRange - the requested range, can be bounded or unbounded.
 //
 // publisherConfig - PublisherConfig. Provide configuration settings for DataStore
 // and BufferedStorageBackend. Use DefaultBufferedStorageBackendConfig() to create
 // optimized BufferedStorageBackendConfig.
 //
-// ctx - the context. Caller uses this to cancel the asynchronousledger processing.
-// If caller does cancel, can sync on resultCh to receive an error to confirm
-// all asynchronous processing stopped.
+// ctx - the context. Caller uses this to cancel the internal ledger processing,
+// when canceled, the function will return asap with that error.
 //
 // callback - function. Invoked for every LedgerCloseMeta. If callback invocation
-// returns an error, the publishing will shut down and indicate with error on resultCh.
+// returns an error, the processing will stop and return an error asap.
 //
-// return - channel, used to signal to caller when publishing has stopped.
-// If stoppage was due to an error, the error will be sent on
-// channel and then closed. If no errors and ledgerRange is bounded,
-// the channel will be closed when range is completed. If ledgerRange
-// is unbounded, then the channel is never closed until an error
-// or caller cancels.
+// return - error, function only returns if requested range is bounded or an error occured.
+// nil will be returned only if bounded range requested and completed processing with no errors.
+// otherwise return will always be an error.
 func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
 	publisherConfig PublisherConfig,
 	ctx context.Context,
-	callback func(xdr.LedgerCloseMeta) error) chan error {
+	callback func(xdr.LedgerCloseMeta) error) error {
 
 	logger := publisherConfig.Log
 	if logger == nil {
 		logger = log.DefaultLogger
 	}
-	resultCh := make(chan error, 1)
 
-	go func() {
-		defer close(resultCh)
-		dataStore, err := datastoreFactory(ctx, publisherConfig.DataStoreConfig)
+	dataStore, err := datastoreFactory(ctx, publisherConfig.DataStoreConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create datastore: %w", err)
+	}
+
+	var ledgerBackend ledgerbackend.LedgerBackend
+	ledgerBackend, err = ledgerbackend.NewBufferedStorageBackend(publisherConfig.BufferedStorageConfig, dataStore)
+	if err != nil {
+		return fmt.Errorf("failed to create buffered storage backend: %w", err)
+	}
+
+	if publisherConfig.Registry != nil {
+		ledgerBackend = ledgerbackend.WithMetrics(ledgerBackend, publisherConfig.Registry, publisherConfig.RegistryNamespace)
+	}
+
+	if ledgerRange.Bounded() && ledgerRange.To() <= ledgerRange.From() {
+		return fmt.Errorf("invalid end value for bounded range, must be greater than start")
+	}
+
+	if !ledgerRange.Bounded() && ledgerRange.To() > 0 {
+		return fmt.Errorf("invalid end value for unbounded range, must be zero")
+	}
+
+	from := ordered.Max(2, ledgerRange.From())
+	ledgerBackend.PrepareRange(ctx, ledgerRange)
+
+	for ledgerSeq := from; ledgerSeq <= ledgerRange.To() || !ledgerRange.Bounded(); ledgerSeq++ {
+		var ledgerCloseMeta xdr.LedgerCloseMeta
+
+		logger.WithField("sequence", ledgerSeq).Info("Requesting ledger from the backend...")
+		startTime := time.Now()
+		ledgerCloseMeta, err = ledgerBackend.GetLedger(ctx, ledgerSeq)
+
 		if err != nil {
-			resultCh <- fmt.Errorf("failed to create datastore: %w", err)
-			return
+			return fmt.Errorf("error getting ledger, %w", err)
 		}
 
-		var ledgerBackend ledgerbackend.LedgerBackend
-		ledgerBackend, err = ledgerbackend.NewBufferedStorageBackend(publisherConfig.BufferedStorageConfig, dataStore)
+		log.WithFields(log.F{
+			"sequence": ledgerSeq,
+			"duration": time.Since(startTime).Seconds(),
+		}).Info("Ledger returned from the backend")
+
+		err = callback(ledgerCloseMeta)
 		if err != nil {
-			resultCh <- fmt.Errorf("failed to create buffered storage backend: %w", err)
-			return
+			return fmt.Errorf("received an error from callback invocation: %w", err)
 		}
-
-		if publisherConfig.Registry != nil {
-			ledgerBackend = ledgerbackend.WithMetrics(ledgerBackend, publisherConfig.Registry, publisherConfig.RegistryNamespace)
-		}
-
-		if ledgerRange.Bounded() && ledgerRange.To() <= ledgerRange.From() {
-			resultCh <- fmt.Errorf("invalid end value for bounded range, must be greater than start")
-			return
-		}
-
-		if !ledgerRange.Bounded() && ledgerRange.To() > 0 {
-			resultCh <- fmt.Errorf("invalid end value for unbounded range, must be zero")
-			return
-		}
-
-		from := ordered.Max(2, ledgerRange.From())
-		ledgerBackend.PrepareRange(ctx, ledgerRange)
-
-		for ledgerSeq := from; ledgerSeq <= ledgerRange.To() || !ledgerRange.Bounded(); ledgerSeq++ {
-			var ledgerCloseMeta xdr.LedgerCloseMeta
-
-			logger.WithField("sequence", ledgerSeq).Info("Requesting ledger from the backend...")
-			startTime := time.Now()
-			ledgerCloseMeta, err = ledgerBackend.GetLedger(ctx, ledgerSeq)
-
-			if err != nil {
-				resultCh <- fmt.Errorf("error getting ledger, %w", err)
-				return
-			}
-
-			log.WithFields(log.F{
-				"sequence": ledgerSeq,
-				"duration": time.Since(startTime).Seconds(),
-			}).Info("Ledger returned from the backend")
-
-			err = callback(ledgerCloseMeta)
-			if err != nil {
-				resultCh <- fmt.Errorf("received an error from callback invocation: %w", err)
-				return
-			}
-		}
-	}()
-
-	return resultCh
+	}
+	return nil
 }

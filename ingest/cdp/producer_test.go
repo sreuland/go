@@ -84,24 +84,8 @@ func TestBSBProducerFn(t *testing.T) {
 		return nil
 	}
 
-	resultCh := PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback)
-
-	assert.Eventually(t, func() bool {
-		select {
-		case chErr, ok := <-resultCh:
-			if ok {
-				assert.Failf(t, "", "producer fn should not have stopped with error %v", chErr)
-			}
-			return true
-		default:
-		}
-		return false
-	},
-		time.Second*3,
-		time.Millisecond*50)
-
+	assert.Nil(t, PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback))
 	assert.Equal(t, expectedLcmSeqWasPublished, []bool{true, true}, "producer fn did not invoke callback for all expected lcm")
-
 }
 
 func TestBSBProducerFnDataStoreError(t *testing.T) {
@@ -120,22 +104,9 @@ func TestBSBProducerFnDataStoreError(t *testing.T) {
 		return nil
 	}
 
-	resultCh := PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback)
-	assert.Eventually(t, func() bool {
-		select {
-		case chErr, ok := <-resultCh:
-			if ok {
-				assert.ErrorContains(t, chErr, "failed to create datastore:")
-			} else {
-				assert.Fail(t, "", "producer fn should not have closed the result ch")
-			}
-			return true
-		default:
-		}
-		return false
-	},
-		time.Second*3,
-		time.Millisecond*50)
+	assert.ErrorContains(t,
+		PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback),
+		"failed to create datastore:")
 }
 
 func TestBSBProducerFnConfigError(t *testing.T) {
@@ -153,22 +124,9 @@ func TestBSBProducerFnConfigError(t *testing.T) {
 	datastoreFactory = func(_ context.Context, _ datastore.DataStoreConfig) (datastore.DataStore, error) {
 		return mockDataStore, nil
 	}
-	resultCh := PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback)
-	assert.Eventually(t, func() bool {
-		select {
-		case chErr, ok := <-resultCh:
-			if ok {
-				assert.ErrorContains(t, chErr, "failed to create buffered storage backend")
-			} else {
-				assert.Fail(t, "producer fn should not have closed the result ch")
-			}
-			return true
-		default:
-		}
-		return false
-	},
-		time.Second*3,
-		time.Millisecond*50)
+	assert.ErrorContains(t,
+		PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback),
+		"failed to create buffered storage backend")
 }
 
 func TestBSBProducerFnInvalidRange(t *testing.T) {
@@ -190,22 +148,10 @@ func TestBSBProducerFnInvalidRange(t *testing.T) {
 	datastoreFactory = func(_ context.Context, _ datastore.DataStoreConfig) (datastore.DataStore, error) {
 		return mockDataStore, nil
 	}
-	resultCh := PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(3), uint32(2)), pubConfig, ctx, appCallback)
-	assert.Eventually(t, func() bool {
-		select {
-		case chErr, ok := <-resultCh:
-			if ok {
-				assert.ErrorContains(t, chErr, "invalid end value for bounded range, must be greater than start")
-			} else {
-				assert.Fail(t, "producer fn should not have closed the result ch")
-			}
-			return true
-		default:
-		}
-		return false
-	},
-		time.Second*3,
-		time.Millisecond*50)
+
+	assert.ErrorContains(t,
+		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(3), uint32(2)), pubConfig, ctx, appCallback),
+		"invalid end value for bounded range, must be greater than start")
 }
 
 func TestBSBProducerFnGetLedgerError(t *testing.T) {
@@ -232,22 +178,9 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 	datastoreFactory = func(_ context.Context, _ datastore.DataStoreConfig) (datastore.DataStore, error) {
 		return mockDataStore, nil
 	}
-	resultCh := PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback)
-	assert.Eventually(t, func() bool {
-		select {
-		case chErr, ok := <-resultCh:
-			if ok {
-				assert.ErrorContains(t, chErr, "error getting ledger")
-			} else {
-				assert.Fail(t, "producer fn should not have closed the result ch")
-			}
-			return true
-		default:
-		}
-		return false
-	},
-		time.Second*3000,
-		time.Millisecond*50)
+	assert.ErrorContains(t,
+		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		"error getting ledger")
 }
 
 func TestBSBProducerFnCallbackError(t *testing.T) {
@@ -265,22 +198,9 @@ func TestBSBProducerFnCallbackError(t *testing.T) {
 	datastoreFactory = func(_ context.Context, _ datastore.DataStoreConfig) (datastore.DataStore, error) {
 		return mockDataStore, nil
 	}
-	resultCh := PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback)
-	assert.Eventually(t, func() bool {
-		select {
-		case chErr, ok := <-resultCh:
-			if ok {
-				assert.ErrorContains(t, chErr, "received an error from callback invocation")
-			} else {
-				assert.Fail(t, "producer fn should not have closed the result ch")
-			}
-			return true
-		default:
-		}
-		return false
-	},
-		time.Second*3,
-		time.Millisecond*50)
+	assert.ErrorContains(t,
+		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		"received an error from callback invocation")
 }
 
 func createMockdataStore(t *testing.T, start, end, partitionSize uint32) *datastore.MockDataStore {
