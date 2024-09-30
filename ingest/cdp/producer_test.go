@@ -162,7 +162,7 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
-	// we don't want to wait for retries, force the first error to propagate
+	// we don't want to let buffer do real retries, force the first error to propagate
 	pubConfig.BufferedStorageConfig.RetryLimit = 0
 	mockDataStore := new(datastore.MockDataStore)
 	mockDataStore.On("GetSchema").Return(datastore.DataStoreSchema{
@@ -171,7 +171,9 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 	})
 
 	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFD--2.xdr.zstd").Return(nil, os.ErrNotExist).Once()
-	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil).Once()
+	// since buffer is multi-worker async, it may get to this on other worker, but not deterministic,
+	// don't assert on it
+	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil)
 
 	appCallback := func(lcm xdr.LedgerCloseMeta) error {
 		return nil
