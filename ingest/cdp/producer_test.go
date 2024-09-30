@@ -173,7 +173,7 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFD--2.xdr.zstd").Return(nil, os.ErrNotExist).Once()
 	// since buffer is multi-worker async, it may get to this on other worker, but not deterministic,
 	// don't assert on it
-	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil)
+	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil).Maybe()
 
 	appCallback := func(lcm xdr.LedgerCloseMeta) error {
 		return nil
@@ -198,7 +198,7 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 
 	// the buffering runs async, test needs to stub datastore methods for potential invocation,
 	// but is race, since test also cancels the backend context which started the buffer,
-	// so, not deterministic, no assert
+	// so, not deterministic, no assert on these.
 	mockDataStore := new(datastore.MockDataStore)
 	mockDataStore.On("GetSchema").Return(datastore.DataStoreSchema{
 		LedgersPerFile:    1,
