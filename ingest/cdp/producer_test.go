@@ -127,6 +127,7 @@ func TestBSBProducerFnConfigError(t *testing.T) {
 	assert.ErrorContains(t,
 		PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback),
 		"failed to create buffered storage backend")
+	mockDataStore.AssertExpectations(t)
 }
 
 func TestBSBProducerFnInvalidRange(t *testing.T) {
@@ -152,6 +153,7 @@ func TestBSBProducerFnInvalidRange(t *testing.T) {
 	assert.ErrorContains(t,
 		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(3), uint32(2)), pubConfig, ctx, appCallback),
 		"invalid end value for bounded range, must be greater than start")
+	mockDataStore.AssertExpectations(t)
 }
 
 func TestBSBProducerFnGetLedgerError(t *testing.T) {
@@ -181,6 +183,8 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 	assert.ErrorContains(t,
 		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
 		"error getting ledger")
+
+	mockDataStore.AssertExpectations(t)
 }
 
 func TestBSBProducerCallerCancelsCtx(t *testing.T) {
@@ -189,7 +193,18 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		DataStoreConfig:       datastore.DataStoreConfig{},
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
-	mockDataStore := createMockdataStore(t, 2, 3, 64000)
+
+	// the buffering runs async, test needs to stub datastore methods for potential invocation,
+	// but is race, since test also cancels the backend context which started the buffer,
+	// so, not deterministic, no assert
+	mockDataStore := new(datastore.MockDataStore)
+	mockDataStore.On("GetSchema").Return(datastore.DataStoreSchema{
+		LedgersPerFile:    1,
+		FilesPerPartition: 1,
+	})
+
+	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFD--2.xdr.zstd").Return(makeSingleLCMBatch(2), nil)
+	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil)
 
 	appCallback := func(lcm xdr.LedgerCloseMeta) error {
 		return nil
@@ -230,7 +245,7 @@ func createMockdataStore(t *testing.T, start, end, partitionSize uint32) *datast
 	partition := partitionSize - 1
 	for i := start; i <= end; i++ {
 		objectName := fmt.Sprintf("FFFFFFFF--0-%d/%08X--%d.xdr.zstd", partition, math.MaxUint32-i, i)
-		mockDataStore.On("GetFile", mock.Anything, objectName).Return(makeSingleLCMBatch(i), nil).Times(1)
+		mockDataStore.On("GetFile", mock.Anything, objectName).Return(makeSingleLCMBatch(i), nil).Once()
 	}
 	mockDataStore.On("GetSchema").Return(datastore.DataStoreSchema{
 		LedgersPerFile:    1,
