@@ -84,7 +84,7 @@ func TestBSBProducerFn(t *testing.T) {
 		return nil
 	}
 
-	assert.Nil(t, PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback))
+	assert.Nil(t, ApplyLedgerMetadata(ledgerRange, pubConfig, ctx, appCallback))
 	assert.Equal(t, expectedLcmSeqWasPublished, []bool{true, true}, "producer fn did not invoke callback for all expected lcm")
 }
 
@@ -105,7 +105,7 @@ func TestBSBProducerFnDataStoreError(t *testing.T) {
 	}
 
 	assert.ErrorContains(t,
-		PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerRange, pubConfig, ctx, appCallback),
 		"failed to create datastore:")
 }
 
@@ -125,7 +125,7 @@ func TestBSBProducerFnConfigError(t *testing.T) {
 		return mockDataStore, nil
 	}
 	assert.ErrorContains(t,
-		PublishFromBufferedStorageBackend(ledgerRange, pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerRange, pubConfig, ctx, appCallback),
 		"failed to create buffered storage backend")
 	mockDataStore.AssertExpectations(t)
 }
@@ -151,7 +151,7 @@ func TestBSBProducerFnInvalidRange(t *testing.T) {
 	}
 
 	assert.ErrorContains(t,
-		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(3), uint32(2)), pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(3), uint32(2)), pubConfig, ctx, appCallback),
 		"invalid end value for bounded range, must be greater than start")
 	mockDataStore.AssertExpectations(t)
 }
@@ -183,7 +183,7 @@ func TestBSBProducerFnGetLedgerError(t *testing.T) {
 		return mockDataStore, nil
 	}
 	assert.ErrorContains(t,
-		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
 		"error getting ledger")
 
 	mockDataStore.AssertExpectations(t)
@@ -218,7 +218,7 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		return mockDataStore, nil
 	}
 	assert.ErrorIs(t,
-		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
 		context.Canceled)
 }
 
@@ -238,7 +238,7 @@ func TestBSBProducerFnCallbackError(t *testing.T) {
 		return mockDataStore, nil
 	}
 	assert.ErrorContains(t,
-		PublishFromBufferedStorageBackend(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
 		"received an error from callback invocation")
 }
 

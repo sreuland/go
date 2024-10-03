@@ -63,8 +63,8 @@ type PublisherConfig struct {
 	Log *log.Entry
 }
 
-// PublishFromBufferedStorageBackend - create an internal instance
-// of BufferedStorageBackend using provided config and emit
+// ApplyLedgerMetadata - creates an internal instance
+// of BufferedStorageBackend using provided config and emits
 // ledger metadata for the requested range by invoking the provided callback
 // once per ledger.
 //
@@ -86,7 +86,7 @@ type PublisherConfig struct {
 // return - error, function only returns if requested range is bounded or an error occured.
 // nil will be returned only if bounded range requested and completed processing with no errors.
 // otherwise return will always be an error.
-func PublishFromBufferedStorageBackend(ledgerRange ledgerbackend.Range,
+func ApplyLedgerMetadata(ledgerRange ledgerbackend.Range,
 	publisherConfig PublisherConfig,
 	ctx context.Context,
 	callback func(xdr.LedgerCloseMeta) error) error {
