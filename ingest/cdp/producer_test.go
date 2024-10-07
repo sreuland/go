@@ -196,6 +196,13 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
 
+	// prevent the ledgerbuffer from being eagerly async loaded initially up to
+	// buffer-size ledgers and the requested test range, forces new load attempt
+	// during GetLedger which is when ctx is checked, test asks for 3 ledger range
+	// since 2 ledgers are by default eagerly loaded.
+	pubConfig.BufferedStorageConfig.BufferSize = 1
+	pubConfig.BufferedStorageConfig.NumWorkers = 1
+
 	// the buffering runs async, test needs to stub datastore methods for potential invocation,
 	// but is race, since test also cancels the backend context which started the buffer,
 	// so, not deterministic, no assert on these.
@@ -218,7 +225,7 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		return mockDataStore, nil
 	}
 	assert.ErrorIs(t,
-		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(4)), pubConfig, ctx, appCallback),
 		context.Canceled)
 }
 
