@@ -207,18 +207,19 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		FilesPerPartition: 1,
 	})
 
-	// artifically stall the ledgerbuffer worker so nothing new arriving on ledgerqueue
-	// context cancellation can be detected
 	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFD--2.xdr.zstd").
-		WaitUntil(time.After(time.Second*1)).
+		Run(func(args mock.Arguments) {
+			cancel()
+		}).
 		Return(makeSingleLCMBatch(2), nil)
+	// this second attempt needs to be mocked, ledger buffer queues this 'next' sequence task automatically
+	// in getFromLedgerQueue after it receives "FFFFFFFD--2.xdr.zstd", the ctx is not checked then or in
+	// the async worker routine that receives the task.
 	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil)
 
 	appCallback := func(lcm xdr.LedgerCloseMeta) error {
 		return nil
 	}
-
-	cancel()
 
 	datastoreFactory = func(_ context.Context, _ datastore.DataStoreConfig) (datastore.DataStore, error) {
 		return mockDataStore, nil
