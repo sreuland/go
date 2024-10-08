@@ -196,11 +196,6 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		BufferedStorageConfig: DefaultBufferedStorageBackendConfig(1),
 	}
 
-	// prevent the ledgerbuffer from being eagerly async loaded initially up to
-	// buffer-size ledgers and the requested test range, forces new load attempt
-	// during GetLedger which is when ctx is checked, test asks for 3 ledger range
-	// since 2 ledgers are by default eagerly loaded.
-	pubConfig.BufferedStorageConfig.BufferSize = 1
 	pubConfig.BufferedStorageConfig.NumWorkers = 1
 
 	// the buffering runs async, test needs to stub datastore methods for potential invocation,
@@ -212,7 +207,11 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		FilesPerPartition: 1,
 	})
 
-	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFD--2.xdr.zstd").Return(makeSingleLCMBatch(2), nil)
+	// artifically stall the ledgerbuffer worker so nothing new arriving on ledgerqueue
+	// context cancellation can be detected
+	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFD--2.xdr.zstd").
+		WaitUntil(time.After(time.Second*1)).
+		Return(makeSingleLCMBatch(2), nil)
 	mockDataStore.On("GetFile", mock.Anything, "FFFFFFFC--3.xdr.zstd").Return(makeSingleLCMBatch(3), nil)
 
 	appCallback := func(lcm xdr.LedgerCloseMeta) error {
@@ -225,7 +224,7 @@ func TestBSBProducerCallerCancelsCtx(t *testing.T) {
 		return mockDataStore, nil
 	}
 	assert.ErrorIs(t,
-		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(4)), pubConfig, ctx, appCallback),
+		ApplyLedgerMetadata(ledgerbackend.BoundedRange(uint32(2), uint32(3)), pubConfig, ctx, appCallback),
 		context.Canceled)
 }
 
