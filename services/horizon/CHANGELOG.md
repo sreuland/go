@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this
 file. This project adheres to [Semantic Versioning](http://semver.org/).
 
 
+- Add `--ledgerbackend` and `--datastore-config` options to `ingest verify-range` command to support CDP datastore backend configuration ([5553](https://github.com/stellar/go/pull/5553)).
+
+
 ## 22.0.3
 
 ### Fixed
